@@ -1,80 +1,97 @@
 # ❤️ AI ECG Analyzer
 
-**AI-Based ECG Signal Quality Assessment & Cardiac Abnormality Detection**
+**Universal AI-Powered Clinical ECG Abnormality Detection & Reporting System**
 
-> ⚠️ **EDUCATIONAL AND RESEARCH PURPOSES ONLY**  
-> This software is intended strictly for educational and scientific research purposes. It is **NOT** a certified medical diagnostic device and must **NOT** be used to make clinical decisions or diagnose medical conditions.
+> ⚠️ **EDUCATIONAL AND SCIENTIFIC RESEARCH USE ONLY**  
+> This software is intended strictly for educational and scientific research purposes. It is **NOT** a certified medical diagnostic device and must **NOT** be used to make clinical decisions, self-diagnose, or replace certified healthcare professional evaluation.
 
 ---
 
 ## 📌 Project Overview
 
-**AI ECG Analyzer** is a bioengineering and computer science research prototype designed to:
-1. **Assess ECG Signal Quality**: Evaluates SNR, baseline wander, 50/60 Hz powerline interference, and motion artifacts (`GOOD`, `ACCEPTABLE`, `POOR`).
-2. **Detect R-Peaks & Segment Beats**: Automatically identifies R-peaks using refractory period validation (≥300 ms) and extracts individual cardiac cycles (-0.2s to +0.4s).
-3. **Extract Morphological & Rhythm Features**: Computes 28 quantitative time-domain, frequency-domain, and R-R interval features.
-4. **Classify Beat Abnormalities**: Distinguishes **Normal beats**, **Premature Ventricular Contractions (PVC)**, and **Other ectopic beats** with an authentic machine learning model.
-5. **Prevent Data Leakage**: Enforces strict patient/record-level train-test splits on the MIT-BIH Arrhythmia Database.
-6. **Interactive Research Dashboard**: Visualizes live waveforms, signal quality metrics, feature importances, and provides direct side-by-side comparison with physician reference annotations.
+**AI ECG Analyzer** is a bioengineering and computer science research platform that unifies clinical ECG report documents, scanned waveform images, and high-frequency digital recordings into an automated, zero-data-fabrication analysis pipeline:
+
+1. **Universal Multi-Format Ingestion**:
+   - **Clinical ECG Documents (`.pdf`)**: Extracts selectable text, patient demographics, and machine-printed clinical measurements (Heart Rate, PR interval, QRS duration, QT/QTc, P-QRS-T axes, and printed interpretation) using `pypdf` without data hallucination.
+   - **Scanned ECG Images (`.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`)**: Automatically isolates grid lines, cleans artifacts, extracts 1D voltage traces via column-wise center-of-mass analysis, and strictly validates continuity.
+   - **Digital Signals (`.csv`, `.txt`, `.npy`)**: Auto-detects delimiters, isolates ECG voltage columns, normalizes sampling frequency, and extracts features.
+   - **MIT-BIH Benchmark Demo Mode**: Instant access to verified expert physician annotations from the MIT-BIH Arrhythmia Database.
+2. **Zero-Hallucination & Clinical Safety Gates**:
+   - Strictly separates **Printed Machine Interpretation (Source Information)** from **AI Model Predictions**.
+   - If an uploaded document or image does not contain an extractable 1D waveform trace of sufficient fidelity, the system presents the extracted printed parameters and halts AI waveform classification with an honest explanation—**never inventing signals or diagnoses**.
+3. **Signal Quality & Preprocessing**:
+   - Median filter baseline removal + 0.5–40 Hz Butterworth bandpass filtering.
+   - Quantitative Signal-to-Noise Ratio (SNR), baseline drift detection, 50/60 Hz powerline interference check, and motion artifact categorization (`GOOD`, `ACCEPTABLE`, `POOR`).
+4. **Beat Segmentation & 28-Feature Extraction**:
+   - Adaptive R-peak detection with physiologically constrained refractory periods (≥300 ms).
+   - Individual cardiac cycle extraction (-0.2s pre-R, +0.4s post-R) and 28 morphological, spectral, and R-R dynamic features.
+5. **Machine Learning Abnormality Classification**:
+   - Classifies **Normal Sinus Beats**, **Premature Ventricular Contractions (PVC)**, and **Other Ectopic Beats** using an authentic Random Forest classifier (100 trees, strict record-level patient split).
+6. **Publication-Grade Multi-Format Reporting**:
+   - **📄 Publication PDF Report**: Formatted clinical research report generated via ReportLab with embedded high-resolution waveform strips, parameter tables, and medical disclaimers.
+   - **📊 Machine-Readable JSON (`.json`)**: Structured export ready for EMR or database integration.
+   - **📝 Clinical Summary Text (`.txt`)**: Formatted plain-text summary.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-                             ECG INPUT
-                                 |
-              +------------------+------------------+
-              |                                     |
-     MIT-BIH Record Selection                 Custom CSV/NPY Upload
-              |                                     |
-              +------------------+------------------+
-                                 |
-                                 v
-                            DATA LOADER
-                                 |
-                                 v
-                           PREPROCESSING
-                 [Median Filter + Butterworth Bandpass]
-                                 |
-                                 v
-                       Z-SCORE NORMALIZATION
-                                 |
-                                 v
-                     SIGNAL QUALITY ASSESSMENT
-                 [SNR, Drift, 50/60Hz, Artifacts]
-                     (GOOD / ACCEPTABLE / POOR)
-                                 |
-                                 v
-                         R-PEAK DETECTION
-                     (Refractory Period ≥ 0.3s)
-                                 |
-                                 v
-                       HEARTBEAT SEGMENTATION
-                        [-0.2s, R-Peak, +0.4s]
-                                 |
-                                 v
-                     FEATURE EXTRACTION (28 Dims)
-         [Time Domain | ECG Morphology | FFT Power | RR Dynamics]
-                                 |
-                                 v
-                        SAVED ML CLASSIFIER
-                        (Random Forest Model)
-                                 |
-              +------------------+------------------+
-              |                  |                  |
-              v                  v                  v
-         Prediction        Probabilities     Feature Importance
-              |                  |                  |
-              +------------------+------------------+
-                                 |
-                                 v
-                        STREAMLIT DASHBOARD
+                                  USER ECG UPLOAD
+                     (PDF • JPG • JPEG • PNG • CSV • TXT • NPY)
+                                       │
+                                       ▼
+                       [src/ecg_input/input_detector.py]
+                           Detects File Modality & Format
+                                       │
+                ┌──────────────────────┴──────────────────────┐
+                ▼                                             ▼
+       [Digital Signal]                             [Report Image / PDF]
+  [src/ecg_input/signal_loader.py]              [image_processor & pdf_processor]
+  • Auto-detects delimiters (CSV/TXT)           • Text/OCR extraction (pypdf & regex)
+  • Identifies voltage vs time cols             • Extracts patient info & machine measurements
+  • Detects / prompts sampling rate             • Grid & trace isolation (cv2)
+                │                                             │
+                │                               ┌─────────────┴─────────────┐
+                │                               ▼                           ▼
+                │                    [Waveform Extractor]          [Printed Measurements Only]
+                │                    • Trace skeletonization       • PR, QRS, QT, QTc, Axes, HR
+                │                    • Calibration detection       • Explicitly labeled as
+                │                    • Validation gate:             "Machine Interpretation"
+                │                      (If low confidence ->         (Not AI diagnosis)
+                │                       Prompt digital file)
+                └───────────────────────┬───────────────────────────────────┘
+                                        ▼
+                             [Unified ECG Ingestion]
+                   (Validated 1D voltage series or Structured Metadata)
+                                        │
+                                        ▼
+                          [Signal Quality Assessment]
+                       (GOOD / ACCEPTABLE / POOR Gatekeeper)
+                                        │
+                                        ▼
+                       [Existing Preprocessing Pipeline]
+                       (Median Filter + Butterworth Bandpass)
+                                        │
+                                        ▼
+                         [Existing Detection & Features]
+                     (R-Peaks, Beat Windows, 28 Measurements)
+                                        │
+                                        ▼
+                         [Trained Random Forest Model]
+                   (Normal / PVC / Other Class Probabilities)
+                                        │
+                                        ▼
+                         [src/report/report_generator.py]
+                          [src/report/pdf_generator.py]
+             • Professional On-Screen Dashboard with Progress Steps
+             • Downloadable Research PDF Report (ReportLab)
+             • Downloadable JSON & Plain-Text Summaries
 ```
 
 ---
 
-## 📊 Actual Machine Learning Results
+## 📊 Actual Machine Learning Performance
 
 Models were trained and evaluated using a **strict record-level split** (no patient overlap):
 - **Training Records**: `100`, `106`, `200`, `213` (10,152 heartbeats)
@@ -90,25 +107,18 @@ Models were trained and evaluated using a **strict record-level split** (no pati
 | **PVC Beat F1-Score** | **96.6%** (Support: 1,809) | 92.6% |
 | **Macro F1-Score** | **65.07%** | 66.61% |
 
-### Top Random Forest Feature Importances
-1. `local_rr_ratio` (0.2169) — Ratio of preceding RR to local mean RR
-2. `pre_rr` (0.1339) — Preceding RR interval in seconds
-3. `autocorr_first_peak` (0.1226) — Waveform autocorrelation
-4. `spectral_entropy` (0.0690) — Energy distribution across frequency spectrum
-5. `max_power` (0.0630) — Peak spectral power density
-
 ---
 
 ## 🛠️ Technology Stack
 
 - **Language**: Python 3.11+
-- **Signal Processing**: SciPy, NumPy
-- **Physiological Data Access**: WFDB (PhysioNet)
+- **Signal Processing**: SciPy, NumPy, OpenCV (`cv2`)
+- **Document & PDF Processing**: `pypdf`, `reportlab`, `pillow`
 - **Machine Learning**: Scikit-learn, Joblib
 - **Data Analysis**: Pandas
-- **Visualization**: Plotly, Matplotlib
+- **Visualization**: Plotly Express, Plotly Graph Objects, Matplotlib
 - **Web Interface**: Streamlit
-- **Testing**: Pytest
+- **Testing**: Pytest (43 automated tests)
 
 ---
 
@@ -116,8 +126,8 @@ Models were trained and evaluated using a **strict record-level split** (no pati
 
 ### 1. Clone or Open the Repository
 ```bash
-git clone https://github.com/yourusername/AI-ECG-Analyzer.git
-cd AI-ECG-Analyzer
+git clone https://github.com/ANIKETCHAND/ECG-.git
+cd ECG-
 ```
 
 ### 2. Set Up Virtual Environment (Recommended)
@@ -136,38 +146,26 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
-
-## ⚙️ Workflow Execution
-
-### Step 1: Prepare Dataset (Record-Level Split)
-Downloads and extracts features from MIT-BIH records with zero data leakage:
+### 4. Run Automated Test Suite
+Verify that all 43 tests pass across input detection, PDF parsing, image processing, waveform extraction, model prediction, and report generation:
 ```bash
-python training/train_test_split.py --train-records 100 106 200 213 --test-records 101 119 208
+python -m pytest tests/ -v
 ```
 
-### Step 2: Train Machine Learning Models
-Trains Random Forest and baseline Logistic Regression models, saving weights and metadata:
-```bash
-python training/train_model.py
-```
-
-### Step 3: Evaluate on Unseen Patients
-Computes metrics, confusion matrices, and feature importance plots:
-```bash
-python training/evaluate_model.py
-```
-
-### Step 4: Run Unit Tests
-Verifies preprocessing, peak detection, segmentation, feature extraction, and prediction:
-```bash
-python -m pytest -v
-```
-
-### Step 5: Launch Interactive Streamlit Dashboard
+### 5. Launch the Streamlit App
 ```bash
 streamlit run app.py
 ```
+Open your browser at `http://localhost:8501`.
+
+---
+
+## 💡 Testing with Sample Files
+
+The repository includes ready-to-use sample ECG files in `sample_ecgs/`:
+- `sample_clinical_ecg_report.pdf`: A complete 12-lead clinical ECG report PDF with printed measurements.
+- `normal_ecg_sample.csv`: Digital single-lead ECG recording showing Normal Sinus Rhythm.
+- `pvc_arrhythmia_sample.csv`: Digital single-lead ECG recording demonstrating Premature Ventricular Contractions.
 
 ---
 
@@ -175,21 +173,43 @@ streamlit run app.py
 
 ```text
 AI-ECG-Analyzer/
-│
-├── app.py                         # Interactive Streamlit dashboard
-├── requirements.txt               # Project dependencies
-├── README.md                      # Project overview and instructions
+├── app.py                         # Upgraded interactive Streamlit dashboard
+├── requirements.txt               # Dependencies including pypdf, reportlab, opencv
+├── README.md                      # Comprehensive project guide
 ├── PROJECT_DOCUMENTATION.md      # Detailed 16-chapter technical documentation
-├── test_system.py                 # Multi-record end-to-end integration test
-├── .gitignore                     # Git ignore file
 │
-├── data/
-│   ├── raw/                       # MIT-BIH records (.dat, .hea, .atr)
-│   └── processed/
-│       ├── train_dataset.csv      # Training beats (records 100, 106, 200, 213)
-│       ├── test_dataset.csv       # Testing beats (records 101, 119, 208)
-│       ├── split_info.json        # Patient-level partition metadata
-│       └── dataset_info.json      # Dataset summary and feature list
+├── sample_ecgs/                   # Ready-to-test clinical sample files
+│   ├── sample_clinical_ecg_report.pdf
+│   ├── normal_ecg_sample.csv
+│   └── pvc_arrhythmia_sample.csv
+│
+├── src/
+│   ├── __init__.py
+│   ├── data_loader.py             # MIT-BIH record loader via WFDB
+│   ├── preprocessing.py          # Median filter, bandpass, Z-score normalization
+│   ├── signal_quality.py         # Quantitative SNR and artifact assessment
+│   ├── peak_detection.py         # Adaptive R-peak detection (refractory period)
+│   ├── segmentation.py           # Beat window extraction (-0.2s to +0.4s)
+│   ├── feature_extraction.py     # 28 time, frequency, and RR rhythm features
+│   ├── label_mapping.py          # AAMI / 3-class standardized symbol mapping
+│   ├── prediction.py             # End-to-end inference pipeline
+│   ├── evaluation.py             # Metric computation and confusion matrices
+│   ├── visualization.py          # Plotly waveform and probability visualizers
+│   │
+│   ├── ecg_input/                 # Unified Multi-Format Ingestion System
+│   │   ├── __init__.py
+│   │   ├── input_detector.py      # Format & modality detector
+│   │   ├── signal_loader.py       # Universal CSV/TXT/NPY signal loader
+│   │   ├── pdf_processor.py       # pypdf text & metadata extraction
+│   │   ├── image_processor.py     # OpenCV grid isolation & trace preprocessing
+│   │   ├── measurement_extractor.py # Clinical measurement regex parser
+│   │   ├── waveform_extractor.py  # 1D waveform trace extractor
+│   │   └── extraction_validation.py # Anti-hallucination validation gate
+│   │
+│   └── report/                    # Multi-Format Professional Reporting
+│       ├── __init__.py
+│       ├── report_generator.py    # Structured report compiler & JSON/TXT export
+│       └── pdf_generator.py       # Publication-grade ReportLab PDF generator
 │
 ├── models/
 │   ├── classifier.pkl             # Trained Random Forest classifier
@@ -197,39 +217,21 @@ AI-ECG-Analyzer/
 │   ├── scaler.pkl                 # StandardScaler fitted on train set only
 │   └── metadata.json              # Model configuration and feature importances
 │
-├── src/
-│   ├── __init__.py
-│   ├── data_loader.py             # MIT-BIH record loading via WFDB
-│   ├── preprocessing.py          # Median filter, bandpass, Z-score normalization
-│   ├── signal_quality.py         # Quantitative SNR and artifact assessment
-│   ├── peak_detection.py         # SciPy-based adaptive R-peak detection
-│   ├── segmentation.py           # Beat window extraction (-0.2s to +0.4s)
-│   ├── feature_extraction.py     # 28 time, frequency, and RR rhythm features
-│   ├── label_mapping.py          # AAMI / 3-class standardized symbol mapping
-│   ├── prediction.py             # End-to-end inference pipeline
-│   ├── evaluation.py             # Metric computation and confusion matrices
-│   └── visualization.py          # Plotly waveform and probability visualizers
-│
-├── training/
-│   ├── prepare_dataset.py        # Dataset ingestion pipeline
-│   ├── train_test_split.py       # Patient-level train/test separation
-│   ├── train_model.py            # Model training & artifact serialization
-│   └── evaluate_model.py         # Evaluation and report generation
-│
-├── reports/
-│   ├── evaluation_report.json    # Genuine metric report
-│   └── figures/
-│       ├── confusion_matrix.png
-│       ├── confusion_matrix_baseline.png
-│       ├── class_distribution.png
-│       └── feature_importance.png
+├── data/
+│   ├── raw/                       # MIT-BIH records (.dat, .hea, .atr)
+│   └── processed/                 # Train/test datasets with zero leakage
 │
 └── tests/
-    ├── test_preprocessing.py     # Preprocessing stability and filtering tests
-    ├── test_peak_detection.py     # R-peak detection & refractory period tests
-    ├── test_segmentation.py       # Beat segmentation and padding tests
-    ├── test_features.py           # Feature calculation and robustness tests
-    └── test_prediction.py         # End-to-end pipeline and edge-case tests
+    ├── test_preprocessing.py      # Signal filtering tests
+    ├── test_peak_detection.py     # R-peak detection tests
+    ├── test_segmentation.py       # Beat segmentation tests
+    ├── test_features.py           # Feature calculation tests
+    ├── test_prediction.py         # End-to-end ML prediction tests
+    ├── test_input_detection.py    # Multi-format detection tests
+    ├── test_pdf_processing.py     # Clinical PDF extraction tests
+    ├── test_image_processing.py   # OpenCV image tests
+    ├── test_waveform_extraction.py # Anti-hallucination validation tests
+    └── test_report_generation.py  # PDF/JSON/TXT export tests
 ```
 
 ---

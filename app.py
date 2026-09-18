@@ -1,20 +1,26 @@
 """
-AI ECG Analyzer - Interactive Streamlit Dashboard
-==================================================
+AI ECG Analyzer - Universal Clinical Research & Educational Dashboard
+======================================================================
 
-Phase 16: Clinical Research & Educational Dashboard for:
-1. ECG Preprocessing & Signal Quality Assessment
-2. R-Peak Detection & Heartbeat Segmentation
-3. Machine Learning Abnormality Classification (Normal vs PVC vs Other)
-4. Feature Importance & Model Transparency
-5. Research Demo Mode with Expert MIT-BIH Ground Truth Annotations
+Features:
+1. Universal ECG Ingestion: PDF clinical reports, scanned report images (JPG/PNG), digital waveforms (CSV/TXT/NPY).
+2. Multi-step Progress Tracking & Transparency.
+3. Preprocessing, Noise Filtering & Signal Quality Assessment.
+4. R-Peak Detection & Cardiac Cycle Segmentation.
+5. Machine Learning Arrhythmia Classification (Normal vs PVC vs Other).
+6. Clear Separation of Printed Machine Interpretation vs AI Predictions (Zero Hallucination).
+7. Publication-Grade Multi-Format Reporting (PDF, JSON, TXT).
+8. Research Demo Mode with MIT-BIH Ground Truth Validation.
 
-Research/Educational use only. Not for medical diagnosis.
+Research/Educational use only. Not for certified medical diagnosis.
 """
 
+import io
 import json
 import sys
+import time
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -23,8 +29,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # Setup system path
-SRC_DIR = Path(__file__).parent / "src"
-sys.path.insert(0, str(SRC_DIR))
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from data_loader import get_available_records, load_annotations, load_record
 from label_mapping import map_symbol_to_class
@@ -36,29 +43,97 @@ from visualization import (
     plot_prediction_probabilities,
 )
 
+# Ingestion and Report Modules
+from ecg_input import (
+    InputModality,
+    detect_input_modality,
+    load_digital_signal,
+    STANDARD_SAMPLING_RATES,
+    extract_report_measurements,
+    process_pdf_report,
+    process_ecg_image,
+    extract_waveform_from_image,
+    validate_extracted_signal,
+)
+from report import (
+    generate_structured_report,
+    export_report_to_text,
+    export_report_to_json,
+    generate_pdf_report,
+)
+
 # Page configuration
 st.set_page_config(
-    page_title="AI ECG Analyzer",
+    page_title="AI ECG Analyzer — Universal Clinical & Research System",
     page_icon="❤️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-DATA_RAW_DIR = Path(__file__).parent / "data" / "raw"
-MODELS_DIR = Path(__file__).parent / "models"
-REPORTS_DIR = Path(__file__).parent / "reports"
+# Custom Styling
+st.markdown(
+    """
+    <style>
+    .main-header {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.2rem;
+    }
+    .sub-header {
+        font-size: 1.05rem;
+        color: #475569;
+        margin-bottom: 1.2rem;
+    }
+    .metric-card {
+        background-color: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+    .badge-normal {
+        background-color: #DEF7EC;
+        color: #03543F;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    .badge-abnormal {
+        background-color: #FDE8E8;
+        color: #9B1C1C;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    .badge-warning {
+        background-color: #FEF08A;
+        color: #854D0E;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+DATA_RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
+MODELS_DIR = Path(__file__).resolve().parent / "models"
+REPORTS_DIR = Path(__file__).resolve().parent / "reports"
+SAMPLE_ECGS_DIR = Path(__file__).resolve().parent / "sample_ecgs"
 
 # ---------------------------------------------------------
-# Sidebar
+# Sidebar Configuration
 # ---------------------------------------------------------
 st.sidebar.title("❤️ AI ECG Analyzer")
-st.sidebar.markdown("**Bioengineering + CSE Educational Prototype**")
+st.sidebar.markdown("**Universal Multi-Format Ingestion System**")
 st.sidebar.divider()
 
-# Mode selection
-input_source = st.sidebar.radio(
-    "Select ECG Input Source",
-    options=["Demo Record (MIT-BIH)", "Upload Custom ECG Signal (.csv / .npy)"],
+# Input Mode Selection
+input_source_mode = st.sidebar.radio(
+    "Choose Input Source",
+    options=["Upload Patient ECG File", "MIT-BIH Research Demo Mode"],
     index=0,
 )
 
@@ -69,7 +144,39 @@ if not available_records:
 selected_record = None
 uploaded_file = None
 
-if input_source == "Demo Record (MIT-BIH)":
+if input_source_mode == "Upload Patient ECG File":
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
+        type=["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "csv", "txt", "npy"],
+        help="Upload standard clinical ECG report documents (PDF), scanned waveforms (JPG/PNG), or digital signals (CSV/TXT/NPY).",
+    )
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("**💡 Quick Test Samples Available:**")
+    st.sidebar.caption(
+        "You can test the system with files in the `sample_ecgs/` folder:\n"
+        "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
+        "- `normal_ecg_sample.csv` (Sinus rhythm digital signal)\n"
+        "- `pvc_arrhythmia_sample.csv` (Frequent PVC digital signal)"
+    )
+
+    sampling_rate_setting = st.sidebar.selectbox(
+        "Digital Signal Sampling Rate (Hz)",
+        options=STANDARD_SAMPLING_RATES,
+        index=2,  # 360 Hz
+        help="Used when uploading digital CSV/TXT signals without an explicit time column. Default is 360 Hz.",
+    )
+    analysis_duration_sec = st.sidebar.slider(
+        "Analysis Duration Window (s)",
+        min_value=3,
+        max_value=30,
+        value=10,
+        step=1,
+    )
+    start_offset_sec = 0.0
+
+else:
+    # MIT-BIH Demo Mode
     record_descriptions = {
         "100": "Record 100 (Normal Sinus Rhythm)",
         "101": "Record 101 (Normal Rhythm / Baseline)",
@@ -81,377 +188,601 @@ if input_source == "Demo Record (MIT-BIH)":
     }
     record_options = [r for r in available_records if r in record_descriptions] or available_records
     selected_record = st.sidebar.selectbox(
-        "Select MIT-BIH ECG Record",
+        "Select MIT-BIH Benchmark Record",
         options=record_options,
         format_func=lambda x: record_descriptions.get(x, f"Record {x}"),
     )
-else:
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload 1D ECG Signal (.csv or .npy)",
-        type=["csv", "npy", "txt"],
+    sampling_rate_setting = 360
+    start_offset_sec = st.sidebar.slider(
+        "Start Offset (seconds)",
+        min_value=0,
+        max_value=120,
+        value=0,
+        step=1,
+    )
+    analysis_duration_sec = st.sidebar.slider(
+        "Analysis Window Duration (seconds)",
+        min_value=2,
+        max_value=30,
+        value=10,
+        step=1,
     )
 
 st.sidebar.divider()
-st.sidebar.subheader("⚙️ Signal & Analysis Settings")
-
-sampling_rate = st.sidebar.number_input(
-    "Sampling Rate (Hz)",
-    min_value=50,
-    max_value=1000,
-    value=360,
-    step=10,
-    help="MIT-BIH recordings are sampled at 360 Hz.",
-)
-
-start_offset_sec = st.sidebar.slider(
-    "Signal Start Offset (seconds)",
-    min_value=0,
-    max_value=120,
-    value=0,
-    step=1,
-)
-
-analysis_duration_sec = st.sidebar.slider(
-    "Analysis Window Duration (seconds)",
-    min_value=2,
-    max_value=30,
-    value=10,
-    step=1,
-)
-
-st.sidebar.divider()
 st.sidebar.info(
-    "⚠️ **Educational & Research Notice**\n"
-    "This software is developed strictly for educational and scientific research purposes. "
-    "It is NOT a certified medical diagnostic device."
+    "⚠️ **Educational & Research Notice**\n\n"
+    "This platform is developed strictly for educational and scientific research purposes. "
+    "It is **not** a certified clinical diagnostic medical device."
 )
 
 # ---------------------------------------------------------
-# Load Signal
+# Main Page Header & Banner
 # ---------------------------------------------------------
-signal_data = None
-reference_annotations = None
-record_meta_info = {}
+st.markdown('<div class="main-header">❤️ AI ECG Abnormality Detection & Reporting</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="sub-header">Universal multi-format clinical ECG analysis, zero-hallucination validation, and instant publication-grade reporting.</div>',
+    unsafe_allow_html=True,
+)
 
-if input_source == "Demo Record (MIT-BIH)" and selected_record:
+st.warning(
+    "🛡️ **Clinical Disclaimer:** This system provides automated research screening analysis. "
+    "It does not replace certified physician evaluation or emergency cardiovascular care. "
+    "If you are experiencing chest pain, palpitations, or shortness of breath, please seek emergency medical attention immediately."
+)
+
+# ---------------------------------------------------------
+# State Variables
+# ---------------------------------------------------------
+signal_data: Optional[np.ndarray] = None
+sampling_rate: float = float(sampling_rate_setting)
+reference_annotations: Optional[pd.DataFrame] = None
+input_info: Dict[str, Any] = {}
+extracted_measurements: Optional[Dict[str, Any]] = None
+waveform_status: Dict[str, Any] = {"is_extracted": False, "message": "No waveform processed"}
+ai_results: Optional[Dict[str, Any]] = None
+
+# ---------------------------------------------------------
+# Execution / Loading Logic
+# ---------------------------------------------------------
+if input_source_mode == "Upload Patient ECG File":
+    if uploaded_file is None:
+        st.info("👈 **Get Started:** Drag and drop an ECG file (PDF, JPG, PNG, CSV, TXT, NPY) in the sidebar to begin instant analysis.")
+        
+        # Display sample cards
+        st.markdown("### 📋 Supported Upload Formats & Workflows")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(
+                """
+                **📄 Clinical ECG Reports (PDF)**
+                - Extracts printed text & machine measurements (HR, PR, QRS, QT/QTc, Axes).
+                - Identifies machine interpretations directly from source.
+                - Analyzes rhythm strip if embedded without fabricating missing data.
+                """
+            )
+        with c2:
+            st.markdown(
+                """
+                **📈 Scanned ECG Images (JPG/PNG)**
+                - Color segmentation to eliminate pink/red ECG grid lines.
+                - Column-wise trace extraction with continuity verification.
+                - Rigorous validation gate rejects occluded/flat traces.
+                """
+            )
+        with c3:
+            st.markdown(
+                """
+                **📊 Digital Signal Files (CSV/TXT/NPY)**
+                - Auto-detects delimiters (comma, tab, space, semicolon).
+                - Isolates voltage columns and normalizes sampling rate.
+                - Full 28-feature extraction & Random Forest classification.
+                """
+            )
+        st.stop()
+
+    # We have an uploaded file! Execute the 6-step progress pipeline
+    file_name = uploaded_file.name
+    file_bytes = uploaded_file.getvalue()
+    modality, ext = detect_input_modality(file_name, file_bytes=file_bytes)
+
+    # Multi-step progress container
+    progress_box = st.container()
+    with progress_box:
+        progress_bar = st.progress(0, text="STEP 1/6: Detecting File Modality & Format...")
+        time.sleep(0.1)
+
+    input_info = {
+        "file_name": file_name,
+        "file_modality": modality.value,
+        "format": ext,
+        "sampling_rate": sampling_rate,
+        "duration_sec": analysis_duration_sec,
+        "lead": "Lead II (or available single channel)",
+    }
+
+    # Process based on modality
+    if modality == InputModality.DIGITAL_SIGNAL:
+        progress_bar.progress(30, text="STEP 2/6: Reading & Parsing Digital ECG Signal...")
+        sig_res = load_digital_signal(
+            uploaded_file,
+            sampling_rate_hint=sampling_rate,
+            max_duration_sec=analysis_duration_sec,
+        )
+        if not sig_res["success"]:
+            progress_box.empty()
+            st.error(f"❌ Could not load digital signal: {sig_res['message']}")
+            st.stop()
+
+        signal_data = sig_res["signal"]
+        sampling_rate = float(sig_res["sampling_rate"])
+        input_info["sampling_rate"] = sampling_rate
+        input_info["total_samples"] = len(signal_data)
+        input_info["duration_sec"] = round(len(signal_data) / sampling_rate, 2)
+        waveform_status = {"is_extracted": False, "message": "Direct digital signal ingestion."}
+
+    elif modality == InputModality.REPORT_PDF:
+        progress_bar.progress(30, text="STEP 2/6: Parsing PDF Text & Clinical Measurements...")
+        pdf_res = process_pdf_report(io.BytesIO(file_bytes))
+        extracted_measurements = pdf_res.get("measurements", {})
+
+        # Check for embedded waveform images
+        if pdf_res.get("has_embedded_images") and len(pdf_res["images"]) > 0:
+            progress_bar.progress(45, text="Extracting Waveform from PDF Image Strip...")
+            first_img = pdf_res["images"][0]
+            img_res = process_ecg_image(first_img)
+            if img_res["is_ecg"]:
+                wf_res = extract_waveform_from_image(img_res["cv_image"], target_fs=360.0)
+                if wf_res["success"] and wf_res["signal"] is not None:
+                    is_valid, v_msg = validate_extracted_signal(
+                        wf_res["signal"], fs=wf_res["sampling_rate"], confidence_score=wf_res["confidence_score"]
+                    )
+                    if is_valid:
+                        signal_data = wf_res["signal"]
+                        sampling_rate = wf_res["sampling_rate"]
+                        waveform_status = {"is_extracted": True, "message": "Extracted from embedded PDF strip."}
+                    else:
+                        waveform_status = {"is_extracted": False, "message": v_msg}
+                else:
+                    waveform_status = {"is_extracted": False, "message": wf_res.get("message", "Waveform could not be isolated.")}
+        else:
+            waveform_status = {
+                "is_extracted": False,
+                "message": (
+                    "This PDF contains printed clinical parameters and text, but no extractable raw waveform strip. "
+                    "Displaying printed machine interpretation and extracted cardiac measurements."
+                ),
+            }
+
+    elif modality == InputModality.REPORT_IMAGE:
+        progress_bar.progress(30, text="STEP 2/6: Preprocessing Image & Detecting ECG Grid...")
+        img_res = process_ecg_image(io.BytesIO(file_bytes))
+        if not img_res["is_ecg"]:
+            progress_box.empty()
+            st.error(f"❌ Image Error: {img_res['status_message']}")
+            st.stop()
+
+        progress_bar.progress(50, text="STEP 3/6: Extracting Waveform Trace via Color Isolation...")
+        wf_res = extract_waveform_from_image(img_res["cv_image"], target_fs=360.0)
+        if wf_res["success"] and wf_res["signal"] is not None:
+            is_valid, v_msg = validate_extracted_signal(
+                wf_res["signal"], fs=wf_res["sampling_rate"], confidence_score=wf_res["confidence_score"]
+            )
+            if is_valid:
+                signal_data = wf_res["signal"]
+                sampling_rate = wf_res["sampling_rate"]
+                waveform_status = {
+                    "is_extracted": True,
+                    "confidence": wf_res["confidence_score"],
+                    "message": "Waveform successfully extracted and verified from image.",
+                }
+            else:
+                waveform_status = {"is_extracted": False, "message": v_msg}
+        else:
+            waveform_status = {"is_extracted": False, "message": wf_res.get("message", "Waveform extraction failed.")}
+
+    else:
+        progress_box.empty()
+        st.error(f"❌ Unsupported file format `{ext}`. Supported formats are PDF, JPG, JPEG, PNG, BMP, TIFF, CSV, TXT, NPY.")
+        st.stop()
+
+    # Step 3, 4, 5: Model Inference (only if signal_data is present and verified)
+    if signal_data is not None and len(signal_data) > 0:
+        progress_bar.progress(65, text="STEP 3/6: Filtering Signal & Assessing Noise Quality...")
+        time.sleep(0.05)
+        progress_bar.progress(80, text="STEP 4/6: Detecting R-Peaks & Segmenting Heartbeats...")
+        time.sleep(0.05)
+        progress_bar.progress(90, text="STEP 5/6: Running Random Forest AI Classification...")
+
+        try:
+            ai_results = predict_ecg(signal_data, fs=sampling_rate, models_dir=MODELS_DIR)
+        except Exception as exc:
+            st.warning(f"AI classification encountered an issue: {exc}")
+    else:
+        # No signal available or validation rejected
+        progress_bar.progress(90, text="Synthesizing Structured Clinical Parameters...")
+
+    progress_bar.progress(100, text="STEP 6/6: Assembling Comprehensive Clinical Report...")
+    time.sleep(0.1)
+    progress_box.empty()
+
+else:
+    # MIT-BIH Demo Record Mode
     try:
         raw_full, fs_rec, total_samples = load_record(selected_record, DATA_RAW_DIR)
         start_samp = int(start_offset_sec * fs_rec)
         end_samp = min(len(raw_full), int((start_offset_sec + analysis_duration_sec) * fs_rec))
         signal_data = raw_full[start_samp:end_samp]
-        sampling_rate = fs_rec
+        sampling_rate = float(fs_rec)
 
-        # Load expert annotations for demo comparison
         ann_df = load_annotations(selected_record, DATA_RAW_DIR)
         ref_mask = (ann_df["sample_index"] >= start_samp) & (ann_df["sample_index"] < end_samp)
         reference_annotations = ann_df[ref_mask].copy()
         reference_annotations["sample_relative"] = reference_annotations["sample_index"] - start_samp
         reference_annotations["time_sec"] = reference_annotations["sample_relative"] / fs_rec
 
-        record_meta_info = {
-            "Record ID": selected_record,
-            "Total Record Duration": f"{total_samples / fs_rec:.1f} s",
-            "Analyzed Window": f"{start_offset_sec:.1f}s – {start_offset_sec + analysis_duration_sec:.1f}s",
-            "Sampling Rate": f"{fs_rec} Hz",
+        input_info = {
+            "file_name": f"MIT-BIH Record {selected_record}",
+            "file_modality": "BENCHMARK_DEMO",
+            "format": "MIT-BIH wfdb",
+            "sampling_rate": sampling_rate,
+            "duration_sec": analysis_duration_sec,
+            "total_samples": len(signal_data),
+            "lead": "Modified Lead II (MLII)",
         }
+        waveform_status = {"is_extracted": False, "message": "MIT-BIH Benchmark Database Record"}
+
+        with st.spinner("Analyzing MIT-BIH Benchmark Signal..."):
+            ai_results = predict_ecg(signal_data, fs=sampling_rate, models_dir=MODELS_DIR)
+
     except Exception as exc:
         st.error(f"Error loading record {selected_record}: {exc}")
-
-elif uploaded_file is not None:
-    try:
-        if uploaded_file.name.endswith(".npy"):
-            signal_data = np.load(uploaded_file).flatten()
-        elif uploaded_file.name.endswith(".csv") or uploaded_file.name.endswith(".txt"):
-            df_up = pd.read_csv(uploaded_file, header=None)
-            # Find first numeric column
-            signal_data = df_up.iloc[:, 0].dropna().values.astype(float)
-
-        max_samples = int(analysis_duration_sec * sampling_rate)
-        signal_data = signal_data[:max_samples]
-        record_meta_info = {
-            "File Name": uploaded_file.name,
-            "Analyzed Samples": len(signal_data),
-            "Sampling Rate": f"{sampling_rate} Hz",
-        }
-    except Exception as exc:
-        st.error(f"Error parsing uploaded file: {exc}")
-
-# ---------------------------------------------------------
-# Main Page Header
-# ---------------------------------------------------------
-st.title("❤️ AI ECG Analyzer")
-st.markdown(
-    "#### Real-Time ECG Signal Quality Assessment & Cardiac Abnormality Detection"
-)
-
-st.warning(
-    "**Disclaimer:** This application is intended for **educational and research purposes only**. "
-    "It is not a certified medical diagnostic device and must not be used to make medical decisions or clinical diagnoses."
-)
-
-if signal_data is None or len(signal_data) == 0:
-    st.info("👈 Please select a demo record or upload an ECG recording from the sidebar to begin analysis.")
-    st.stop()
-
-# Run Prediction Pipeline
-with st.spinner("Analyzing ECG Signal (Preprocessing, Peak Detection, Feature Extraction, Model Inference)..."):
-    try:
-        results = predict_ecg(signal_data, fs=sampling_rate, models_dir=MODELS_DIR)
-    except Exception as e:
-        st.error(f"Pipeline error: {e}")
         st.stop()
 
+
 # ---------------------------------------------------------
-# TOP METRIC BAR
+# Compile Report Data
 # ---------------------------------------------------------
+report_data = generate_structured_report(
+    input_info=input_info,
+    ai_results=ai_results,
+    extracted_measurements=extracted_measurements,
+    waveform_status=waveform_status,
+)
+
+
+# ---------------------------------------------------------
+# TOP OVERVIEW METRIC CARDS
+# ---------------------------------------------------------
+st.markdown("### 📊 Rapid Clinical Overview")
+
 col1, col2, col3, col4, col5 = st.columns(5)
 
-pred_label = results["predicted_class"]
-is_abnormal = "PVC" in pred_label or "Other" in pred_label
-
+# 1. Pattern Metric
 with col1:
-    st.metric(
-        label="Predicted Pattern",
-        value=results["predicted_class"].split("(")[0].strip(),
-        delta="Abnormal Pattern" if is_abnormal else "Normal Rhythm",
-        delta_color="inverse" if is_abnormal else "normal",
-    )
-
-with col2:
-    q_label = results["signal_quality"]
-    st.metric(
-        label="Signal Quality",
-        value=q_label,
-        delta=f"Score: {results['quality_score']:.2f}",
-        delta_color="normal" if q_label == "GOOD" else ("off" if q_label == "ACCEPTABLE" else "inverse"),
-    )
-
-with col3:
-    st.metric(
-        label="Estimated Heart Rate",
-        value=f"{results['heart_rate_bpm']:.1f} BPM",
-        help="Calculated from detected R-R intervals.",
-    )
-
-with col4:
-    st.metric(
-        label="Mean R-R Interval",
-        value=f"{results['mean_rr_sec']:.3f} s",
-        help="Average duration between consecutive heartbeats.",
-    )
-
-with col5:
-    st.metric(
-        label="Detected Beats",
-        value=f"{results['beat_count']} beats",
-        help="Number of cardiac cycles detected in current window.",
-    )
-
-st.divider()
-
-# ---------------------------------------------------------
-# SECTION 1: ECG SIGNAL VISUALIZATION
-# ---------------------------------------------------------
-st.subheader("1. ECG Waveform & R-Peak Detection")
-
-show_raw = st.checkbox("Overlay Raw Unfiltered Signal", value=False)
-fig_waveform = plot_ecg_signal(
-    signal=results["processed_signal"],
-    fs=sampling_rate,
-    r_peaks=np.array(results["detected_peaks"]),
-    raw_signal=results["raw_signal"] if show_raw else None,
-    title=f"Preprocessed ECG Waveform with Detected R-Peaks ({analysis_duration_sec}s Window)",
-    max_duration_sec=analysis_duration_sec,
-    start_sec=0.0,
-)
-st.plotly_chart(fig_waveform, use_container_width=True)
-
-# ---------------------------------------------------------
-# SECTION 2 & 3: SIGNAL QUALITY & AI PREDICTION
-# ---------------------------------------------------------
-c_left, c_right = st.columns([1, 1])
-
-with c_left:
-    st.subheader("2. Signal Quality Assessment")
-    q_indicators = results.get("quality_indicators", {})
-
-    st.write(f"**Overall Quality Category:** `{results['signal_quality']}` (Confidence Score: `{results['quality_score']:.2f}` / 1.00)")
-
-    q_df = pd.DataFrame(
-        [
-            {"Metric": "Signal-to-Noise Ratio (SNR)", "Measured Value": f"{q_indicators.get('snr_db', 0):.2f} dB", "Status": "Optimal" if q_indicators.get('snr_db', 0) > 15 else "Degraded"},
-            {"Metric": "Baseline Drift Detected", "Measured Value": str(q_indicators.get('baseline_wander', False)), "Status": "Warning" if q_indicators.get('baseline_wander') else "Normal"},
-            {"Metric": "Low-Freq Power (<2 Hz)", "Measured Value": f"{q_indicators.get('lf_power', 0):.4f}", "Status": "Acceptable"},
-            {"Metric": "Powerline Interference (50/60 Hz)", "Measured Value": str(q_indicators.get('has_powerline_interference', False)), "Status": "Present" if q_indicators.get('has_powerline_interference') else "Clean"},
-            {"Metric": "Motion Artifacts Ratio", "Measured Value": f"{q_indicators.get('artifact_outlier_ratio', 0)*100:.1f}%", "Status": "Elevated" if q_indicators.get('has_motion_artifacts') else "Minimal"},
-        ]
-    )
-    st.table(q_df)
-
-with c_right:
-    st.subheader("3. AI Abnormality Prediction")
-    st.write(f"**Primary Classification:** `{results['predicted_class']}`")
-
-    fig_prob = plot_prediction_probabilities(
-        results["probabilities"],
-        predicted_class="PVC" if "PVC" in results["predicted_class"] else ("Normal" if "Normal" in results["predicted_class"] else "Other"),
-    )
-    st.plotly_chart(fig_prob, use_container_width=True)
-
-    counts = results.get("class_counts", {})
-    st.write("**Beat-by-Beat Class Breakdown:**")
-    st.write(f"- 🟢 **Normal Beats:** {counts.get('Normal', 0)} ({counts.get('Normal', 0) / max(1, results['beat_count']) * 100:.1f}%)")
-    st.write(f"- 🔴 **Ventricular Ectopy (PVC):** {counts.get('PVC', 0)} ({counts.get('PVC', 0) / max(1, results['beat_count']) * 100:.1f}%)")
-    st.write(f"- 🟡 **Other Abnormal/Escape Beats:** {counts.get('Other', 0)} ({counts.get('Other', 0) / max(1, results['beat_count']) * 100:.1f}%)")
-
-st.divider()
-
-# ---------------------------------------------------------
-# SECTION 4 & 5: BEAT SEGMENTATION & EXTRACTED FEATURES
-# ---------------------------------------------------------
-c_seg, c_feat = st.columns([1, 1])
-
-with c_seg:
-    st.subheader("4. Heartbeat Segments Overlay")
-    st.write("Extracted individual cardiac cycles aligned at the R-peak (±0.2s pre, +0.4s post):")
-    if len(results["beats"]) > 0:
-        fig_beats = plot_beats_overlay(
-            beats=results["beats"],
-            fs=sampling_rate,
-            labels=results.get("beat_predictions"),
+    if ai_results and "predicted_class" in ai_results:
+        pred_label = ai_results["predicted_class"].split("(")[0].strip()
+        is_abn = "PVC" in pred_label or "Other" in pred_label
+        st.metric(
+            label="AI Detected Pattern",
+            value=pred_label,
+            delta="Abnormal Ectopy" if is_abn else "Normal Rhythm",
+            delta_color="inverse" if is_abn else "normal",
         )
-        st.plotly_chart(fig_beats, use_container_width=True)
+    elif extracted_measurements and extracted_measurements.get("machine_interpretation"):
+        first_interp = extracted_measurements["machine_interpretation"][0]
+        st.metric(
+            label="Printed Diagnosis",
+            value=first_interp[:18] + ("..." if len(first_interp) > 18 else ""),
+            delta="Machine Interpretation",
+            delta_color="off",
+        )
     else:
-        st.info("No beat segments available.")
+        st.metric(label="Detected Pattern", value="Not Available")
 
-with c_feat:
-    st.subheader("5. Extracted Morphological Features")
-    st.write("Sample of quantitative ECG features computed for classification:")
-    feats_df = results["features_df"]
-    if not feats_df.empty:
-        summary_feats = {
-            "Mean R-Peak Amplitude": f"{feats_df['r_peak_amplitude'].mean():.3f}",
-            "Mean QRS Width": f"{feats_df['qrs_width_samples'].mean():.3f} s",
-            "Mean Peak-to-Peak": f"{feats_df['peak_to_peak_amplitude'].mean():.3f}",
-            "Mean Energy": f"{feats_df['energy'].mean():.2f}",
-            "Spectral Entropy": f"{feats_df['spectral_entropy'].mean():.3f}",
-            "Dominant Frequency": f"{feats_df['dominant_frequency'].mean():.2f} Hz",
-            "Mean Local RR Ratio": f"{feats_df['local_rr_ratio'].mean():.3f}",
-        }
-        st.table(pd.DataFrame(list(summary_feats.items()), columns=["Feature Name", "Average Value"]))
+# 2. Heart Rate
+with col2:
+    hr_val = report_data["cardiac_parameters"]["heart_rate_bpm"]
+    if hr_val is not None:
+        st.metric(
+            label="Heart Rate",
+            value=f"{hr_val:.0f} BPM",
+            delta=report_data["cardiac_parameters"]["heart_rate_category"],
+            delta_color="off",
+        )
     else:
-        st.info("No feature table available.")
+        st.metric(label="Heart Rate", value="N/A")
+
+# 3. Signal Quality
+with col3:
+    sq_cat = report_data["signal_quality"]["category"]
+    sq_score = report_data["signal_quality"]["quality_score"]
+    if sq_score is not None:
+        st.metric(
+            label="Signal Quality",
+            value=sq_cat,
+            delta=f"Score: {sq_score:.2f} / 1.0",
+            delta_color="normal" if sq_cat == "GOOD" else ("off" if sq_cat == "ACCEPTABLE" else "inverse"),
+        )
+    else:
+        st.metric(label="Signal Quality", value=sq_cat)
+
+# 4. Detected Beats / Intervals
+with col4:
+    beats = report_data["cardiac_parameters"]["detected_beats"]
+    if beats is not None:
+        st.metric(label="Detected Cycles", value=f"{beats} beats")
+    elif report_data["cardiac_parameters"]["pr_interval_ms"] is not None:
+        st.metric(label="PR Interval", value=f"{report_data['cardiac_parameters']['pr_interval_ms']:.0f} ms")
+    else:
+        st.metric(label="Detected Cycles", value="N/A")
+
+# 5. R-R Interval or QRS Duration
+with col5:
+    mean_rr = report_data["cardiac_parameters"]["mean_rr_ms"]
+    if mean_rr is not None:
+        st.metric(label="Mean R-R Interval", value=f"{mean_rr:.0f} ms")
+    elif report_data["cardiac_parameters"]["qrs_duration_ms"] is not None:
+        st.metric(label="QRS Duration", value=f"{report_data['cardiac_parameters']['qrs_duration_ms']:.0f} ms")
+    else:
+        st.metric(label="Interval Metric", value="N/A")
 
 st.divider()
 
+
 # ---------------------------------------------------------
-# SECTION 6 & 7: MODEL INFO & FEATURE IMPORTANCES
+# SECTION: Printed Machine Interpretation (Zero-Hallucination)
 # ---------------------------------------------------------
-col_mod_info, col_feat_imp = st.columns([1, 1])
+if extracted_measurements and extracted_measurements.get("has_extracted_data"):
+    st.markdown("### 📋 Printed ECG Machine Measurements (Source Document)")
+    st.info(
+        "ℹ️ **Direct Document Data:** The parameters below were extracted directly from the uploaded report. "
+        "They represent the recording machine's native interpretation and standard 12-lead measurements."
+    )
 
-with col_mod_info:
-    st.subheader("6. Model Architecture & Metrics")
-    try:
-        _, _, meta = get_trained_artifacts(MODELS_DIR)
-        with open(REPORTS_DIR / "evaluation_report.json", "r") as f:
-            eval_data = json.load(f)
-
-        rf_metrics = eval_data.get("random_forest", {})
-
-        st.markdown(f"**Trained Classifier:** `{meta.get('model_name')}` (100 Trees, Gini split)")
-        st.markdown(f"**Training Dataset:** `{meta.get('dataset')}`")
-        st.markdown(f"**Training Records:** `{', '.join(meta.get('train_records', []))}` ({meta.get('train_samples')} beats)")
-        st.markdown(f"**Unseen Test Records:** `{', '.join(meta.get('test_records', []))}` ({meta.get('test_samples')} beats)")
-
-        metrics_table = [
-            {"Metric": "Test Accuracy", "Score": f"{rf_metrics.get('accuracy', 0)*100:.2f}%"},
-            {"Metric": "Macro Precision", "Score": f"{rf_metrics.get('precision_macro', 0)*100:.2f}%"},
-            {"Metric": "Macro Recall", "Score": f"{rf_metrics.get('recall_macro', 0)*100:.2f}%"},
-            {"Metric": "Macro F1-Score", "Score": f"{rf_metrics.get('f1_macro', 0)*100:.2f}%"},
-            {"Metric": "Weighted F1-Score", "Score": f"{rf_metrics.get('f1_weighted', 0)*100:.2f}%"},
+    m_col1, m_col2 = st.columns([1, 1])
+    with m_col1:
+        st.markdown("**Extracted Patient & Recording Metadata:**")
+        meta_items = [
+            ("Patient Name", extracted_measurements.get("patient_name") or "Unspecified"),
+            ("Age / Sex", f"{extracted_measurements.get('patient_age') or '—'} yr / {extracted_measurements.get('patient_sex') or '—'}"),
+            ("Recording Date", extracted_measurements.get("recording_date") or "Unspecified"),
+            ("Printed Vent. Rate", f"{extracted_measurements.get('heart_rate_printed') or '—'} BPM"),
         ]
-        st.table(pd.DataFrame(metrics_table))
-    except Exception as exc:
-        st.info(f"Model metadata available once training evaluation completes ({exc}).")
+        st.table(pd.DataFrame(meta_items, columns=["Parameter", "Report Value"]))
 
-with col_feat_imp:
-    st.subheader("7. Top Feature Importances")
-    st.write("Ranking of morphological and rhythm features driving classifier decisions:")
-    try:
-        _, _, meta = get_trained_artifacts(MODELS_DIR)
-        importances = meta.get("feature_importances", {})
-        if importances:
-            fig_imp = plot_feature_importance(importances, top_k=8)
-            st.plotly_chart(fig_imp, use_container_width=True)
-    except Exception:
-        st.info("Feature importance plot unavailable.")
+    with m_col2:
+        st.markdown("**Printed Electrical Intervals & Axes:**")
+        interval_items = [
+            ("PR Interval", f"{extracted_measurements.get('pr_interval_ms') or '—'} ms"),
+            ("QRS Duration", f"{extracted_measurements.get('qrs_duration_ms') or '—'} ms"),
+            ("QT / QTc Interval", f"{extracted_measurements.get('qt_interval_ms') or '—'} / {extracted_measurements.get('qtc_interval_ms') or '—'} ms"),
+            ("P - QRS - T Axes", f"{extracted_measurements.get('p_axis_deg') or '—'}° / {extracted_measurements.get('qrs_axis_deg') or '—'}° / {extracted_measurements.get('t_axis_deg') or '—'}°"),
+        ]
+        st.table(pd.DataFrame(interval_items, columns=["Interval / Axis", "Measured Value"]))
 
-st.divider()
+    if extracted_measurements.get("machine_interpretation"):
+        st.markdown("**Printed Clinical Findings:**")
+        for interp in extracted_measurements["machine_interpretation"]:
+            st.markdown(f"- 📝 `{interp}`")
+
+    st.divider()
+
 
 # ---------------------------------------------------------
-# SECTION 8: RESEARCH DEMO MODE (Reference Annotation vs AI)
+# SECTION: Waveform Extraction Notice (If Applicable)
+# ---------------------------------------------------------
+if not waveform_status.get("is_extracted") and signal_data is None:
+    st.markdown("### 🔍 Waveform Trace Extraction Status")
+    st.warning(
+        f"⚠️ **Waveform Notice:** {waveform_status.get('message')}\n\n"
+        "To ensure clinical safety and scientific integrity, this system **never synthesizes or hallucinates** artificial ECG signals. "
+        "The printed parameters above have been preserved in your downloadable reports."
+    )
+    st.divider()
+
+
+# ---------------------------------------------------------
+# SECTION: ECG Waveform & R-Peak Visualization
+# ---------------------------------------------------------
+if signal_data is not None and len(signal_data) > 0 and ai_results is not None:
+    st.markdown("### 1. ECG Waveform & R-Peak Annotations")
+    show_raw = st.checkbox("Overlay Raw Unfiltered Signal", value=False)
+
+    fig_waveform = plot_ecg_signal(
+        signal=ai_results["processed_signal"],
+        fs=sampling_rate,
+        r_peaks=np.array(ai_results["detected_peaks"]),
+        raw_signal=ai_results["raw_signal"] if show_raw else None,
+        title=f"ECG Waveform with Detected R-Peaks ({len(signal_data)/sampling_rate:.1f}s Window)",
+        max_duration_sec=len(signal_data) / sampling_rate,
+        start_sec=0.0,
+    )
+    st.plotly_chart(fig_waveform, use_container_width=True)
+
+    # ---------------------------------------------------------
+    # SECTION: AI Model Prediction & Signal Quality
+    # ---------------------------------------------------------
+    st.markdown("### 2. AI Abnormality Classification & Signal Quality")
+    c_left, c_right = st.columns([1, 1])
+
+    with c_left:
+        st.markdown("**🤖 AI Classifier Output (Lead II Equivalent):**")
+        st.markdown(f"**Primary Pattern:** `{ai_results['predicted_class']}`")
+
+        fig_prob = plot_prediction_probabilities(
+            ai_results["probabilities"],
+            predicted_class="PVC" if "PVC" in ai_results["predicted_class"] else ("Normal" if "Normal" in ai_results["predicted_class"] else "Other"),
+        )
+        st.plotly_chart(fig_prob, use_container_width=True)
+
+        counts = ai_results.get("class_counts", {})
+        total_beats = max(1, ai_results["beat_count"])
+        st.markdown("**Beat-by-Beat Cycle Breakdown:**")
+        st.markdown(f"- 🟢 **Normal Beats:** {counts.get('Normal', 0)} ({counts.get('Normal', 0) / total_beats * 100:.1f}%)")
+        st.markdown(f"- 🔴 **Ventricular Ectopy (PVC):** {counts.get('PVC', 0)} ({counts.get('PVC', 0) / total_beats * 100:.1f}%)")
+        st.markdown(f"- 🟡 **Other Abnormal/Escape Beats:** {counts.get('Other', 0)} ({counts.get('Other', 0) / total_beats * 100:.1f}%)")
+
+    with c_right:
+        st.markdown("**📡 Signal Quality Breakdown:**")
+        q_ind = ai_results.get("quality_indicators", {})
+        q_df = pd.DataFrame(
+            [
+                {"Indicator": "Signal-to-Noise Ratio (SNR)", "Value": f"{q_ind.get('snr_db', 0):.1f} dB", "Status": "Optimal" if q_ind.get('snr_db', 0) > 15 else "Degraded"},
+                {"Indicator": "Baseline Drift Detected", "Value": str(q_ind.get('baseline_wander', False)), "Status": "Warning" if q_ind.get('baseline_wander') else "Clean"},
+                {"Indicator": "Powerline Interference (50/60 Hz)", "Value": str(q_ind.get('has_powerline_interference', False)), "Status": "Present" if q_ind.get('has_powerline_interference') else "Suppressed"},
+                {"Indicator": "Motion Artifacts Detected", "Value": str(q_ind.get('has_motion_artifacts', False)), "Status": "Elevated" if q_ind.get('has_motion_artifacts') else "Minimal"},
+                {"Indicator": "Overall Quality Category", "Value": ai_results["signal_quality"], "Status": "Verified"},
+            ]
+        )
+        st.table(q_df)
+
+    st.divider()
+
+    # ---------------------------------------------------------
+    # SECTION: Cardiac Beat Segmentation & Morphological Features
+    # ---------------------------------------------------------
+    st.markdown("### 3. Cardiac Cycle Segmentation & Morphological Features")
+    c_seg, c_feat = st.columns([1, 1])
+
+    with c_seg:
+        st.markdown("**Heartbeat Segments Overlay:**")
+        if len(ai_results["beats"]) > 0:
+            fig_beats = plot_beats_overlay(
+                beats=ai_results["beats"],
+                fs=sampling_rate,
+                labels=ai_results.get("beat_predictions"),
+            )
+            st.plotly_chart(fig_beats, use_container_width=True)
+        else:
+            st.info("No cardiac beats segmented.")
+
+    with c_feat:
+        st.markdown("**Key Quantitative Morphological Features (Mean):**")
+        feats_df = ai_results.get("features_df")
+        if feats_df is not None and not feats_df.empty:
+            summary_feats = [
+                {"Feature": "Mean R-Peak Amplitude", "Value": f"{feats_df['r_peak_amplitude'].mean():.3f} mV"},
+                {"Feature": "Mean QRS Width", "Value": f"{feats_df['qrs_width_samples'].mean():.3f} s"},
+                {"Feature": "Peak-to-Peak Amplitude", "Value": f"{feats_df['peak_to_peak_amplitude'].mean():.3f} mV"},
+                {"Feature": "Signal Energy", "Value": f"{feats_df['energy'].mean():.2f}"},
+                {"Feature": "Spectral Entropy", "Value": f"{feats_df['spectral_entropy'].mean():.3f}"},
+                {"Feature": "Dominant Frequency", "Value": f"{feats_df['dominant_frequency'].mean():.2f} Hz"},
+                {"Feature": "Local RR Ratio", "Value": f"{feats_df['local_rr_ratio'].mean():.3f}"},
+            ]
+            st.table(pd.DataFrame(summary_feats))
+        else:
+            st.info("Feature extraction table unavailable.")
+
+    st.divider()
+
+
+# ---------------------------------------------------------
+# SECTION: Benchmark Comparison (When in Demo Mode)
 # ---------------------------------------------------------
 if reference_annotations is not None and not reference_annotations.empty:
-    st.subheader("8. Research Demo Mode: MIT-BIH Reference Annotation Comparison")
-    st.write("Comparing expert physician annotations against the automated AI classifier predictions:")
+    st.markdown("### 4. MIT-BIH Ground Truth Reference Comparison")
+    st.caption("Comparing expert cardiologist manual annotations against automated AI model beat classifications:")
 
-    # Map annotations to 3class labels
     ref_symbols = reference_annotations["symbol"].values
     ref_labels = [map_symbol_to_class(s, mode="3class") for s in ref_symbols]
     ref_times = reference_annotations["time_sec"].values
 
-    demo_df = pd.DataFrame(
+    comp_df = pd.DataFrame(
         {
             "Time (s)": [f"{t:.2f}" for t in ref_times],
-            "Original Symbol": ref_symbols,
-            "Reference Class": ref_labels,
+            "MIT-BIH Symbol": ref_symbols,
+            "Expert Reference Class": ref_labels,
             "Physician Annotation": reference_annotations["description"].values,
         }
     )
-    st.dataframe(demo_df, use_container_width=True)
+    st.dataframe(comp_df, use_container_width=True)
+    st.divider()
+
+
+# ---------------------------------------------------------
+# SECTION: Report Export Center (PDF, JSON, TXT)
+# ---------------------------------------------------------
+st.markdown("### 📥 Download Comprehensive Research Reports")
+st.markdown("Export publication-grade PDF documents, machine-readable JSON files, or clinical summary text.")
+
+# Prepare waveform snippet for PDF if available
+waveform_for_pdf = ai_results["processed_signal"] if ai_results else None
+peaks_for_pdf = np.array(ai_results["detected_peaks"]) if ai_results else None
+
+# Generate file contents
+pdf_bytes = generate_pdf_report(
+    report_data=report_data,
+    waveform=waveform_for_pdf,
+    fs=sampling_rate,
+    r_peaks=peaks_for_pdf,
+)
+json_str = export_report_to_json(report_data)
+text_str = export_report_to_text(report_data)
+
+stem_name = Path(input_info.get("file_name", "ecg_analysis")).stem.replace(" ", "_").lower()
+
+dcol1, dcol2, dcol3 = st.columns(3)
+
+with dcol1:
+    st.download_button(
+        label="📄 Download Publication PDF Report",
+        data=pdf_bytes,
+        file_name=f"ecg_report_{stem_name}.pdf",
+        mime="application/pdf",
+        help="Complete multi-page formatted PDF report with embedded waveform strip and clinical tables.",
+    )
+
+with dcol2:
+    st.download_button(
+        label="📊 Download Machine JSON (.json)",
+        data=json_str,
+        file_name=f"ecg_data_{stem_name}.json",
+        mime="application/json",
+        help="Structured JSON document for integration with EMR or research databases.",
+    )
+
+with dcol3:
+    st.download_button(
+        label="📝 Download Summary Text (.txt)",
+        data=text_str,
+        file_name=f"ecg_summary_{stem_name}.txt",
+        mime="text/plain",
+        help="Plain-text summary for clinical notes and record keeping.",
+    )
 
 st.divider()
 
+
 # ---------------------------------------------------------
-# SECTION 9: REPORT EXPORT
+# SECTION: Advanced Technical Details & Transparency
 # ---------------------------------------------------------
-st.subheader("9. Export Comprehensive Research Report")
+with st.expander("🔍 Model Architecture & Validation Metrics (CSE / Bioengineering Transparency)"):
+    mcol_l, mcol_r = st.columns(2)
 
-report_text = f"""# AI ECG Analyzer — Research & Educational Analysis Report
-Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+    with mcol_l:
+        st.markdown("**Classifier Specifications:**")
+        try:
+            _, _, meta = get_trained_artifacts(MODELS_DIR)
+            with open(REPORTS_DIR / "evaluation_report.json", "r") as f:
+                eval_data = json.load(f)
+            rf_metrics = eval_data.get("random_forest", {})
 
-## Recording Details
-- Source: {input_source} {f'({selected_record})' if selected_record else ''}
-- Sampling Rate: {sampling_rate} Hz
-- Window Analyzed: {analysis_duration_sec} seconds
-- Total Beats Detected: {results['beat_count']}
+            st.markdown(f"- **Architecture:** `{meta.get('model_name')}` (100 Trees, Gini split)")
+            st.markdown(f"- **Input Features:** 28 engineered morphological, spectral, and rhythm metrics")
+            st.markdown(f"- **Training Dataset:** MIT-BIH Arrhythmia Database ({meta.get('train_samples')} beats)")
+            st.markdown(f"- **Test Dataset:** Unseen test partition ({meta.get('test_samples')} beats)")
+            st.markdown(f"- **Macro F1-Score:** `{rf_metrics.get('f1_macro', 0)*100:.2f}%`")
+            st.markdown(f"- **Overall Test Accuracy:** `{rf_metrics.get('accuracy', 0)*100:.2f}%`")
+        except Exception as exc:
+            st.info(f"Model specifications loaded from default config ({exc}).")
 
-## Signal Quality Assessment
-- Quality Classification: {results['signal_quality']} (Score: {results['quality_score']:.2f}/1.00)
-- Signal-to-Noise Ratio: {results.get('quality_indicators', {}).get('snr_db', 0):.2f} dB
-- Baseline Wander: {results.get('quality_indicators', {}).get('baseline_wander', False)}
-- Motion Artifacts: {results.get('quality_indicators', {}).get('has_motion_artifacts', False)}
-
-## AI Abnormality Prediction
-- Overall Result: {results['predicted_class']}
-- Model Probabilities:
-  * Normal: {results['probabilities'].get('Normal', 0)*100:.2f}%
-  * PVC: {results['probabilities'].get('PVC', 0)*100:.2f}%
-  * Other: {results['probabilities'].get('Other', 0)*100:.2f}%
-
-## Beat Statistics
-- Estimated Heart Rate: {results['heart_rate_bpm']:.1f} BPM
-- Average R-R Interval: {results['mean_rr_sec']:.3f} s
-- Beat Counts: {json.dumps(results.get('class_counts', {}))}
-
-## Medical Disclaimer
-This report was generated for educational and scientific research purposes only.
-It is NOT a medical diagnosis and should never be used as a substitute for certified medical evaluation.
-"""
-
-st.download_button(
-    label="📄 Download Analysis Summary (.txt)",
-    data=report_text,
-    file_name=f"ecg_analysis_report_{selected_record or 'custom'}.txt",
-    mime="text/plain",
-)
+    with mcol_r:
+        st.markdown("**Top Feature Importances (Gini):**")
+        try:
+            _, _, meta = get_trained_artifacts(MODELS_DIR)
+            importances = meta.get("feature_importances", {})
+            if importances:
+                fig_imp = plot_feature_importance(importances, top_k=6)
+                st.plotly_chart(fig_imp, use_container_width=True)
+        except Exception:
+            st.info("Feature importance plot unavailable.")

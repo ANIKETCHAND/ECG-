@@ -271,24 +271,26 @@ For every segmented beat, 28 distinct features are computed (`src/feature_extrac
 
 ## Chapter 13 — Dashboard
 
-The Streamlit dashboard (`app.py`) provides 9 functional modules:
-1. **ECG Waveform & R-Peak Viewer**: Interactive Plotly time-series with zoom/pan and peak markers.
-2. **Signal Quality Assessment**: Quantitative cards and tabular breakdown of SNR, baseline drift, and artifacts.
-3. **AI Abnormality Prediction**: Primary classification badge and percentage probability bars.
-4. **Heartbeat Segments Overlay**: Overlay of individual segmented beats aligned at the R-peak with average profile.
-5. **Morphological Features Table**: Quantitative summary of amplitude, energy, and entropy.
-6. **Model Transparency Card**: Training record details, sample sizes, and honest test metrics.
-7. **Feature Importance Plot**: Interactive bar chart displaying top discriminating features.
-8. **Research Demo Mode**: Direct side-by-side comparison with expert MIT-BIH physician annotations.
-9. **Report Export**: Downloadable plain-text clinical research summary report.
+The upgraded Streamlit dashboard (`app.py`) provides 10 unified functional modules:
+1. **Universal Multi-Format Ingestion**: Supports drag-and-drop clinical ECG PDFs, scanned images (JPG/PNG), and raw signals (CSV/TXT/NPY).
+2. **6-Step Progress Pipeline**: Step-by-step progress tracking for ingestion, quality checks, beat detection, and AI inference.
+3. **Rapid Clinical Overview Cards**: Live metrics for rhythm pattern, heart rate, signal quality score, and detected cycles.
+4. **Printed Machine Interpretation (Direct Document Data)**: Displays printed measurements (HR, PR, QRS, QT/QTc, axes, diagnosis) strictly separated from AI predictions.
+5. **Interactive Waveform & R-Peak Viewer**: Plotly visualization with pan/zoom and detected peak annotations.
+6. **AI Abnormality Classification**: Random Forest probabilities across Normal, PVC, and Other classes.
+7. **Beat Segmentation Overlay**: Aligned cardiac cycle overlay with average morphology.
+8. **Morphological Features Table**: Quantitative 28-feature summary.
+9. **MIT-BIH Ground Truth Comparison**: Direct verification against cardiologist annotations in demo mode.
+10. **Multi-Format Report Export Center**: One-click downloads for Publication-Grade PDF, JSON, and Summary TXT.
 
 ---
 
 ## Chapter 14 — Limitations
 
-1. **Single-Lead Limitation**: MIT-BIH recordings use modified limb lead II. 12-lead ECGs provide richer spatial vector information not captured by single-lead data.
-2. **Minority Class Representation**: While Normal and PVC classes have thousands of samples, supraventricular and fusion beats (`Other`) represent under 1% of the data.
-3. **Non-Clinical Validation**: The system is an educational prototype and has not undergone clinical validation or regulatory clearance (e.g., FDA 510(k) or CE mark).
+1. **Single-Lead ML Model**: The trained Random Forest classifier operates on Modified Lead II (MLII) representations. When standard 12-lead reports are ingested, the system evaluates Lead II representations and extracts printed 12-lead measurements from the document header.
+2. **Minority Class Representation**: While Normal and PVC classes have thousands of samples, supraventricular and fusion beats (`Other`) represent under 1% of the training data.
+3. **Scanned Image Resolution**: Heavily corrupted or blurred scanned photocopies without clear contrast between trace and background may be rejected by the anti-hallucination validation gate.
+4. **Non-Clinical Validation**: The system is an educational and scientific research prototype and has not undergone clinical regulatory clearance (e.g., FDA 510(k) or CE mark).
 
 ---
 
@@ -296,13 +298,33 @@ The Streamlit dashboard (`app.py`) provides 9 functional modules:
 
 1. **1D Convolutional Neural Networks (1D CNN)**: End-to-end feature learning directly from raw waveforms without manual feature engineering.
 2. **Recurrent / Attention Architectures**: Bidirectional LSTMs and Transformers to model long-range cardiac rhythm dependencies.
-3. **Multi-Lead ECG Analysis**: Extending the pipeline to 12-lead standard clinical databases (e.g., PTB-XL).
+3. **Multi-Lead Deep Learning**: Extending the ML classification pipeline to full 12-lead standard clinical databases (e.g., PTB-XL).
 4. **Wearable & Real-Time Streaming**: Integration with Bluetooth Low Energy (BLE) ECG sensors for streaming mobile monitoring.
-5. **Model Explainability**: Integrating SHAP / LIME to provide beat-by-beat attribution maps.
+5. **Explainable AI**: Integrating SHAP / LIME attribution maps for explainable cardiac feature attributions.
 
 ---
 
-## Chapter 16 — Medical Disclaimer
+## Chapter 16 — Universal Multi-Format Ingestion System (`src/ecg_input/`)
 
-> **IMPORTANT DISCLAIMER**
-> This software is intended strictly for educational and scientific research purposes. It is **not** a certified medical diagnostic device and should **never** be used to make clinical diagnoses, guide medical treatments, or replace professional medical consultation.
+To support clinical ECG reports from hospitals, diagnostic labs, and personal monitors, the system incorporates an autonomous ingestion engine:
+1. **Input Detection (`input_detector.py`)**: Uses file extensions and binary magic numbers (`%PDF`, `\x89PNG`, `\xff\xd8\xff`, `\x93NUMPY`) to route files to specialized parsers.
+2. **Digital Signal Loader (`signal_loader.py`)**: Sniffs delimiters (comma, tab, space, semicolon), identifies voltage vs. time columns, and validates sampling rate.
+3. **PDF Report Processor (`pdf_processor.py`)**: Leverages `pypdf` to extract selectable text layers and isolates raster image strips.
+4. **Clinical Measurement Extractor (`measurement_extractor.py`)**: Regex-driven parser matching clinical reporting conventions (e.g. `Vent Rate: 72 BPM`, `PR Int: 156 ms`, `QRS Dur: 94 ms`, `QT/QTc: 398/418 ms`, `P-QRS-T Axes: 48 52 42`, and printed diagnostic conclusions).
+5. **Image Preprocessing & Trace Extraction (`image_processor.py`, `waveform_extractor.py`)**: OpenCV color segmentation to suppress pink/red grid lines, followed by column-wise center-of-mass trace extraction.
+6. **Waveform Validation Gate (`extraction_validation.py`)**: Rigorously evaluates signal continuity, sampling duration, electrical dynamic range (std > 0.05, ptp > 0.2), and border spikes before passing to the ML classifier. **Rejects unconfident traces rather than hallucinating signals.**
+
+---
+
+## Chapter 17 — Multi-Format Clinical Reporting (`src/report/`)
+
+1. **Structured Report Generator (`report_generator.py`)**: Merges patient demographics, recording parameters, signal quality metrics, printed machine interpretation, and AI predictions into a normalized data dictionary.
+2. **Publication-Grade PDF Engine (`pdf_generator.py`)**: ReportLab-powered document generator with institutional header, colored clinical alert banners, patient metadata tables, embedded high-resolution ECG waveforms with annotated R-peaks, and standard medical disclaimers.
+3. **Machine JSON & Plain Text Exporters**: Serializes report models to `.json` for database ingestion and `.txt` for clinical summary notes.
+
+---
+
+## Chapter 18 — Medical Disclaimer
+
+> **IMPORTANT CLINICAL & REGULATORY DISCLAIMER**  
+> This software is intended strictly for educational and scientific research purposes. It is **not** a certified medical diagnostic device and should **never** be used to make clinical diagnoses, guide medical treatments, alter medication regimens, or replace professional cardiovascular medical consultation. If you are experiencing symptoms of acute coronary syndrome or arrhythmia, seek emergency medical care immediately.
