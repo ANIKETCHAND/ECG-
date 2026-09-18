@@ -1,0 +1,48 @@
+{
+  "records_processed": [
+    "100",
+    "106",
+    "200",
+    "213",
+    "101",
+    "119",
+    "208"
+  ],
+  "total_beats": 16959,
+  "sampling_rate_hz": 360,
+  "feature_columns": [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "median",
+    "energy",
+    "rms",
+    "mav",
+    "snr",
+    "zero_crossing_rate",
+    "autocorr_first_peak",
+    "r_peak_amplitude",
+    "p_wave_amplitude",
+    "t_wave_amplitude",
+    "peak_to_peak_amplitude",
+    "max_slope",
+    "qrs_width_samples",
+    "total_power",
+    "lf_power",
+    "hf_power",
+    "vhf_power",
+    "dominant_frequency",
+    "max_power",
+    "spectral_entropy",
+    "pre_rr",
+    "post_rr",
+    "local_rr_ratio"
+  ],
+  "class_distribution": {
+    "Normal": 13119,
+    "PVC": 3740,
+    "Other": 100
+  }
+}

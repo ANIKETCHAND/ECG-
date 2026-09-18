@@ -1,0 +1,107 @@
+{
+  "train": {
+    "records": [
+      "100",
+      "106",
+      "200",
+      "213"
+    ],
+    "samples": 10152,
+    "class_distribution": {
+      "Normal": 8130,
+      "PVC": 1931,
+      "Other": 91
+    },
+    "metadata": {
+      "100": {
+        "record_id": "100",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 2273,
+        "class_counts": {
+          "Normal": 2239,
+          "Other": 33,
+          "PVC": 1
+        }
+      },
+      "106": {
+        "record_id": "106",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 2027,
+        "class_counts": {
+          "Normal": 1507,
+          "PVC": 520
+        }
+      },
+      "200": {
+        "record_id": "200",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 2601,
+        "class_counts": {
+          "PVC": 828,
+          "Normal": 1743,
+          "Other": 30
+        }
+      },
+      "213": {
+        "record_id": "213",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 3251,
+        "class_counts": {
+          "Normal": 2641,
+          "PVC": 582,
+          "Other": 28
+        }
+      }
+    }
+  },
+  "test": {
+    "records": [
+      "101",
+      "119",
+      "208"
+    ],
+    "samples": 6807,
+    "class_distribution": {
+      "Normal": 4989,
+      "PVC": 1809,
+      "Other": 9
+    },
+    "metadata": {
+      "101": {
+        "record_id": "101",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 1865,
+        "class_counts": {
+          "Normal": 1860,
+          "Other": 5
+        }
+      },
+      "119": {
+        "record_id": "119",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 1987,
+        "class_counts": {
+          "Normal": 1543,
+          "PVC": 444
+        }
+      },
+      "208": {
+        "record_id": "208",
+        "total_samples": 650000,
+        "fs": 360.0,
+        "total_beats": 2955,
+        "class_counts": {
+          "PVC": 1365,
+          "Normal": 1586,
+          "Other": 4
+        }
+      }
+    }
+  }
+}
