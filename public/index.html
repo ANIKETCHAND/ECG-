@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-ECG Clinical Decision Support Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#10b981',
+              600: '#059669',
+              900: '#064e3b',
+            },
+            clinical: {
+              dark: '#0b0f17',
+              panel: '#111827',
+              card: '#1f2937',
+              border: '#374151',
+              accent: '#38bdf8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0f17;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .ecg-grid {
+      background-image: linear-gradient(rgba(239, 68, 68, 0.07) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(239, 68, 68, 0.07) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-clinical-border bg-clinical-panel sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xl font-bold">
+          <i class="fa-solid fa-heart-pulse animate-pulse"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold tracking-wide text-white">AI-ECG Analyzer</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">SaMD Class B</span>
+          </div>
+          <p class="text-xs text-gray-400">CDSCO MDR 2017 & IEC 62304 Clinical Decision Support</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4 text-xs text-gray-400">
+        <div class="flex items-center space-x-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-gray-300 font-mono">SERVERLESS API ACTIVE</span>
+        </div>
+        <div class="hidden md:flex border-l border-clinical-border pl-4">
+          <span>Model: <strong class="text-white font-mono">ECG-RF-1.0.0</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Regulatory Notice Banner -->
+    <div class="bg-amber-950/30 border border-amber-500/40 rounded-lg p-3 text-xs text-amber-200 flex items-start space-x-3">
+      <i class="fa-solid fa-shield-halved text-amber-400 text-base mt-0.5"></i>
+      <div>
+        <span class="font-semibold text-amber-300">CLINICAL SAFETY DIRECTIVE (IEC 62304 / ISO 14971):</span>
+        This system provides algorithmic decision support to assist qualified medical practitioners. It is not an autonomous diagnostic instrument. "NO RELIABLE INPUT = NO AI RESULT" safety gatekeeper is active.
+      </div>
+    </div>
+
+    <!-- Controls & Sample Selection -->
+    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-lg">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Select or Upload ECG Record</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Load clinical benchmark waveforms or test safety gatekeeper</p>
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="loadSample('normal')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-check text-emerald-400"></i>
+            <span>Normal Sinus Rhythm</span>
+          </button>
+          <button onclick="loadSample('pvc')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-bolt text-amber-400"></i>
+            <span>PVC Ectopic Rhythm</span>
+          </button>
+          <button onclick="loadSample('noisy')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-ban text-rose-400"></i>
+            <span>Artifact / Unusable (Safety Gate)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-clinical-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <div>
+            <label class="block text-[11px] font-medium text-gray-400 mb-1">Lead</label>
+            <select id="leadSelect" class="bg-clinical-card border border-clinical-border rounded-md px-3 py-1 text-xs text-gray-200 focus:ring-1 focus:ring-clinical-accent outline-none">
+              <option value="II" selected>Lead II (Rhythm)</option>
+              <option value="V1">Lead V1</option>
+              <option value="V5">Lead V5</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-gray-400 mb-1">Sampling Rate (Hz)</label>
+            <input type="number" id="fsInput" value="360" class="w-24 bg-clinical-card border border-clinical-border rounded-md px-3 py-1 text-xs text-gray-200 focus:ring-1 focus:ring-clinical-accent outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-gray-400 mb-1">Custom File (CSV / JSON)</label>
+            <input type="file" id="fileUpload" accept=".csv,.json" class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:bg-clinical-card file:text-gray-200 hover:file:bg-clinical-border" />
+          </div>
+        </div>
+
+        <button id="analyzeBtn" onclick="runAnalysis()" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md flex items-center justify-center space-x-2 transition disabled:opacity-50">
+          <i class="fa-solid fa-play"></i>
+          <span>Execute Clinical Analysis</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Signal Quality Gatekeeper Status -->
+    <div id="qualityGateAlert" class="hidden rounded-xl p-4 border transition">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- ECG Waveform Viewer -->
+    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-4 shadow-lg">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+          <h2 class="text-xs font-semibold text-gray-200 uppercase tracking-wider">ECG Calibrated Waveform (Lead II)</h2>
+          <span id="waveformStats" class="text-xs text-gray-400 font-mono"></span>
+        </div>
+        <div class="text-[11px] text-gray-400 font-mono flex items-center space-x-3">
+          <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1"></span>Signal</span>
+          <span><span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>Detected R-Peaks</span>
+        </div>
+      </div>
+      <div id="plotlyChart" class="w-full h-72 rounded-lg ecg-grid"></div>
+    </section>
+
+    <!-- Metrics & AI Classification Cards -->
+    <section id="resultsSection" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
+        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Heart Rate</p>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="metricHr" class="text-3xl font-bold font-mono text-white">--</span>
+          <span class="text-xs text-gray-400">BPM</span>
+        </div>
+        <p id="metricHrSub" class="text-[11px] text-gray-400 mt-1 font-mono">Mean RR: -- ms</p>
+      </div>
+
+      <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
+        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">QRS Duration</p>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="metricQrs" class="text-3xl font-bold font-mono text-white">--</span>
+          <span class="text-xs text-gray-400">ms</span>
+        </div>
+        <p id="metricQrsSub" class="text-[11px] text-gray-400 mt-1">Ref: 70 - 110 ms</p>
+      </div>
+
+      <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
+        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Corrected QT (Bazett)</p>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="metricQtc" class="text-3xl font-bold font-mono text-white">--</span>
+          <span class="text-xs text-gray-400">ms</span>
+        </div>
+        <p id="metricQtcSub" class="text-[11px] text-gray-400 mt-1">Normal &lt; 440 ms</p>
+      </div>
+
+      <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
+        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">AI Finding & Confidence</p>
+        <div class="mt-2">
+          <span id="metricAiFinding" class="text-sm font-bold text-emerald-400">--</span>
+        </div>
+        <div class="mt-2 w-full bg-clinical-card rounded-full h-1.5 overflow-hidden">
+          <div id="metricAiProbBar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <p id="metricAiProb" class="text-[10px] text-gray-400 mt-1 text-right font-mono">Confidence: --%</p>
+      </div>
+    </section>
+
+    <!-- Clinician Sign-off & Audit Section -->
+    <section id="reviewSection" class="hidden bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-lg">
+      <div class="flex items-center space-x-2 mb-4 border-b border-clinical-border pb-3">
+        <i class="fa-solid fa-user-doctor text-clinical-accent"></i>
+        <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Clinician Review & Verification (CDSCO Class B Requirement)</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Clinician Full Name</label>
+          <input type="text" id="clinicianName" placeholder="Dr. Aniket Chand" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Medical Registration Number</label>
+          <input type="text" id="clinicianReg" placeholder="MCI-2024-88492" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Agreement with AI</label>
+          <select id="agreementSelect" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent">
+            <option value="CONFIRMED">CONFIRMED (Agree with AI Finding)</option>
+            <option value="MODIFIED">MODIFIED (Adjusted Interpretation)</option>
+            <option value="REJECTED">REJECTED (Disagree with AI Finding)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-xs text-gray-400 mb-1">Clinical Interpretation / Notes</label>
+        <textarea id="clinicianNotes" rows="2" placeholder="Record physician diagnostic notes, bedside correlation, and treatment instructions..." class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent"></textarea>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between">
+        <div id="sealStatus" class="text-xs font-mono text-gray-400">
+          Status: PENDING CLINICIAN SIGN-OFF
+        </div>
+        <button id="sealBtn" onclick="submitReview()" class="px-4 py-2 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 font-semibold flex items-center space-x-2 transition">
+          <i class="fa-solid fa-stamp text-clinical-accent"></i>
+          <span>Sign & Cryptographically Seal Report</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-clinical-border bg-clinical-panel/60 py-4 text-center text-xs text-gray-500">
+    <p>AI-ECG Analyzer | Architectural Framework: IEC 62304 Class B | Risk Assessment: ISO 14971 | CDSCO Medical Device Rules 2017</p>
+  </footer>
+
+  <script>
+    let currentSignal = [];
+    let currentFs = 360.0;
+    let currentAnalysisId = null;
+
+    // Load initial normal sample on page start
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSample('normal');
+    });
+
+    async function loadSample(type) {
+      if (type === 'noisy') {
+        // High amplitude baseline wander + random noise (safety gatekeeper test)
+        currentFs = 360.0;
+        const duration = 5.0;
+        const n = Math.floor(currentFs * duration);
+        currentSignal = [];
+        for (let i = 0; i < n; i++) {
+          const t = i / currentFs;
+          currentSignal.push(4.0 * Math.sin(2 * Math.PI * 0.1 * t) + (Math.random() - 0.5) * 2.5);
+        }
+        renderWaveform(currentSignal, currentFs, []);
+        document.getElementById('waveformStats').innerText = `Duration: ${duration}s | Samples: ${n} | Noise injected`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/sample?sample_type=${type}`);
+        const data = await res.json();
+        currentSignal = data.signal;
+        currentFs = data.fs;
+        renderWaveform(currentSignal, currentFs, []);
+        document.getElementById('waveformStats').innerText = `Duration: ${data.duration_sec}s | Samples: ${data.signal.length}`;
+      } catch (err) {
+        console.error('Failed to load sample:', err);
+      }
+    }
+
+    // Handle file upload
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const content = evt.target.result;
+          if (file.name.endsWith('.json')) {
+            const parsed = JSON.parse(content);
+            currentSignal = Array.isArray(parsed) ? parsed : (parsed.signal || []);
+          } else {
+            // CSV
+            currentSignal = content.split(/[\r\n,]+/)
+              .map(v => parseFloat(v.trim()))
+              .filter(v => !isNaN(v));
+          }
+          currentFs = parseFloat(document.getElementById('fsInput').value) || 360.0;
+          renderWaveform(currentSignal, currentFs, []);
+          document.getElementById('waveformStats').innerText = `Samples: ${currentSignal.length}`;
+        } catch (err) {
+          alert('Could not parse file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function renderWaveform(sig, fs, rPeaks) {
+      const timeAxis = sig.map((_, idx) => (idx / fs).toFixed(3));
+      
+      const traceSignal = {
+        x: timeAxis,
+        y: sig,
+        mode: 'lines',
+        line: { color: '#10b981', width: 1.5 },
+        name: 'Lead II (mV)'
+      };
+
+      const traces = [traceSignal];
+
+      if (rPeaks && rPeaks.length > 0) {
+        const peakX = rPeaks.map(p => (p / fs).toFixed(3));
+        const peakY = rPeaks.map(p => sig[p] !== undefined ? sig[p] : 0);
+        traces.push({
+          x: peakX,
+          y: peakY,
+          mode: 'markers',
+          marker: { color: '#ef4444', size: 8, symbol: 'circle' },
+          name: 'R-Peak'
+        });
+      }
+
+      const layout = {
+        margin: { t: 20, r: 20, b: 35, l: 40 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'rgba(17, 24, 39, 0.7)',
+        xaxis: {
+          title: { text: 'Time (s)', font: { size: 10, color: '#9ca3af' } },
+          tickfont: { size: 9, color: '#9ca3af' },
+          gridcolor: 'rgba(239, 68, 68, 0.1)',
+          zerolinecolor: '#374151'
+        },
+        yaxis: {
+          title: { text: 'Voltage (mV)', font: { size: 10, color: '#9ca3af' } },
+          tickfont: { size: 9, color: '#9ca3af' },
+          gridcolor: 'rgba(239, 68, 68, 0.1)',
+          zerolinecolor: '#374151'
+        },
+        showlegend: false
+      };
+
+      Plotly.react('plotlyChart', traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    async function runAnalysis() {
+      const btn = document.getElementById('analyzeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Analyzing...</span>';
+
+      const gateAlert = document.getElementById('qualityGateAlert');
+      const resultsSection = document.getElementById('resultsSection');
+      const reviewSection = document.getElementById('reviewSection');
+
+      gateAlert.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+      reviewSection.classList.add('hidden');
+
+      try {
+        const payload = {
+          signal: currentSignal,
+          fs: parseFloat(document.getElementById('fsInput').value) || 360.0,
+          lead: document.getElementById('leadSelect').value || 'II'
+        };
+
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.status === 'UNUSABLE_SIGNAL') {
+          // Safety gate rejected signal
+          gateAlert.className = 'block rounded-xl p-4 bg-rose-950/40 border border-rose-500/50 text-rose-200';
+          gateAlert.innerHTML = `
+            <div class="flex items-start space-x-3">
+              <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg mt-0.5"></i>
+              <div>
+                <h3 class="font-bold text-rose-300 uppercase tracking-wide text-xs">SIGNAL QUALITY GATE REJECTION (ISO 14971 SAFETY INTERLOCK)</h3>
+                <p class="text-xs mt-1">${data.message}</p>
+                <div class="mt-2 text-xs font-mono bg-rose-900/30 p-2 rounded border border-rose-800/40">
+                  Reasons: ${data.rejection_reasons.join(', ')} | Quality Score: ${data.quality_score}/100
+                </div>
+              </div>
+            </div>
+          `;
+          gateAlert.classList.remove('hidden');
+          return;
+        }
+
+        currentAnalysisId = data.analysis_id;
+
+        // Render Waveform with R-peaks
+        renderWaveform(currentSignal, payload.fs, data.detected_r_peaks);
+
+        // Populate metrics
+        document.getElementById('metricHr').innerText = data.cardiac_parameters.heart_rate_bpm ?? '--';
+        document.getElementById('metricHrSub').innerText = `Mean RR: ${data.cardiac_parameters.mean_rr_ms ?? '--'} ms`;
+        document.getElementById('metricQrs').innerText = data.cardiac_parameters.qrs_duration_ms ?? '--';
+        document.getElementById('metricQtc').innerText = data.cardiac_parameters.qtc_bazett_ms ?? '--';
+
+        const aiFinding = data.ai_classification.prediction;
+        document.getElementById('metricAiFinding').innerText = aiFinding;
+        
+        let maxProb = 90;
+        if (data.ai_classification.probabilities) {
+          const probs = Object.values(data.ai_classification.probabilities);
+          if (probs.length > 0) maxProb = Math.round(Math.max(...probs) * 100);
+        }
+        document.getElementById('metricAiProbBar').style.width = `${maxProb}%`;
+        document.getElementById('metricAiProb').innerText = `Confidence: ${maxProb}%`;
+
+        // Display quality banner
+        gateAlert.className = 'block rounded-xl p-3 bg-emerald-950/30 border border-emerald-500/30 text-emerald-200 text-xs flex items-center justify-between';
+        gateAlert.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span>Signal Quality Gatekeeper: <strong>${data.signal_quality.category}</strong> (Score: ${data.signal_quality.score}/100, SNR: ${data.signal_quality.snr_db} dB)</span>
+          </div>
+          <span class="text-[10px] font-mono text-emerald-400">Analysis ID: ${data.analysis_id.substring(0, 16)}...</span>
+        `;
+        gateAlert.classList.remove('hidden');
+
+        resultsSection.classList.remove('hidden');
+        reviewSection.classList.remove('hidden');
+
+      } catch (err) {
+        alert('Analysis failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Execute Clinical Analysis</span>';
+      }
+    }
+
+    async function submitReview() {
+      if (!currentAnalysisId) {
+        alert('Please execute an analysis first.');
+        return;
+      }
+      const clinicianName = document.getElementById('clinicianName').value.trim() || 'Dr. Attending Physician';
+      const registrationNumber = document.getElementById('clinicianReg').value.trim() || 'MCI-DEFAULT-01';
+      const agreementStatus = document.getElementById('agreementSelect').value;
+      const notes = document.getElementById('clinicianNotes').value;
+
+      try {
+        const res = await fetch('/api/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            analysis_id: currentAnalysisId,
+            clinician_name: clinicianName,
+            clinician_role: 'CARDIOLOGIST',
+            registration_number: registrationNumber,
+            agreement_status: agreementStatus,
+            clinician_interpretation: agreementStatus === 'CONFIRMED' ? 'Confirmed AI rhythm finding' : notes,
+            clinical_notes: notes
+          })
+        });
+
+        const rev = await res.json();
+        const sealDiv = document.getElementById('sealStatus');
+        sealDiv.innerHTML = `
+          <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-certificate mr-1"></i>SEALED & AUDITED:</span> ${rev.review_id} by ${rev.clinician_name} (${rev.registration_number})
+        `;
+        document.getElementById('sealBtn').disabled = true;
+        document.getElementById('sealBtn').classList.add('opacity-50');
+      } catch (err) {
+        alert('Review submission failed: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

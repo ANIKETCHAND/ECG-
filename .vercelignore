@@ -1,0 +1,12 @@
+.git
+.freebuff
+.pytest_cache
+__pycache__
+data/raw/
+tests/
+reports/
+sample_ecgs/
+training/
+*.png
+*.pdf
+*.log

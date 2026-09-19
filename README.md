@@ -234,8 +234,34 @@ AI-ECG-Analyzer/
     └── test_report_generation.py  # PDF/JSON/TXT export tests
 ```
 
+## 🚀 Deployment Guide
+
+### Option 1: Vercel Serverless Deployment (Production Edge API & Clinical Web Portal)
+This project is pre-configured for **instant serverless deployment on Vercel**:
+- **Frontend Portal**: `public/index.html` (Interactive ECG telemetry with Plotly.js, sample waveform tests, safety gatekeeper, and physician sign-off).
+- **Backend API**: `api/index.py` (FastAPI serverless microservice executing signal quality gating, inference, and deterministic measurements).
+
+**Steps to Deploy to Vercel:**
+1. Push your repository to GitHub: `https://github.com/ANIKETCHAND/ECG-`
+2. Go to [vercel.com](https://vercel.com) and log in.
+3. Click **"Add New..."** ➔ **"Project"**.
+4. Import your `ANIKETCHAND/ECG-` repository.
+5. In the project configuration:
+   - **Framework Preset**: Leave as *Other* (Vercel automatically detects `vercel.json` and `api/index.py`).
+   - **Root Directory**: `./`
+6. Click **Deploy**. Vercel will build and provision your edge application with an automatic `*.vercel.app` domain.
+
+---
+
+### Option 2: Streamlit Community Cloud (Full Python Dashboard)
+Streamlit requires persistent WebSockets and a stateful Python process:
+1. Navigate to [share.streamlit.io](https://share.streamlit.io).
+2. Connect your GitHub account and select repository: `ANIKETCHAND/ECG-`.
+3. Set **Main file path** to `app.py`.
+4. Click **Deploy**.
+
 ---
 
 ## ⚠️ Medical Disclaimer
 
-This application is strictly for **educational and scientific research purposes**. It has not been approved by the US Food and Drug Administration (FDA), European Medicines Agency (EMA), or any other regulatory body. It must **not** be used for clinical decision-making or medical diagnosis.
+This application is strictly for **educational and scientific research purposes**. It has not been approved by the US Food and Drug Administration (FDA), European Medicines Agency (EMA), or any other regulatory body. It must **not** be used for clinical decision-making or medical diagnosis.
