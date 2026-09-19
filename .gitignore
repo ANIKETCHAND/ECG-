@@ -32,3 +32,8 @@ data/processed/*.csv
 !data/processed/.gitkeep
 !data/processed/split_info.json
 !data/processed/dataset_info.json
+
+# Runtime clinical databases & audit trails
+data/*.db
+data/*.db-journal
+data/*.jsonl

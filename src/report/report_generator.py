@@ -26,14 +26,18 @@ def generate_structured_report(
     ai_results: Optional[Dict[str, Any]] = None,
     extracted_measurements: Optional[Dict[str, Any]] = None,
     waveform_status: Optional[Dict[str, Any]] = None,
+    clinician_review: Optional[Dict[str, Any]] = None,
+    hospital_info: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Assemble complete research report dictionary.
+    """Assemble complete clinical research and review report dictionary.
 
     Args:
         input_info: File name, modality, duration, sampling rate, lead
         ai_results: Output from predict_ecg if ML pipeline was executed
         extracted_measurements: Output from measurement_extractor if PDF/image text was parsed
         waveform_status: Success/failure details of waveform extraction
+        clinician_review: Optional physician review, interpretation, and sign-off
+        hospital_info: Optional hospital/clinic name, department, and facility details
 
     Returns:
         Consolidated dictionary ready for UI display, PDF generation, or JSON export.
@@ -151,10 +155,41 @@ def generate_structured_report(
     if cardiac_params["machine_interpretation"]:
         findings.append(f"Printed machine interpretation: {', '.join(cardiac_params['machine_interpretation'])} (Source Information).")
 
+    # Hospital information
+    h_info = hospital_info or {
+        "institution_name": "Apex Heart & Vascular Hospital",
+        "department": "Department of Cardiac Electrophysiology",
+        "facility_id": "MED-FAC-2026-IND",
+    }
+
+    # Clinician review
+    if clinician_review:
+        c_review = {
+            "status": clinician_review.get("agreement_status", "REVIEWED"),
+            "clinician_name": clinician_review.get("clinician_name", "Unknown Clinician"),
+            "clinician_role": clinician_review.get("clinician_role", "DOCTOR"),
+            "registration_number": clinician_review.get("registration_number", "N/A"),
+            "clinician_interpretation": clinician_review.get("clinician_interpretation", "No interpretation recorded"),
+            "clinical_notes": clinician_review.get("clinical_notes", ""),
+            "reviewed_at": clinician_review.get("reviewed_at", timestamp_str),
+        }
+    else:
+        c_review = {
+            "status": "PENDING_REVIEW",
+            "clinician_name": None,
+            "clinician_role": None,
+            "registration_number": None,
+            "clinician_interpretation": "Awaiting attending physician sign-off.",
+            "clinical_notes": "",
+            "reviewed_at": None,
+        }
+
     return {
-        "report_title": "AI ECG SCREENING REPORT",
-        "report_subtitle": "Research/Educational AI Analysis — Not a Medical Diagnosis",
+        "report_title": "AI ECG SCREENING REPORT — CLINICAL DECISION SUPPORT",
+        "report_subtitle": "Clinical Decision Support — Subject to Mandatory Qualified Physician Review",
         "generated_at": timestamp_str,
+        "hospital_info": h_info,
+        "clinician_review": c_review,
         "patient_info": p_info,
         "input_info": input_info,
         "signal_quality": quality_data,
@@ -162,9 +197,10 @@ def generate_structured_report(
         "ai_analysis": ai_analysis,
         "findings": findings,
         "disclaimer": (
-            "This report is generated automatically by an academic research prototype for educational and screening purposes. "
-            "It is NOT an official clinical diagnostic device. Do not use this report to self-diagnose or alter any medical treatment. "
-            "Always consult a board-certified cardiologist or healthcare professional for cardiovascular evaluation."
+            "This report is generated automatically as an AI-assisted clinical decision support tool. "
+            "It is NOT an autonomous medical device and does NOT constitute an independent clinical diagnosis. "
+            "Pursuant to CDSCO MDR 2017 and IEC 62304 safety principles, all analytical findings and classifications "
+            "must be verified, interpreted, and signed off by a licensed medical practitioner before patient care decisions."
         ),
     }
 
@@ -258,6 +294,21 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
     ])
     for f in report["findings"]:
         lines.append(f"  • {f}")
+
+    if report.get("clinician_review"):
+        cr = report["clinician_review"]
+        lines.extend([
+            "",
+            "6. CLINICIAN REVIEW & PHYSICIAN SIGN-OFF",
+            "-" * 72,
+            f"  Review Status        : {cr.get('status', 'PENDING_REVIEW')}",
+            f"  Reviewing Physician  : {cr.get('clinician_name') or 'Pending Clinician Review'}",
+            f"  Physician Role       : {cr.get('clinician_role') or 'N/A'}",
+            f"  Medical Reg. Number  : {cr.get('registration_number') or 'N/A'}",
+            f"  Clinical Diagnosis   : {cr.get('clinician_interpretation') or 'Awaiting Attending Physician Review'}",
+            f"  Clinical Directives  : {cr.get('clinical_notes') or 'None'}",
+            f"  Sign-off Timestamp   : {cr.get('reviewed_at') or 'Pending'}",
+        ])
 
     lines.extend([
         "",

@@ -71,11 +71,28 @@ def generate_pdf_report(
     styles = getSampleStyleSheet()
 
     # Custom styles
+    hosp_style = ParagraphStyle(
+        "HospHeader",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=13,
+        textColor=colors.HexColor("#0d3b66"),
+        fontName="Helvetica-Bold",
+        alignment=1,
+    )
+    hosp_sub = ParagraphStyle(
+        "HospSub",
+        parent=styles["Normal"],
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#555555"),
+        alignment=1,
+    )
     title_style = ParagraphStyle(
         "DocTitle",
         parent=styles["Heading1"],
-        fontSize=18,
-        leading=22,
+        fontSize=16,
+        leading=20,
         textColor=colors.HexColor("#1e3d59"),
         fontName="Helvetica-Bold",
         alignment=1,  # Center
@@ -83,8 +100,8 @@ def generate_pdf_report(
     subtitle_style = ParagraphStyle(
         "DocSubtitle",
         parent=styles["Normal"],
-        fontSize=10,
-        leading=13,
+        fontSize=9.5,
+        leading=12,
         textColor=colors.HexColor("#d9534f"),
         fontName="Helvetica-Bold",
         alignment=1,
@@ -134,12 +151,22 @@ def generate_pdf_report(
 
     story = []
 
-    # 1. Header & Title Banner
+    # 1. Hospital Institutional Letterhead
+    hosp = report_data.get("hospital_info", {})
+    inst_name = hosp.get("institution_name", "Apex Heart & Vascular Hospital")
+    dept_name = hosp.get("department", "Department of Cardiac Electrophysiology & Telemetry")
+    fac_id = hosp.get("facility_id", "MED-FAC-2026-IND")
+
+    story.append(Paragraph(f"<b>{inst_name.upper()}</b>", hosp_style))
+    story.append(Paragraph(f"{dept_name} • Facility ID: {fac_id}", hosp_sub))
+    story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor("#0d3b66"), spaceBefore=2, spaceAfter=4))
+
+    # Title Banner
     story.append(Paragraph(report_data.get("report_title", "AI ECG SCREENING REPORT"), title_style))
     story.append(Spacer(1, 2))
     story.append(Paragraph(report_data.get("report_subtitle", "Research/Educational AI Analysis — Not a Medical Diagnosis"), subtitle_style))
-    story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#1e3d59"), spaceBefore=2, spaceAfter=8))
+    story.append(Spacer(1, 3))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#1e3d59"), spaceBefore=2, spaceAfter=6))
 
     # 2. Patient Demographics & Input Information Table
     story.append(Paragraph("1. PATIENT & RECORDING INFORMATION", sec_heading_style))
@@ -285,6 +312,48 @@ def generate_pdf_report(
     story.append(Spacer(1, 4))
     story.append(Paragraph(f"<b>Summary:</b> {ai.get('explanation', '')}", body_style))
     story.append(Spacer(1, 8))
+
+    # 6. Clinician Review & Physician Sign-off
+    cr = report_data.get("clinician_review", {})
+    c_status = cr.get("status", "PENDING_REVIEW")
+    c_name = cr.get("clinician_name") or "Pending Qualified Physician Review"
+    c_role = cr.get("clinician_role") or "Physician"
+    c_reg = cr.get("registration_number") or "N/A"
+    c_interp = cr.get("clinician_interpretation") or "Awaiting Attending Physician Evaluation"
+    c_notes = cr.get("clinical_notes") or "None"
+    c_time = cr.get("reviewed_at") or "Pending"
+
+    status_color = "#28a745" if c_status == "CONFIRMED" else ("#fd7e14" if c_status == "MODIFIED" else ("#dc3545" if c_status == "REJECTED" else "#6c757d"))
+
+    story.append(Paragraph("6. CLINICAL REVIEW & PHYSICIAN SIGN-OFF", sec_heading_style))
+    review_box_data = [
+        [
+            Paragraph(f"<b>Review Status:</b> <font color='{status_color}'><b>{c_status}</b></font>", cell_bold),
+            Paragraph(f"<b>Reviewing Clinician:</b> {c_name} ({c_role})", cell_normal),
+        ],
+        [
+            Paragraph(f"<b>Medical Reg. No:</b> {c_reg}", cell_normal),
+            Paragraph(f"<b>Review Date/Time:</b> {c_time}", cell_normal),
+        ],
+        [
+            Paragraph(f"<b>Clinician Diagnosis:</b> {c_interp}", cell_bold),
+            Paragraph(f"<b>Clinical Directives:</b> {c_notes}", cell_normal),
+        ],
+        [
+            Paragraph("<b>Physician Signature:</b> ___________________________", cell_normal),
+            Paragraph("<b>Hospital Seal:</b> [ Electronically Authenticated ]", cell_normal),
+        ],
+    ]
+    t_rev = Table(review_box_data, colWidths=[270, 270])
+    t_rev.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8f9fa")),
+        ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#ced4da")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e9ecef")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(t_rev)
+    story.append(Spacer(1, 6))
 
     # 7. Disclaimer Box
     disclaimer_data = [[
