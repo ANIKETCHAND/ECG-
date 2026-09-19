@@ -22,7 +22,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -65,7 +65,10 @@ class ReviewRequest(BaseModel):
     clinical_notes: Optional[str] = ""
 
 
-@app.get("/api/health")
+router = APIRouter()
+
+
+@router.get("/health")
 def health_check():
     return {
         "status": "HEALTHY",
@@ -77,7 +80,7 @@ def health_check():
     }
 
 
-@app.get("/api/sample")
+@router.get("/sample")
 def get_sample_data(sample_type: str = "normal"):
     fs = 360.0
     duration_sec = 5.0
@@ -109,7 +112,7 @@ def get_sample_data(sample_type: str = "normal"):
     }
 
 
-@app.post("/api/analyze")
+@router.post("/analyze")
 def analyze_ecg(req: AnalyzeRequest):
     if not req.signal or len(req.signal) < 100:
         raise HTTPException(
@@ -189,7 +192,7 @@ def analyze_ecg(req: AnalyzeRequest):
     }
 
 
-@app.post("/api/review")
+@router.post("/review")
 def record_clinician_review(rev: ReviewRequest):
     return {
         "review_id": f"REV-VERCEL-{hash(rev.analysis_id) & 0xFFFFFF:06X}",
@@ -203,3 +206,15 @@ def record_clinician_review(rev: ReviewRequest):
         "status": "SEALED",
         "message": "Clinician review recorded and cryptographically sealed.",
     }
+
+
+# Register routes both with and without /api prefix to guarantee route matching across Vercel environments
+app.include_router(router, prefix="/api")
+app.include_router(router)
+
+
+@app.get("/")
+@app.get("/api")
+def root_ping():
+    return health_check()
+

@@ -37,3 +37,4 @@ data/processed/*.csv
 data/*.db
 data/*.db-journal
 data/*.jsonl
+.vercel
