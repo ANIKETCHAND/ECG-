@@ -22,14 +22,16 @@ def detect_motion_and_muscle_artifacts(
     if len(signal) < 20:
         return False, False, {"emg_energy_ratio": 0.0, "max_z_spike": 0.0}
 
-    # 1. Motion spikes: extreme sample-to-sample derivatives
+    # 1. Motion spikes: extreme non-physiological sample-to-sample derivatives
+    # Note: Normal QRS complexes have steep slopes (z ~ 5-10). Motion artifacts create huge outliers (z > 15).
     diffs = np.abs(np.diff(signal))
     std_diff = float(np.std(diffs)) + 1e-9
     max_diff = float(np.max(diffs))
+    sig_std = float(np.std(signal)) + 1e-9
 
     z_diff = (diffs - np.mean(diffs)) / std_diff
-    outlier_spikes = int(np.sum(z_diff > 8.0))
-    has_motion_spikes = outlier_spikes > 2 or (max_diff > 5.0 * np.std(signal))
+    extreme_spikes = int(np.sum(z_diff > 18.0))
+    has_motion_spikes = (extreme_spikes > 1) or (max_diff > 10.0 * sig_std)
 
     # 2. High-frequency muscle tremor (EMG): difference signal variance in >35 Hz band
     second_diff = np.abs(np.diff(diffs))
@@ -40,7 +42,7 @@ def detect_motion_and_muscle_artifacts(
     has_muscle_artifact = emg_ratio > 0.45
 
     metrics = {
-        "outlier_derivative_spikes": outlier_spikes,
+        "outlier_derivative_spikes": extreme_spikes,
         "max_derivative_jump": round(max_diff, 4),
         "emg_roughness_ratio": round(emg_ratio, 4),
     }

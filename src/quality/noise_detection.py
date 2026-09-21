@@ -25,15 +25,18 @@ def analyze_noise_and_powerline(
     if n_samples < int(fs):
         return 0.0, False, {"snr_db": 0.0, "powerline_50hz_ratio": 0.0, "powerline_60hz_ratio": 0.0}
 
+    # Detrend signal before filtering to prevent DC offset from contaminating noise power
+    detrended = signal - float(np.mean(signal))
+
     # Bandpass filter signal between 0.5 and 40 Hz as cardiac signal component
     nyq = 0.5 * fs
     low = max(0.5 / nyq, 0.001)
     high = min(40.0 / nyq, 0.99)
 
     b, a = scipy_signal.butter(3, [low, high], btype="bandpass")
-    filtered = scipy_signal.filtfilt(b, a, signal)
+    filtered = scipy_signal.filtfilt(b, a, detrended)
 
-    noise = signal - filtered
+    noise = detrended - filtered
     sig_power = float(np.mean(filtered**2))
     noise_power = float(np.mean(noise**2)) + 1e-9
 
