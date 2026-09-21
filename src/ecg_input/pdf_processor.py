@@ -18,7 +18,11 @@ from typing import Any, BinaryIO, Dict, List, Optional, Union
 from PIL import Image
 import pypdf
 
-from ecg_input.measurement_extractor import extract_report_measurements
+try:
+    from src.ecg_input.measurement_extractor import extract_report_measurements
+except ImportError:
+    from .measurement_extractor import extract_report_measurements
+
 
 
 ECG_REPORT_KEYWORDS = [

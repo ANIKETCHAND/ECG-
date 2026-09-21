@@ -28,6 +28,9 @@ def generate_structured_report(
     waveform_status: Optional[Dict[str, Any]] = None,
     clinician_review: Optional[Dict[str, Any]] = None,
     hospital_info: Optional[Dict[str, Any]] = None,
+    evidence_report: Optional[Dict[str, Any]] = None,
+    machine_comparison: Optional[Dict[str, Any]] = None,
+    longitudinal_comparison: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Assemble complete clinical research and review report dictionary.
 
@@ -195,6 +198,9 @@ def generate_structured_report(
         "signal_quality": quality_data,
         "cardiac_parameters": cardiac_params,
         "ai_analysis": ai_analysis,
+        "ai_evidence": evidence_report,
+        "machine_comparison": machine_comparison,
+        "longitudinal_comparison": longitudinal_comparison,
         "findings": findings,
         "disclaimer": (
             "This report is generated automatically as an AI-assisted clinical decision support tool. "
@@ -295,11 +301,44 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
     for f in report["findings"]:
         lines.append(f"  • {f}")
 
+    if report.get("ai_evidence"):
+        evd = report["ai_evidence"]
+        lines.extend([
+            "",
+            "6. AI EVIDENCE ENGINE FINDINGS",
+            "-" * 72,
+            f"  Evidence Summary     : {evd.get('evidence_summary', 'N/A')}",
+            f"  Aberrant Beats Count : {evd.get('aberrant_beats_count', 0)}",
+            f"  Rhythm Regularity CV : {evd.get('rhythm_regularity_cv', 'N/A')}%",
+        ])
+
+    if report.get("machine_comparison"):
+        cmp = report["machine_comparison"]
+        lines.extend([
+            "",
+            "7. ECG MACHINE vs. AI COMPARISON",
+            "-" * 72,
+            f"  Concordance Status   : {cmp.get('status', 'N/A')}",
+            f"  Comparison Summary   : {cmp.get('summary', 'N/A')}",
+            f"  Clinical Advisory    : {cmp.get('clinical_advisory', 'N/A')}",
+        ])
+
+    if report.get("longitudinal_comparison"):
+        long_cmp = report["longitudinal_comparison"]
+        lines.extend([
+            "",
+            "8. LONGITUDINAL PATIENT COMPARISON",
+            "-" * 72,
+            f"  Status               : {long_cmp.get('status', 'N/A')}",
+            f"  Change Summary       : {long_cmp.get('objective_change_summary', 'N/A')}",
+            f"  Delta Heart Rate     : {long_cmp.get('delta_heart_rate_bpm') or 'N/A'} BPM",
+        ])
+
     if report.get("clinician_review"):
         cr = report["clinician_review"]
         lines.extend([
             "",
-            "6. CLINICIAN REVIEW & PHYSICIAN SIGN-OFF",
+            "9. CLINICIAN REVIEW & PHYSICIAN SIGN-OFF",
             "-" * 72,
             f"  Review Status        : {cr.get('status', 'PENDING_REVIEW')}",
             f"  Reviewing Physician  : {cr.get('clinician_name') or 'Pending Clinician Review'}",

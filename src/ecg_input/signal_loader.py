@@ -2,13 +2,11 @@
 Digital ECG Signal Loader
 =========================
 
-Robust ingestion for CSV, TXT, and NPY files:
+Robust ingestion for CSV, TXT, NPY, EDF, XML, JSON, DICOM, and WFDB formats:
 - Automatically detects delimiters (comma, tab, semicolon, whitespace)
 - Isolates ECG voltage channel from timestamp/index columns
 - Infers sampling rate from time intervals if present
-- Validates signal dynamic range and finite values
-
-Research/educational use only.
+- Converts into unified ECGRecording instances
 """
 
 from __future__ import annotations
@@ -20,7 +18,73 @@ from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
+try:
+    from src.ecg_core.models import ECGRecording
+    from src.ecg_input.csv_loader import load_csv_ecg
+    from src.ecg_input.dicom_loader import load_dicom_ecg
+    from src.ecg_input.edf_loader import load_edf_ecg
+    from src.ecg_input.input_detector import InputModality, detect_input_modality
+    from src.ecg_input.json_loader import load_json_ecg
+    from src.ecg_input.npy_loader import load_npy_ecg
+    from src.ecg_input.txt_loader import load_txt_ecg
+    from src.ecg_input.wfdb_loader import load_wfdb_record
+    from src.ecg_input.xml_loader import load_xml_ecg
+except ImportError:
+    from ecg_core.models import ECGRecording
+    from ecg_input.csv_loader import load_csv_ecg
+    from ecg_input.dicom_loader import load_dicom_ecg
+    from ecg_input.edf_loader import load_edf_ecg
+    from ecg_input.input_detector import InputModality, detect_input_modality
+    from ecg_input.json_loader import load_json_ecg
+    from ecg_input.npy_loader import load_npy_ecg
+    from ecg_input.txt_loader import load_txt_ecg
+    from ecg_input.wfdb_loader import load_wfdb_record
+    from ecg_input.xml_loader import load_xml_ecg
+
+
 STANDARD_SAMPLING_RATES = [125, 250, 360, 500, 1000]
+
+
+def load_any_ecg(
+    file_or_path: Union[str, Path, bytes, io.BytesIO],
+    filename: str,
+    fs: Optional[float] = None,
+    lead_name: str = "II",
+    patient_id: Optional[str] = None,
+) -> Tuple[Optional[ECGRecording], Optional[str]]:
+    """Universal dispatcher: ingests any supported ECG digital format into an ECGRecording.
+
+    Returns:
+        (ECGRecording, None) if successful, or (None, error_message) on failure.
+    """
+    fname_lower = filename.lower()
+
+    if fname_lower.endswith(".csv"):
+        return load_csv_ecg(file_or_path, fs=fs, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith(".txt"):
+        return load_txt_ecg(file_or_path, fs=fs, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith(".npy"):
+        return load_npy_ecg(file_or_path, fs=fs, lead_names=[lead_name], patient_id=patient_id)
+
+    if fname_lower.endswith((".edf", ".rec")):
+        return load_edf_ecg(file_or_path, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith((".xml", ".hl7")):
+        return load_xml_ecg(file_or_path, fs=fs, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith(".json"):
+        return load_json_ecg(file_or_path, fs=fs, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith((".dcm", ".dicom")):
+        return load_dicom_ecg(file_or_path, lead_name=lead_name, patient_id=patient_id)
+
+    if fname_lower.endswith((".dat", ".hea")):
+        stem = str(Path(filename).with_suffix(""))
+        return load_wfdb_record(stem, lead_name=lead_name, patient_id=patient_id)
+
+    return None, f"NO RESULT: Unsupported digital format extension '{Path(filename).suffix}'."
 
 
 def load_digital_signal(
@@ -29,24 +93,7 @@ def load_digital_signal(
     user_fs: Optional[float] = None,
     default_fs: float = 360.0,
 ) -> Dict[str, Any]:
-    """Load a 1D ECG voltage signal from CSV, TXT, or NPY.
-
-    Args:
-        file_or_path: Path or file-like object
-        filename: Original file name string
-        user_fs: User-specified sampling rate if known
-        default_fs: Fallback sampling rate if none detected and none specified
-
-    Returns:
-        Dictionary with:
-        - 'signal': 1D np.ndarray
-        - 'sampling_rate': float
-        - 'detected_fs': Optional[float] (if mathematically inferred from time column)
-        - 'needs_fs_confirmation': bool
-        - 'column_name': str
-        - 'total_samples': int
-        - 'duration_sec': float
-    """
+    """Backward-compatible loader returning dictionary representation for legacy pipelines."""
     fname_lower = filename.lower()
 
     if fname_lower.endswith(".npy"):
@@ -82,7 +129,6 @@ def _load_npy(file_or_path: Any, user_fs: Optional[float], default_fs: float) ->
 
 def _load_text_csv(file_or_path: Any, user_fs: Optional[float], default_fs: float) -> Dict[str, Any]:
     """Load CSV or delimited TXT file."""
-    # Read raw bytes if stream
     if hasattr(file_or_path, "read"):
         raw_bytes = file_or_path.read()
         if isinstance(raw_bytes, str):
@@ -95,87 +141,73 @@ def _load_text_csv(file_or_path: Any, user_fs: Optional[float], default_fs: floa
             text_data = f.read()
         buffer = io.StringIO(text_data)
 
-    # Try reading with pandas using automatic engine
     df = None
     delimiters = [",", "\t", ";", r"\s+"]
+
     for sep in delimiters:
         try:
             buffer.seek(0)
-            candidate = pd.read_csv(buffer, sep=sep, engine="python")
-            # If at least one numeric column exists and rows > 0, accept
-            num_cols = candidate.select_dtypes(include=[np.number]).columns
-            if len(num_cols) > 0 and len(candidate) > 2:
-                df = candidate
-                break
+            candidate = pd.read_csv(buffer, sep=sep, engine="python", nrows=20)
+            if candidate.shape[1] >= 1 and candidate.shape[0] >= 5:
+                # Check numeric columns
+                numeric_cols = candidate.select_dtypes(include=[np.number]).columns
+                if len(numeric_cols) > 0:
+                    buffer.seek(0)
+                    df = pd.read_csv(buffer, sep=sep, engine="python")
+                    break
         except Exception:
             continue
 
     if df is None or df.empty:
-        # Fallback: single column without header
-        buffer.seek(0)
-        try:
-            df = pd.read_csv(buffer, header=None)
-        except Exception as exc:
-            raise ValueError(f"Could not parse digital ECG data: {exc}")
+        raise ValueError("Could not parse file as delimited numeric table.")
 
-    # Ensure columns have numeric data
-    numeric_cols: List[str] = []
-    for col in df.columns:
-        converted = pd.to_numeric(df[col], errors="coerce")
-        if converted.notna().sum() > 0.6 * len(df):
-            df[col] = converted
-            numeric_cols.append(str(col))
+    # Drop non-numeric columns
+    numeric_df = df.select_dtypes(include=[np.number])
+    if numeric_df.empty:
+        raise ValueError("No numeric data columns found in the file.")
 
-    if not numeric_cols:
-        raise ValueError("The uploaded file does not contain any valid numeric voltage samples.")
+    detected_fs = None
+    signal_col = None
 
-    # Check for time column to detect sampling rate
-    detected_fs: Optional[float] = None
-    signal_col: Optional[str] = None
+    # Check for time column
+    time_candidates = [col for col in numeric_df.columns if any(kw in str(col).lower() for kw in ["time", "t_sec", "t_ms", "timestamp", "sec"])]
+    if time_candidates:
+        time_col = time_candidates[0]
+        t_vals = numeric_df[time_col].dropna().values
+        if len(t_vals) > 10:
+            diffs = np.diff(t_vals)
+            positive_diffs = diffs[diffs > 0]
+            if len(positive_diffs) > 5:
+                median_dt = float(np.median(positive_diffs))
+                if median_dt > 0:
+                    # If in milliseconds
+                    if median_dt >= 1.0 and np.max(t_vals) > 100:
+                        candidate_fs = 1000.0 / median_dt
+                    else:
+                        candidate_fs = 1.0 / median_dt
+                    # Snap to standard frequency if close
+                    for std_fs in STANDARD_SAMPLING_RATES:
+                        if abs(candidate_fs - std_fs) / std_fs < 0.05:
+                            candidate_fs = float(std_fs)
+                            break
+                    detected_fs = round(candidate_fs, 2)
 
-    time_keywords = ["time", "t_sec", "t_s", "timestamp", "sec", "seconds", "sample", "index"]
-    ecg_keywords = ["ecg", "lead", "mlii", "v1", "v2", "v3", "v4", "v5", "v6", "signal", "val", "voltage", "mv"]
+        # Voltage candidates excluding time column
+        voltage_candidates = [col for col in numeric_df.columns if col != time_col]
+    else:
+        voltage_candidates = list(numeric_df.columns)
 
-    time_col = None
-    for col in numeric_cols:
-        c_lower = col.lower()
-        if any(kw == c_lower or kw in c_lower for kw in time_keywords):
-            # Verify it's monotonic increasing
-            vals = df[col].dropna().values
-            if len(vals) > 10:
-                diffs = np.diff(vals[:100])
-                if np.all(diffs > 0):
-                    median_step = float(np.median(diffs))
-                    if 0.0005 <= median_step <= 0.02:  # 50 Hz to 2000 Hz
-                        detected_fs = round(1.0 / median_step, 1)
-                        time_col = col
-                        break
+    if not voltage_candidates:
+        raise ValueError("No voltage signal column could be isolated.")
 
-    # Choose best voltage column
-    candidate_signal_cols = [c for c in numeric_cols if c != time_col]
-    if not candidate_signal_cols:
-        candidate_signal_cols = numeric_cols
+    # Select best voltage candidate
+    ecg_name_candidates = [col for col in voltage_candidates if any(kw in str(col).lower() for kw in ["ecg", "lead", "ii", "mlii", "voltage", "mv"])]
+    signal_col = ecg_name_candidates[0] if ecg_name_candidates else voltage_candidates[0]
 
-    # Look for explicit ECG keyword
-    for col in candidate_signal_cols:
-        c_lower = col.lower()
-        if any(kw in c_lower for kw in ecg_keywords):
-            signal_col = col
-            break
+    raw_signal = numeric_df[signal_col].dropna().values.astype(np.float64)
 
-    # If no keyword matched, choose column with maximum oscillatory variance
-    if signal_col is None:
-        best_std = -1.0
-        for col in candidate_signal_cols:
-            s_std = float(df[col].std())
-            if s_std > best_std:
-                best_std = s_std
-                signal_col = col
-
-    if signal_col is None:
-        signal_col = candidate_signal_cols[0]
-
-    raw_signal = df[signal_col].dropna().values.astype(np.float64)
+    if len(raw_signal) == 0:
+        raise ValueError(f"Signal column '{signal_col}' contains no valid numeric data.")
 
     # Clean NaNs/Infs
     raw_signal = np.nan_to_num(raw_signal, nan=0.0, posinf=0.0, neginf=0.0)

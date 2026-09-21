@@ -116,3 +116,47 @@ def test_generate_pdf_report(mock_report_inputs):
     assert isinstance(pdf_bytes, bytes)
     assert len(pdf_bytes) > 1000
     assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_generate_structured_report_with_all_guardian_sections(mock_report_inputs):
+    inp, ai_res, meas, wf_stat = mock_report_inputs
+    evd = {
+        "evidence_summary": "Aberrant beat detected on Beat #3",
+        "aberrant_beats_count": 1,
+        "rhythm_regularity_cv": 3.4,
+    }
+    mach = {
+        "status": "AGREE",
+        "summary": "Machine and AI agree on Normal Sinus Rhythm",
+        "clinical_advisory": "Concordant findings.",
+    }
+    long_cmp = {
+        "status": "STABLE",
+        "objective_change_summary": "Stable rhythm",
+        "delta_heart_rate_bpm": 2.0,
+    }
+    rev = {
+        "status": "ACCEPTED",
+        "clinician_name": "Dr. Sunita Rao",
+        "clinician_role": "Cardiologist",
+        "registration_number": "MCI-12345",
+        "clinician_interpretation": "Normal Sinus Rhythm",
+    }
+    report = generate_structured_report(
+        inp, ai_res, meas, wf_stat,
+        clinician_review=rev,
+        evidence_report=evd,
+        machine_comparison=mach,
+        longitudinal_comparison=long_cmp,
+    )
+    assert report["ai_evidence"]["aberrant_beats_count"] == 1
+    assert report["machine_comparison"]["status"] == "AGREE"
+    assert report["longitudinal_comparison"]["status"] == "STABLE"
+    assert report["clinician_review"]["registration_number"] == "MCI-12345"
+
+    txt = export_report_to_text(report)
+    assert "AI EVIDENCE ENGINE FINDINGS" in txt
+    assert "ECG MACHINE vs. AI COMPARISON" in txt
+    assert "LONGITUDINAL PATIENT COMPARISON" in txt
+    assert "CLINICIAN REVIEW & PHYSICIAN SIGN-OFF" in txt
+
