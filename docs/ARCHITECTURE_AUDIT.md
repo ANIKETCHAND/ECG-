@@ -1,253 +1,236 @@
-# Comprehensive Architecture & Engineering Audit
-**Document ID:** AUD-ECG-2026-001  
-**Author:** AI ECG Platform Engineering & Regulatory Team  
-**Reference Standards:** Medical Devices Rules (MDR) 2017 (CDSCO India), IEC 62304:2006/Amd 1:2015, ISO 14971:2019, IMDRF SaMD N12  
-**Baseline Date:** September 2026  
+# ECG GUARDIAN: Comprehensive Architecture & Repository Audit
+**Document ID:** AUD-ECG-GUARDIAN-2026-001  
+**Project Name:** ECG GUARDIAN  
+**Repository:** [https://github.com/ANIKETCHAND/ECG-](https://github.com/ANIKETCHAND/ECG-)  
+**Phase:** Phase 1 — Repository Audit & Architecture Baseline  
+**Date:** September 2026  
 **Status:** Approved Engineering Baseline Audit  
 
 ---
 
-## Executive Summary
-
-This document establishes the technical, clinical, and regulatory baseline of the **AI ECG Analyzer** codebase prior to its architectural transition into a hospital-oriented, medical-device-ready platform. 
+## Statutory Regulatory & Clinical Disclosure
 
 > [!CAUTION]
-> **REGULATORY NOTICE:** This software is currently an unvalidated research prototype. It is **NOT** approved by CDSCO (India), FDA (USA), EMA/CE-mark (EU), or any statutory medical device regulatory agency. It is **NOT** certified for autonomous clinical diagnosis or clinical decision-making.
+> **MANDATORY STATUTORY DISCLAIMER:**
+> **ECG GUARDIAN** is currently an investigational software engineering platform and prototype. It is:
+> - **NOT CDSCO Approved** (Central Drugs Standard Control Organisation, India) under the Medical Devices Rules (MDR) 2017.
+> - **NOT FDA Approved or Cleared** (US Food and Drug Administration) under 510(k) or De Novo pathways.
+> - **NOT CE Marked** under European Union Medical Device Regulation (EU MDR 2017/745).
+> - **NOT Clinically Validated** in prospective clinical trials.
+> - **NOT Authorized for Autonomous Diagnosis** of any disease, cardiac pathology, or physiological state.
+> - **NOT a Replacement for a Physician**, cardiologist, or qualified healthcare professional.
+>
+> All AI-derived parameters and classifications are provisional algorithmic decision support outputs subject to mandatory qualified physician review, modification, and sign-off.
 
 ---
 
-## 1. Current Architecture
+## Global Architectural Rules (Governing All Phases)
 
-The current repository follows a monolithic, single-tier script structure built primarily around Streamlit (`app.py`), directly orchestrating:
-- Signal loading and file format sniffers (`src/ecg_input/`)
-- Preprocessing and quality scoring (`src/preprocessing.py`, `src/signal_quality.py`)
-- Beat detection and segmentation (`src/peak_detection.py`, `src/segmentation.py`)
-- Morphological and rhythm feature extraction (`src/feature_extraction.py`)
-- Synchronous model loading and inference (`src/prediction.py`)
-- Direct in-memory report generation (`src/report/`)
-- Front-end rendering (`app.py`, `src/visualization.py`)
+Every component and phase of the ECG GUARDIAN platform adheres to the following inviolable principles:
 
-### Architectural Block Diagram (As-Is):
+- **RULE 1 — Never Fabricate Data:** Never fabricate ECG signals, patient demographics, clinical measurements, diagnoses, model probabilities, performance metrics, clinical validation, or regulatory approvals.
+- **RULE 2 — Never Convert Failure into Normal:** Never implement `if error: prediction = "Normal"`. System failures, unreadable data, or pipeline errors strictly resolve to **NO RESULT**.
+- **RULE 3 — Never Generate Synthetic ECG Data to Replace Missing Patient Data:** If waveform extraction or digitization fails, the pipeline outputs **NO AI ANALYSIS**.
+- **RULE 4 — Never Assume Missing ECG Metadata:** Never silently assume 360 Hz, 12 leads, or 10-second duration unless explicitly established by digital headers, calibrations, or confirmed operator entry.
+- **RULE 5 — Never Call Model Probability "Diagnostic Confidence":** Use strictly **Model probability**; statistical softmax outputs must never be conflated with clinical diagnostic certainty.
+- **RULE 6 — Do Not Invent Disease Classes:** The application strictly exposes only the classes supported by the actual trained and validated model (`Normal Sinus Rhythm`, `Premature Ventricular Contraction (PVC)`).
+- **RULE 7 — Clinician Remains Responsible for Final Interpretation:** The AI output remains strictly separate from the physician's signed clinical interpretation.
+- **RULE 8 — Do Not Claim Clinical Validation:** No claim of clinical efficacy or diagnostic accuracy in human populations may be made until appropriate prospective institutional trials have been executed.
+- **RULE 9 — Preserve Reproducibility:** Every analysis records: `ECG ID`, `Model version`, `Preprocessing version`, `Software version`, and cryptographic `Timestamp`.
+- **RULE 10 — Test Every Phase:** Every phase must implement, test, fix, document, and verify before proceeding to the subsequent phase.
+
+---
+
+## 1. CURRENT SYSTEM
+
+### 1.1 Repository Structure
+The repository is organized as follows:
 ```text
-[ Browser / User ]
-        │ (HTTP Port 8501)
-        ▼
- [ Streamlit Server (Python Runtime) ]
-   ├── app.py (UI Layout, Session State, Orchestration)
-   ├── src/ecg_input/ (Format Detection & CSV/PDF/Image loaders)
-   ├── src/preprocessing.py (Median filter & Butterworth Bandpass)
-   ├── src/peak_detection.py (SciPy find_peaks)
-   ├── src/segmentation.py (Window extraction)
-   ├── src/feature_extraction.py (28 manual features)
-   ├── src/prediction.py (Joblib load of models/classifier.pkl)
-   ├── src/report/ (ReportLab PDF & JSON generator)
-   └── data/raw/ (Local WFDB files)
+E:\CODE\AI-ECG-Analyzer
+├── app.py                      # Streamlit interactive application orchestrator
+├── requirements.txt            # Production dependencies
+├── requirements-all.txt        # Full local development dependencies
+├── PROJECT_DOCUMENTATION.md    # Initial project documentation
+├── README.md                   # Repository overview and deployment guide
+├── api/
+│   ├── index.py                # Serverless FastAPI endpoint
+│   └── requirements.txt        # Serverless dependency profile
+├── src/
+│   ├── data_loader.py          # MIT-BIH PhysioNet WFDB record loader
+│   ├── preprocessing.py        # Baseline wander median filter & Butterworth bandpass
+│   ├── signal_quality.py       # SNR, baseline drift, 50/60 Hz powerline, quality scoring
+│   ├── peak_detection.py       # Scipy find_peaks with 300 ms refractory window
+│   ├── segmentation.py         # [-0.2s, +0.4s] cardiac cycle extraction
+│   ├── feature_extraction.py   # 28 time, morphology, frequency, and RR features
+│   ├── label_mapping.py        # AAMI EC57 to 3-class mapping (Normal, PVC, Other)
+│   ├── prediction.py           # Window-level Random Forest inference
+│   ├── evaluation.py           # Multi-metric evaluation (Accuracy, F1, Precision, Recall)
+│   ├── visualization.py        # Plotly & Matplotlib waveform strip plotting
+│   ├── ecg_core/               # ECGRecording and ECGAnalysisResult domain entities
+│   ├── ecg_input/              # Format detection, CSV/NPY, PDF text, OpenCV trace isolation
+│   ├── safety/                 # Signal Quality Gatekeeper (GOOD, ACCEPTABLE, POOR, UNUSABLE)
+│   ├── measurements/           # Deterministic measurement engine (HR, RR, QRS, QTc)
+│   ├── inference/              # Decoupled inference engine (ECG-RF-1.0.0)
+│   ├── auth/                   # PBKDF2 authentication & RBAC manager
+│   ├── database/               # SQLite patient, ECG, and review database manager
+│   ├── audit/                  # Cryptographic SHA-256 hash-chained audit logger
+│   └── report/                 # ReportLab PDF and JSON export engine
+├── models/
+│   ├── classifier.pkl          # Trained Random Forest classifier (100 trees)
+│   ├── baseline_classifier.pkl # Trained Logistic Regression baseline
+│   ├── scaler.pkl              # StandardScaler fitted on training records only
+│   ├── metadata.json           # Model configuration, hyperparameters, feature names
+│   ├── production/             # Active production model registry
+│   ├── validation/             # Validation test artifacts
+│   ├── archived/               # Superseded model versions
+│   └── registry/               # Registry catalog
+├── training/
+│   ├── prepare_dataset.py      # Feature matrix extraction from raw records
+│   ├── train_test_split.py     # Patient-level split logic (no patient overlap)
+│   ├── train_model.py          # Model training and artifact serialization
+│   └── evaluate_model.py       # Record-level validation metrics calculation
+├── data/
+│   ├── raw/                    # MIT-BIH benchmark records (.dat, .hea, .atr)
+│   ├── processed/              # Processed train/test feature matrices
+│   ├── hospital_clinical.db    # Relational transactional database
+│   └── audit_trail.db          # Immutable audit database
+├── docs/                       # Architectural & regulatory documentation
+└── tests/                      # 72 automated pytest test suites
 ```
 
----
+### 1.2 Current Machine Learning Model
+- **Algorithm:** `RandomForestClassifier` (Scikit-Learn).
+- **Ensemble:** 100 decision trees (`n_estimators=100`, `random_state=42`).
+- **Feature Vector:** 28 engineered features per heartbeat.
+- **Normalization:** `StandardScaler` fitted strictly on training partition (`models/scaler.pkl`).
+- **Baseline Model:** L2-regularized `LogisticRegression` (`models/baseline_classifier.pkl`).
+- **Active Model Identifier:** `ECG-RF-1.0.0`.
 
-## 2. Current Data Flow
+### 1.3 Current Dataset & Partitioning
+- **Source:** MIT-BIH Arrhythmia Database (PhysioNet).
+- **Lead Evaluated:** Modified Lead II (MLII).
+- **Sampling Rate:** 360 Hz.
+- **Record-Level Patient Partitioning (Zero Patient Leakage):**
+  - **Train Set (4 records, 10,152 heartbeats):** Records `100`, `106`, `200`, `213`.
+  - **Unseen Test Set (3 records, 6,807 heartbeats):** Records `101`, `119`, `208`.
+- **Test Performance on Unseen Patients:**
+  - Overall Accuracy: **97.86%**
+  - Normal Sinus Rhythm (Support: 4,989): Precision 99.88%, Recall 97.29%, **F1: 98.57%**
+  - PVC Ventricular Ectopy (Support: 1,809): Precision 93.58%, Recall 99.89%, **F1: 96.63%**
+  - Other Class (Support: 9): Precision 0.00%, Recall 0.00%, **F1: 0.00%**
 
-1. **Ingestion**: User uploads a file via Streamlit file uploader, or selects an MIT-BIH demo record.
-2. **Detection**: `input_detector.py` checks file suffix and initial magic bytes to categorize modality (`DIGITAL_SIGNAL`, `REPORT_PDF`, `REPORT_IMAGE`).
-3. **Signal Parsing**:
-   - Digital CSV/TXT/NPY: `signal_loader.py` reads first column as voltage.
-   - PDF: `pdf_processor.py` extracts text and looks for embedded raster images.
-   - Image: `image_processor.py` suppresses red/pink grid lines, `waveform_extractor.py` traces center-of-mass dark pixels.
-4. **Validation**: `extraction_validation.py` checks duration ($\ge 1.5$s) and variance.
-5. **Noise Filtering**: `preprocess_pipeline` applies:
-   - Median filter baseline correction (200 ms and 600 ms windows).
-   - 0.5–40 Hz 3rd-order Butterworth bandpass filter.
-   - Z-score normalization: $\hat{s} = \frac{s - \mu}{\sigma}$.
-6. **Quality Assessment**: `calculate_signal_quality` computes SNR, baseline drift, 50/60 Hz powerline interference, and outlier ratios.
-7. **R-Peak Detection**: `detect_r_peaks` runs `scipy.signal.find_peaks` with height and distance thresholds (min distance = $0.3 \times f_s$).
-8. **Beat Segmentation**: Extracts $[-0.2\text{s}, +0.4\text{s}]$ window around each R-peak.
-9. **Feature Extraction**: Computes 28 time, morphology, frequency, and RR interval metrics per beat.
-10. **Inference**: Scikit-Learn `RandomForestClassifier` predicts class probabilities per beat; majority voting sets window-level pattern.
-11. **Reporting**: Assembled into memory and downloaded via Streamlit buttons.
-
----
-
-## 3. Current Machine Learning Model
-
-- **Architecture**: `RandomForestClassifier` (Scikit-Learn).
-- **Ensemble Size**: 100 decision trees (`n_estimators=100`).
-- **Splitting Criterion**: Gini impurity.
-- **Max Depth**: Unlimited (`None`).
-- **Baseline Model**: L2-regularized `LogisticRegression`.
-- **Serialization**: Python Pickle via `joblib` (`models/classifier.pkl`, `models/scaler.pkl`).
-- **Artifact Coupling**: The pickled models depend directly on the specific Python version (Python 3.14.6) and Scikit-Learn version installed in the host environment.
+### 1.4 Current Signal Processing Pipeline
+1. **Baseline Wander Removal:** Cascaded median filters (200 ms kernel removes P-QRS-T complexes; 600 ms kernel smooths baseline drift; subtraction removes wander).
+2. **Bandpass Filtering:** 3rd-order Butterworth bandpass filter (0.5 Hz to 40.0 Hz) via forward-backward zero-phase filtering (`scipy.signal.filtfilt`).
+3. **Signal Quality Gatekeeper:** Evaluates SNR (dB), baseline drift ratio, 50/60 Hz powerline harmonic ratio, clipping percentage, and flatline detection. Outputs categorical grade: `GOOD`, `ACCEPTABLE`, `POOR`, `UNUSABLE`.
+4. **R-Peak Detection:** Adaptive amplitude thresholding with a physiologically constrained 300 ms refractory period.
+5. **Beat Segmentation:** Isolates temporal window $[-0.20\text{s}, +0.40\text{s}]$ (216 samples at 360 Hz) centered on each detected R-peak.
+6. **28-Feature Extraction:** Computes 11 time-domain, 7 morphological, 7 frequency-domain (Welch PSD), and 3 R-R interval dynamic features.
+7. **Deterministic Measurements:** Computes Heart Rate (BPM), mean R-R interval (ms), QRS duration (ms), Bazett-corrected QTc (ms), Fridericia-corrected QTc (ms), and frontal electrical axis (requiring multilead I & II; safely rejects single-lead axis calculation).
 
 ---
 
-## 4. Current Dataset
+## 2. CURRENT LIMITATIONS
 
-- **Primary Source**: MIT-BIH Arrhythmia Database (PhysioNet).
-- **Lead Evaluated**: Single lead, Modified Lead II (MLII).
-- **Sampling Frequency**: Native 360 Hz.
-- **Partitioning**: Strictly partitioned at the patient/record level (no patient leakage):
-  - **Train Set (4 records, 10,152 beats)**: Record 100, Record 106, Record 200, Record 213.
-  - **Test Set (3 records, 6,807 beats)**: Record 101, Record 119, Record 208.
-- **Total Unique Patients Represented**: 7 patients.
-- **Audit Finding**: While patient leakage between train and test sets was strictly prevented, 7 patients from an American ambulatory ECG dataset from 1980 represents an extremely small sample. It cannot represent global hospital patient demographics, pediatric populations, or patients with acute ischemic syndromes.
-
----
-
-## 5. Current Classes
-
-The model classifies three mutually exclusive categories mapped from AAMI EC57 standards:
-1. **Normal (`Normal`)**: Normal sinus rhythm beats (`N`, `L`, `R`).
-2. **PVC (`PVC`)**: Premature Ventricular Contraction / Ventricular Ectopy (`V`, `E`).
-3. **Other (`Other`)**: Supraventricular ectopic, atrial premature, paced, or fusion beats (`A`, `a`, `J`, `S`, `F`, `f`, `j`).
-
-> [!WARNING]
-> **CRITICAL CLINICAL BOUNDARY:** The model **DOES NOT** detect:
-> - Atrial Fibrillation (AFib)
-> - ST-Segment Elevation Myocardial Infarction (STEMI / Heart Attack)
-> - Non-ST Elevation Myocardial Infarction (NSTEMI)
-> - Left/Right Bundle Branch Block (LBBB / RBBB) as independent diagnoses
-> - Long QT Syndrome
-> - Brugada Syndrome
-> - Hyperkalemia or electrolyte disorders
-> 
-> Claiming or implying that this software detects "heart disease" or "cardiac abnormalities generally" is a severe regulatory and clinical safety violation.
+1. **Single-Lead MLII Operational Constraint:**  
+   The classifier was trained strictly on Modified Lead II (MLII). It cannot evaluate 12-lead spatial vectors, precordial ischemic changes (V1–V6), or limb lead electrical axes. Attempting to classify other leads using this model is clinically invalid.
+2. **Zero Sensitivity for Class "Other":**  
+   Due to extreme class imbalance in the training data, the model scored 0.0% precision and recall on class `Other`. The model cannot be claimed to detect general ectopic or supraventricular arrhythmias; it is strictly an adjunctive detector for Normal Sinus Rhythm vs. PVC.
+3. **Lack of Explainable Beat Evidence:**  
+   When the model identifies PVC ectopy, it outputs window-level probabilities without highlighting or isolating the specific aberrant beats (e.g., Beat #37, Beat #84) with local morphology, coupling intervals, and pre/post-RR ratios.
+4. **No Automated Machine vs. AI Comparison:**  
+   While machine-printed text is extracted from PDF reports, the system lacks an automated semantic comparison engine to detect discrepancies between the ECG machine's printed interpretation and the AI model's finding.
+5. **Absence of Longitudinal Comparison:**  
+   The current architecture does not track patient timelines (e.g., Jan vs. Mar vs. Sep) or calculate delta metrics ($\Delta\text{HR}$, $\Delta\text{PR}$, $\Delta\text{QRS}$, $\Delta\text{QTc}$, rhythm shift, ectopic burden changes).
+6. **Format Gaps in Clinical Ingestion:**  
+   Native healthcare interchange standards such as DICOM Waveform (SOP Class `1.2.840.10008.5.1.4.1.1.9.1.1`), HL7 aECG XML, and European Data Format (EDF/EDF+) are not yet fully supported.
+7. **Coupled Monolithic Deployment:**  
+   Streamlit serves as both the presentation layer and the application coordinator, which limits enterprise microservice scalability, containerized job queuing, and cloud orchestration.
 
 ---
 
-## 6. Current Preprocessing Pipeline
+## 3. TARGET ECG GUARDIAN SYSTEM
 
-- **Baseline Wander Correction**: Two-stage cascading median filter (200 ms kernel removes P-QRS-T complexes; 600 ms kernel smooths baseline drift; difference subtracted from raw signal).
-- **Bandpass Filter**: 3rd-order Butterworth bandpass filter ($0.5\text{ Hz} - 40.0\text{ Hz}$) using forward-backward zero-phase filtering (`scipy.signal.filtfilt`).
-- **Normalization**: Z-score standardization.
-- **Limitation**: `filtfilt` is a non-causal batch filter that requires the entire signal window in memory. It is suitable for batch offline processing but requires causal restructuring if adapted to real-time telemetry streaming.
+### 3.1 Target End-to-End Workflow
+```text
+ECG MACHINE
+    │
+    ▼
+ECG FILE (DICOM, HL7, EDF, XML, CSV, TXT, NPY, PDF, Image)
+    │
+    ▼
+ECG INGESTION (Format-specific loaders & device catalog)
+    │
+    ▼
+INPUT VALIDATION (File integrity, magic bytes, duration, schema)
+    │
+    ▼
+ECG QUALITY COPILOT (Lead-level noise, drift, clipping, flatline)
+    │
+    ▼
+SIGNAL TRUST CHECK (GOOD / ACCEPTABLE -> Proceed; UNUSABLE -> HALT: NO AI RESULT)
+    │
+    ▼
+AI ECG ANALYSIS (Decoupled inference engine with locked models)
+    │
+    ▼
+AI EVIDENCE ENGINE (Beat-level attribution, morphometrics, coupling intervals)
+    │
+    ▼
+ECG MACHINE vs AI COMPARISON (Semantic extraction & alignment)
+    │
+    ▼
+DISAGREEMENT DETECTION (AGREE, MINOR_DIFFERENCE, SIGNIFICANT_DISAGREEMENT)
+    │
+    ▼
+PREVIOUS ECG COMPARISON (Longitudinal trend & delta analysis)
+    │
+    ▼
+CLINICIAN REVIEW (Mandatory affirmative sign-off: Accept / Reject / Modify)
+    │
+    ▼
+FINAL REPORT (Cryptographically sealed multi-page PDF & JSON)
+    │
+    ▼
+AUDIT TRAIL (Tamper-evident append-only SHA-256 hash chaining)
+```
 
----
-
-## 7. Current Feature Extraction
-
-28 hand-crafted engineered features:
-- **Time Domain (11)**: Mean, standard deviation, min, max, range, median, signal energy, RMS amplitude, mean absolute value (MAV), SNR, zero-crossing rate.
-- **Morphology (7)**: Autocorrelation first peak, R-peak amplitude, P-wave amplitude estimate, T-wave amplitude estimate, peak-to-peak amplitude, maximum derivative slope, QRS width in samples.
-- **Frequency Domain (7)**: Total spectral power, low-frequency power (0–4 Hz), high-frequency power (4–15 Hz), very-high-frequency power (15–40 Hz), dominant frequency, peak spectral power, spectral entropy.
-- **R-R Interval Dynamics (3)**: Pre-RR interval, Post-RR interval, Local RR ratio ($\frac{\text{pre-RR}}{\text{local mean RR}}$).
-- **Audit Finding**: Features heavily depend on accurate R-peak detection. If R-peak detection fails or shifts due to bundle branch block or tall T-waves, all 28 features propagate significant error.
-
----
-
-## 8. Current Performance
-
-Evaluated strictly on the 6,807 unseen test beats:
-
-| Metric | Random Forest (Current) | Logistic Regression (Baseline) |
-| :--- | :--- | :--- |
-| **Overall Accuracy** | 97.86% | 95.21% |
-| **Weighted F1-Score** | 97.92% | 95.50% |
-| **Normal Precision / Recall / F1** | 99.88% / 97.29% / **98.57%** (Support: 4,989) | 96.6% / 96.8% / 96.7% |
-| **PVC Precision / Recall / F1** | 93.58% / 99.89% / **96.63%** (Support: 1,809) | 91.8% / 93.4% / 92.6% |
-| **Other Precision / Recall / F1** | **0.00% / 0.00% / 0.00%** (Support: 9) | 0.00% / 0.00% / 0.00% |
-| **Macro F1-Score** | **65.07%** | 66.61% |
-
-### Critical Performance Audit Finding:
-The class `Other` has a test sample size of only 9 beats in the test records, on which the model scored **0.0% precision and 0.0% recall**. The high overall accuracy of 97.86% is driven entirely by the abundance of `Normal` and `PVC` beats. 
-In a regulatory submission (e.g. CDSCO Form MD-40 or FDA 510(k)), claiming support for class `Other` would be rejected due to zero clinical sensitivity. **The model must be documented as validated exclusively for Normal Sinus Rhythm vs. Ventricular Ectopy (PVC), with `Other` explicitly flagged as unvalidated.**
-
----
-
-## 9. Current Limitations
-
-1. **Single-Lead Limitation**: Designed and trained strictly on Lead II representations. Cannot analyze 12-lead spatial vectors, precordial leads (V1–V6), or limb lead vectors.
-2. **Fixed Sampling Rate Expectation**: Model features were extracted at 360 Hz. Digital signals at 250 Hz or 500 Hz must be resampled, introducing interpolation variance.
-3. **No Batch Job Queue**: Synchronous execution blocks the Streamlit thread.
-4. **No Multi-Tenancy**: Single-user desktop mode only.
-5. **No Long-Term Persistence**: Analysis results are lost when browser refreshes unless manually downloaded.
-
----
-
-## 10. Current Input Formats
-
-- **Digital**: CSV, TXT, NPY. Delimiter autodetection is implemented.
-- **Documents**: PDF (extracts text and embedded images via `pypdf`).
-- **Images**: Scanned JPG/PNG (OpenCV thresholding).
-- **Missing Clinical Standards**: Does **NOT** yet parse native DICOM Waveform (SOP Class 1.2.840.10008.5.1.4.1.1.9.1.1), HL7 aECG (FDA XML standard), or European Data Format (EDF/EDF+).
-
----
-
-## 11. Current Reporting System
-
-- Generates:
-  1. Multi-page PDF via ReportLab with embedded matplotlib waveforms.
-  2. Structured JSON dump.
-  3. Plain-text summary.
-- **Limitation**: Reports are generated client-side upon button click. There is no server-side archival, no cryptographically signed hash, no digital signature, and no clinician review sign-off workflow.
+### 3.2 Target Architectural Subsystems
+1. **Ingestion & Domain Core (`src/ecg_input/`, `src/ecg_core/`):** Unified `ECGRecording` domain entity with full metadata, manufacturer registry, and immutable raw data fingerprints.
+2. **ECG Quality Copilot (`src/quality/`):** Independent lead-by-lead signal quality assessment with actionable clinical feedback.
+3. **Refactored ML Engine (`src/ml/`):** Decoupled inference, reproducible patient-level training pipelines, and versioned model registry.
+4. **ECG Evidence Engine (`src/evidence/`):** Per-beat evidence attribution linking model findings to specific cardiac cycles with interactive zoom and morphology metrics.
+5. **ECG Machine vs AI Verification (`src/comparison/`):** Rule-based and semantic disagreement detector comparing machine-printed text against AI predictions.
+6. **Longitudinal ECG & Patient History (`src/longitudinal/`):** Timeline comparison calculating physiological deltas without hallucinating clinical conclusions.
+7. **Hospital Backend & Multi-Tenancy (`backend/`, `frontend/`, `database/`):** FastAPI REST backend, PostgreSQL/SQLite persistence, role-based access control, and clinician review workflow.
+8. **Security, Privacy & Audit Trail (`src/audit/`, `src/auth/`):** OWASP Top 10 hardening, PBKDF2 password hashing, zero PHI in logs, and SHA-256 audit chaining.
+9. **Regulatory Readiness Framework (`regulatory/`):** IEC 62304 Class B software lifecycle, ISO 14971 risk management, and formal clinical validation plans.
 
 ---
 
-## 12. Current Security & Patient Privacy
+## 4. MIGRATION PLAN (Phases 1 to 12)
 
-- **Authentication**: None. Anyone who accesses the port can view or run analyses.
-- **Authorization**: No role-based access control (RBAC).
-- **Session Management**: Native Streamlit memory.
-- **Encryption in Transit**: Plain HTTP (no forced TLS/HTTPS).
-- **Encryption at Rest**: Uploaded files are held in temporary system RAM or unencrypted filesystem.
-- **Audit Logging**: No audit trails exist for user logins, record views, or report generation.
-- **Data Privacy**: No HIPAA/DISHA compliance features, no de-identification pipeline, no configurable retention policy.
+The migration is executed strictly phase-by-phase. Each phase must be implemented, tested, verified, and documented before the subsequent phase commences:
 
----
-
-## 13. Current Patient Data Handling
-
-- No relational schema or patient registry.
-- Patient names and demographics are parsed from PDF text if present, but never validated against an Enterprise Master Patient Index (EMPI) or hospital Electronic Medical Record (EMR).
-
----
-
-## 14. Current Testing Suite
-
-- 43 automated unit tests in `tests/` covering:
-  - Signal preprocessing and normalization
-  - R-peak detection and refractory period validation
-  - Beat segmentation
-  - 28-feature extraction
-  - Inference edge cases (NaNs, empty signals)
-  - Input format detection
-  - PDF measurement extraction
-  - Waveform extraction validation gate
-  - Report serializers (PDF, JSON, TXT)
-- **Gap**: No security tests, no authentication tests, no database integrity tests, no DICOM/HL7 tests, no API integration tests, and no stress/load testing.
+| Phase | Title | Scope & Key Deliverables | Stop Condition |
+| :---: | :--- | :--- | :--- |
+| **Phase 1** | **Repository Audit & Architecture** | Full repository audit, system baseline, test suite baseline, creation of `docs/ARCHITECTURE_AUDIT.md`, `docs/SYSTEM_ARCHITECTURE.md`, `docs/INTENDED_USE.md`. | Complete audit and 100% passing test baseline. |
+| **Phase 2** | **ECG Input & Ingestion Engine** | Comprehensive format loaders (CSV, TXT, NPY, WFDB, EDF, XML, JSON, DICOM, PDF, Image), unified `ECGRecording` domain entity, anti-hallucination validation gates. | All input types either produce valid `ECGRecording` or clear `NO RESULT`. |
+| **Phase 3** | **ECG Quality Copilot** | Lead-level artifact, noise, drift, clipping, flatline checks in `src/quality/`. Quality categorizations: `GOOD`, `ACCEPTABLE`, `POOR`, `UNUSABLE`. | AI inference strictly blocked on `UNUSABLE` inputs. |
+| **Phase 4** | **Refactor ML Pipeline** | Decouple ML engine into `src/ml/` with independent inference engine, structured output schema, and UI independence. | ML inference callable independently from frontend. |
+| **Phase 5** | **Model Registry & Training Infrastructure** | Patient-level splitting, multi-metric evaluation (AUROC, AUPRC, calibration), formal `MODEL_CARD.md`, model registry (`models/production/`, `validation/`, `archived/`). | No model promoted without patient-level validation & model card. |
+| **Phase 6** | **ECG Evidence Engine** | `src/evidence/` identifying aberrant beat indexes (e.g. Beat #37, Beat #84) with coupling intervals, morphology, and rhythm context. | Every explanation traces directly to signal data. |
+| **Phase 7** | **Machine vs AI Verification** | `src/comparison/` extracting machine-printed interpretation, comparing against AI finding, flagging `SIGNIFICANT_DISAGREEMENT`. | System flags discrepancy without guessing which is correct. |
+| **Phase 8** | **Longitudinal ECG & Patient History** | `src/longitudinal/` tracking patient ECG history and computing compatible metric deltas ($\Delta\text{HR}$, $\Delta\text{QRS}$, $\Delta\text{QTc}$). | Only compatible available metrics compared. |
+| **Phase 9** | **Hospital Backend & Patient Management** | Relational schemas for patients, ECGs, analyses, and reports; secure REST API; multi-user isolation. | Full multi-user relational persistence functioning. |
+| **Phase 10** | **Clinician Dashboard & Review** | Clinical review interface with mandatory Accept/Reject/Modify sign-off, registration number recording, and sealing. | Clinician able to override and seal interpretation. |
+| **Phase 11** | **Reporting, Audit & Security** | Publication-grade PDF/JSON reports, append-only SHA-256 audit chaining, OWASP security controls, zero PHI logging. | Full cryptographic audit verification passing. |
+| **Phase 12** | **Regulatory Readiness & Final Acceptance** | Regulatory documentation (`regulatory/`), risk management (ISO 14971), clinical validation plan, failure-mode test suite, final end-to-end acceptance test. | All 42 acceptance criteria verified. |
 
 ---
 
-## 15. Current Deployment Architecture
+## 5. Audit Verification & Baseline Sign-Off
 
-- Local execution via `python -m streamlit run app.py --server.port 8501`.
-- No Docker containerization, no reverse proxy, no database service, no background task workers (Celery/Redis), no healthcheck endpoints, and no automated CI/CD pipeline.
-
----
-
-## 16. Comprehensive Gap Analysis: College Prototype vs. Hospital Medical Software
-
-| Engineering & Regulatory Domain | Current Prototype State | Target Hospital Platform (MDR 2017 / IEC 62304 / ISO 14971) | Gap Severity |
-| :--- | :--- | :--- | :--- |
-| **Regulatory Standing** | Academic project; claims educational use only | Designed under CDSCO MDR 2017 SaMD principles, ready for future clinical trial protocols | **CRITICAL** |
-| **System Architecture** | Monolithic Streamlit application | Multi-tier microservices (FastAPI backend + PostgreSQL + Redis queue + Clinical Web UI) | **HIGH** |
-| **Data Model** | Raw numpy arrays and ad-hoc dictionaries | Unified, immutable `ECGRecording` schema with metadata, device registry, and audit hashes | **HIGH** |
-| **Clinical Interoperability** | Basic CSV, TXT, PDF, image parsing | Native DICOM Waveform, HL7 aECG, EDF+, and FHIR DiagnosticReport integration | **HIGH** |
-| **Signal Quality Gate** | Basic SNR and wander metric | Strict, mandatory fail-safe quality gatekeeper: `POOR` or `UNUSABLE` $\rightarrow$ **NO AI RESULT** | **CRITICAL** |
-| **Model Independence** | Coupled to Streamlit memory | Decoupled ML Inference Microservice with explicit model registry and versioning | **HIGH** |
-| **Model Card & Transparency** | JSON metadata file only | Formal Regulatory Model Cards (`MODEL_CARD.md`) with explicit operational boundaries | **MEDIUM** |
-| **Training & Leakage** | Patient-level split on 7 records | Multi-dataset registry (MIT-BIH + PTB-XL), patient-level verification, CI/CD retraining locks | **HIGH** |
-| **Safety & Anti-Hallucination** | Validation heuristics in input parser | System-wide hard rule: `NO RELIABLE INPUT = NO RESULT`; strictly zero synthetic signals | **CRITICAL** |
-| **Clinician Interaction** | Static display of predictions | Mandatory separation of AI output and Clinician Review with agreement/disagreement sign-off | **CRITICAL** |
-| **User Access & RBAC** | Open public access | Secure JWT authentication with strict roles (Technician, Doctor, Cardiologist, Admin, Researcher) | **CRITICAL** |
-| **Security & Privacy** | Plaintext, no HTTPS, no audit logs | OWASP Top 10 compliance, TLS 1.3, encrypted storage, immutable tamper-evident audit logs | **CRITICAL** |
-| **Software Lifecycle (IEC 62304)** | Ad-hoc git commits | Traceable lifecycle documentation (Requirements $\rightarrow$ Architecture $\rightarrow$ Verification $\rightarrow$ Validation) | **HIGH** |
-| **Risk Management (ISO 14971)** | Implicit code checks | Formal Hazard Analysis, Risk Register, Risk Mitigations, and Verification Evidence | **CRITICAL** |
-| **Deployment & Containers** | Manual local python command | Hardened Docker compose with PostgreSQL, Redis, API, and Nginx reverse proxy | **MEDIUM** |
-
----
-
-## 17. Conclusion & Roadmap
-
-The existing codebase contains robust, mathematically sound algorithms for signal preprocessing, R-peak detection, and feature extraction that can and should be preserved. However, the system architecture, data models, security, and governance must be rebuilt to meet medical-device software engineering standards.
-
-Phase 1 establishes this baseline. The subsequent phases will build the modular foundation without compromising clinical honesty or patient safety.
+- **Current Test Suite Status:** **72 passed, 0 failed, 3 warnings** (`pytest tests/ -v`).
+- **Codebase Integrity:** Working tree clean, zero uncommitted changes, baseline synchronized with remote `https://github.com/ANIKETCHAND/ECG-`.
+- **Phase 1 Verdict:** **AUDIT COMPLETE & VERIFIED.** Ready for Phase 2 initiation upon user approval.

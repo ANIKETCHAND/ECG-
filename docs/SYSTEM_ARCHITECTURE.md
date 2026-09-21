@@ -1,197 +1,225 @@
-# Target Hospital-Oriented System Architecture
-**Document ID:** ARCH-ECG-2026-001  
-**Regulatory Framework:** Medical Devices Rules, 2017 (CDSCO, India), IEC 62304:2006/Amd 1:2015 (Medical Device Software - Software Life Cycle Processes), ISO 14971:2019  
-**Software Classification:** Software as a Medical Device (SaMD), Non-invasive Diagnostic Decision Support  
+# ECG GUARDIAN: Target System Architecture
+**Document ID:** ARCH-ECG-GUARDIAN-2026-001  
+**Project Name:** ECG GUARDIAN  
+**Reference Standards:** CDSCO MDR 2017 (India), IEC 62304:2006/Amd 1:2015, ISO 14971:2019, ISO 27799 / IEC 81001-5-1  
+**Software Classification:** Software as a Medical Device (SaMD), Non-invasive Clinical Decision Support  
 **Status:** Approved Architectural Blueprint  
 
 ---
 
-## 1. System Philosophy & Design Principles
+## 1. Architectural Philosophy & Guiding Principles
 
-The target architecture transitions the AI ECG Analyzer from a standalone local script into an **enterprise hospital-grade SaMD platform**. The architecture prioritizes:
-1. **Patient Safety Over Availability**: If an input is ambiguous, corrupted, or unsupported, the system fails safe (**NO AI RESULT**).
-2. **Strict Non-Hallucination**: Mathematical extraction only; zero synthetic signals, zero imputed measurements, zero fabricated diagnoses.
-3. **Decoupled Autonomous Layers**: UI, API, database, and inference engine run as isolated services with clean interfaces.
-4. **Mandatory Clinician Oversight**: AI never signs a report. AI findings are presented as provisional inputs to a human physician review workflow.
-5. **Cryptographic Traceability**: Every analytical inference is tied to an immutable data hash, model version hash, preprocessing version, and operator identity.
+ECG GUARDIAN is engineered as an **ECG safety, verification, evidence, longitudinal comparison, and clinician-review platform** designed to provide robust clinical decision support.
+
+The platform is designed around the central question chain:
+```text
+CAN WE TRUST THE ECG?
+        │
+        ▼
+WHAT DOES THE AI DETECT?
+        │
+        ▼
+WHAT ECG EVIDENCE SUPPORTS IT?
+        │
+        ▼
+DOES THE MACHINE AGREE?
+        │
+        ▼
+WHAT CHANGED FROM PREVIOUS ECG?
+        │
+        ▼
+WHAT DOES THE CLINICIAN DECIDE?
+        │
+        ▼
+CAN WE REPRODUCE THE RESULT?
+```
+
+### Core Tenet
+> **"NO RELIABLE INPUT = NO AI RESULT"**  
+> Under no circumstances does the system fabricate, guess, or synthesize signals or classifications when input data is missing, corrupted, or unsupported. Every AI finding is strictly an adjunctive recommendation; final interpretation rests with the qualified clinician.
 
 ---
 
-## 2. End-to-End Hospital Data Pipeline
+## 2. End-to-End Hospital Data Workflow
 
 ```text
-                           HOSPITAL USER (Clinician / Tech)
-                                         │
-                                         ▼
-                           [ 1. AUTHENTICATION & RBAC ]
-                    JWT / MFA / Role Check (Technician, Doctor, Admin)
-                                         │
-                                         ▼
-                           [ 2. PATIENT MANAGEMENT ]
-                 Patient ID Linkage / Enterprise Master Patient Index
-                                         │
-                                         ▼
-                             [ 3. ECG INGESTION ]
-              Multi-format Ingestion (CSV, TXT, NPY, EDF, WFDB, PDF, DICOM)
-                                         │
-                                         ▼
-                            [ 4. INPUT VALIDATION ]
-                  File Integrity / Magic Bytes / Schema Verification
-                                         │
-                                         ▼
-                         [ 5. SIGNAL QUALITY GATE ]
-                    SNR / Drift / Artifacts / Clipping Check
-                    Decision: GOOD | ACCEPTABLE | POOR | UNUSABLE
-                      (If UNUSABLE ──► HALT: NO AI RESULT)
-                                         │ (If Valid)
-                                         ▼
-                           [ 6. ECG PREPROCESSING ]
-                 Causal/Zero-Phase Bandpass (0.5–40 Hz) + Median Filter
-                                         │
-                                         ▼
-                       [ 7. MEASUREMENTS & FEATURES ]
-             Deterministic Detection: R-Peaks, RR Intervals, Heart Rate
-                                         │
-                                         ▼
-                            [ 8. AI MODEL INFERENCE ]
-                 Locked Model Registry (e.g. ECG-RF-1.0.0 via Joblib)
-                   Single-Lead MLII Only (Validated Bounds Only)
-                                         │
-                                         ▼
-                           [ 9. RESULT VALIDATION ]
-                 Sanity Checks / Outlier Traps / Model Probability
-                                         │
-                                         ▼
-                          [ 10. CLINICIAN REVIEW ]
-                 Mandatory Separation: AI Finding vs Physician Sign-off
-                   Physician: [ Confirm ] | [ Modify ] | [ Reject ]
-                                         │
-                                         ▼
-                          [ 11. FINAL CLINICAL REPORT ]
-                    Cryptographically Sealed PDF / JSON / FHIR
-                                         │
-                                         ▼
-                           [ 12. AUDIT LOGGING ]
-                  Immutable Append-Only Audit Trail (WORM Storage)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       ECG GUARDIAN PIPELINE WORKFLOW                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                [ ECG MACHINE ]
+                                      │
+                                      ▼
+                                 [ ECG FILE ]
+               (DICOM Waveform, HL7 aECG, EDF+, XML, CSV, TXT, NPY, PDF, Image)
+                                      │
+                                      ▼
+                              [ ECG INGESTION ]
+               (Format sniffers, header parsers, device registry)
+                                      │
+                                      ▼
+                             [ INPUT VALIDATION ]
+            (Magic bytes, schema check, min duration >= 1.5s, bounds check)
+                                      │
+                                      ▼
+                           [ ECG QUALITY COPILOT ]
+              (Lead-by-lead SNR, baseline drift, clipping, flatline)
+                                      │
+                                      ▼
+                            [ SIGNAL TRUST CHECK ]
+                                      │
+                     ┌────────────────┴────────────────┐
+                     ▼                                 ▼
+              [ UNUSABLE Signal ]               [ GOOD / ACCEPTABLE ]
+                     │                                 │
+                     ▼                                 ▼
+             [ NO AI ANALYSIS ]                [ AI ECG ANALYSIS ]
+           (Safety barrier halt)          (Decoupled inference engine)
+                                                       │
+                                                       ▼
+                                             [ AI EVIDENCE ENGINE ]
+                                       (Aberrant beat index attribution,
+                                        coupling intervals, morphology)
+                                                       │
+                                                       ▼
+                                        [ ECG MACHINE vs AI COMPARISON ]
+                                       (Extract machine-printed findings)
+                                                       │
+                                                       ▼
+                                          [ DISAGREEMENT DETECTION ]
+                                       (AGREE / MINOR / SIGNIFICANT)
+                                                       │
+                                                       ▼
+                                         [ PREVIOUS ECG COMPARISON ]
+                                        (Longitudinal timeline & deltas)
+                                                       │
+                                                       ▼
+                                             [ CLINICIAN REVIEW ]
+                                         (Mandatory physician review:
+                                          Accept / Modify / Reject)
+                                                       │
+                                                       ▼
+                                               [ FINAL REPORT ]
+                                        (Cryptographically sealed PDF)
+                                                       │
+                                                       ▼
+                                               [ AUDIT TRAIL ]
+                                         (Tamper-evident hash chain)
 ```
 
 ---
 
-## 3. Cross-Cutting Systems
+## 3. Subsystem Architecture & Module Mapping
+
+The codebase transitions from a single-tier script into modular, decoupled packages:
 
 ```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        CROSS-CUTTING GOVERNANCE                        │
-├───────────────────┬───────────────────┬────────────────────────────────┤
-│ 1. SECURITY       │ 2. AUDIT TRAIL    │ 3. MODEL REGISTRY              │
-│ - TLS 1.3 forced  │ - Immutable logs  │ - Hash-locked model weights    │
-│ - Bcrypt hashing  │ - User + Action   │ - Versioned Model Cards        │
-│ - JWT RBAC tokens │ - Data hash tied  │ - Deployment approvals        │
-├───────────────────┼───────────────────┼────────────────────────────────┤
-│ 4. RISK MGMT      │ 5. DATA PRIVACY   │ 6. QUALITY MANAGEMENT          │
-│ - ISO 14971 gates │ - DISHA / HIPAA   │ - IEC 62304 Class B processes  │
-│ - Fail-safe traps │ - De-id engine    │ - Full Traceability Matrix     │
-│ - Hazard logging  │ - Zero PHI in logs│ - CI/CD regression testing     │
-└───────────────────┴───────────────────┴────────────────────────────────┘
+ecg_guardian/
+├── src/
+│   ├── ecg_core/             # Core clinical domain models (ECGRecording, ECGAnalysisResult)
+│   ├── ecg_input/            # Multi-format ingestion loaders & device registry
+│   ├── quality/              # ECG Quality Copilot & Signal Trust Gatekeeper
+│   ├── ml/                   # Refactored machine learning pipeline
+│   │   ├── preprocessing/    # Baseline median filter & zero-phase bandpass filter
+│   │   ├── peak_detection/   # Physiologically constrained R-peak detectors
+│   │   ├── segmentation/     # Individual cardiac cycle window extraction
+│   │   ├── feature_extraction/# 28-feature extraction engine
+│   │   ├── models/           # Scikit-Learn Random Forest & baseline models
+│   │   ├── inference/        # Standalone, UI-independent inference engine
+│   │   └── validation/       # Outlier traps and statistical sanity checks
+│   ├── measurements/         # Deterministic biomedical measurement engine (HR, RR, QRS, QTc)
+│   ├── evidence/             # ECG Evidence Engine (Beat attribution & morphology)
+│   ├── comparison/           # Machine interpretation extraction & disagreement detector
+│   ├── longitudinal/         # Longitudinal ECG timeline comparison & delta tracker
+│   ├── database/             # Relational database models (Patients, ECGs, Reviews)
+│   ├── auth/                 # PBKDF2 authentication & Role-Based Access Control (RBAC)
+│   ├── audit/                # Cryptographic append-only SHA-256 audit logger
+│   └── report/               # Publication-grade ReportLab PDF and JSON export engine
+├── models/
+│   ├── production/           # Hash-locked active model artifacts (ECG-RF-1.0.0)
+│   ├── validation/           # Validation datasets and performance benchmarks
+│   ├── archived/             # Historical model artifacts
+│   └── registry/             # Model catalog metadata & specifications
+├── backend/                  # FastAPI REST API services
+├── frontend/                 # Interactive clinical dashboard (Streamlit / React)
+├── regulatory/               # IEC 62304 / ISO 14971 compliance documentation
+└── tests/                    # Comprehensive unit, integration, and security test suite
 ```
 
 ---
 
-## 4. Multi-Service Architecture Breakdown
+## 4. Core Data Entities
 
-The system is organized into decoupled services communicating via documented REST APIs:
+### 4.1 ECGRecording (`src/ecg_core/models.py`)
+Immutable record representing an ingested ECG:
+- `record_id`: Unique identifier (e.g. `REC-2026-A48F91`)
+- `patient_id`: Associated hospital patient ID
+- `sampling_rate`: Acquisition frequency in Hertz (Hz)
+- `duration`: Recording duration in seconds
+- `lead_names`: Ordered list of available leads (e.g. `["I", "II", "V1"]`)
+- `number_of_leads`: Integer count of leads
+- `signals`: Calibrated floating-point voltage array in millivolts ($\text{mV}$)
+- `units`: String voltage units (`"mV"`)
+- `acquisition_time`: ISO-8601 acquisition timestamp
+- `device`: Device model identifier from registry
+- `manufacturer`: Equipment manufacturer (e.g. GE, Philips, Contec)
+- `source_format`: Raw format (`DICOM`, `WFDB`, `CSV`, `PDF`, `IMAGE`)
+- `data_hash`: SHA-256 cryptographic fingerprint of raw voltage array
+- `quality_metrics`: Dictionary of signal quality scores
 
-```text
-                              INTERNET / HOSPITAL INTRANET
-                                           │
-                                           ▼
-                                 [ NGINX REVERSE PROXY ]
-                                  TLS 1.3 / Rate Limiting
-                                           │
-                        ┌──────────────────┴──────────────────┐
-                        ▼                                     ▼
-             [ HOSPITAL CLINICAL UI ]               [ BACKEND REST API ]
-            React / Next.js or Streamlit              FastAPI (Python 3.11+)
-            • Clinician Worklist                    • Authentication & RBAC
-            • Interactive Waveform Viewer           • Ingestion & Device Registry
-            • Review & Sign-Off Portal              • Job Queue Dispatcher
-            • Audit Log Inspector                   • Report Compilation
-                        │                                     │
-                        │                                     ▼
-                        │                            [ ASYNC WORKER POOL ]
-                        │                               Celery / Redis
-                        │                           • Signal Quality Gate
-                        │                           • Deterministic Measurements
-                        │                           • ML Inference Service
-                        │                                     │
-                        ▼                                     ▼
-           ┌────────────────────────┐            ┌────────────────────────┐
-           │   POSTGRESQL DATABASE   │            │   OBJECT STORE / S3    │
-           │ • Users & RBAC Roles    │            │ • Encrypted Raw ECGs   │
-           │ • Patient Registry      │            │ • Verified Signal Data │
-           │ • Analysis Runs         │            │ • Final Sealed PDFs    │
-           │ • Signed Reports        │            │ • Immutable Audit Logs │
-           │ • Audit Event Trail     │            │                        │
-           └────────────────────────┘            └────────────────────────┘
-```
+### 4.2 ECGAnalysisResult (`src/ecg_core/models.py`)
+Immutable analytical finding generated by the platform:
+- `analysis_id`: Unique analysis identifier
+- `record_id`: Linked `ECGRecording` identifier
+- `model_id`: Active model identifier (e.g. `ECG-RF-1.0.0`)
+- `prediction`: Primary rhythm finding (`Normal Sinus Rhythm`, `Premature Ventricular Contraction`)
+- `model_probabilities`: Normalized class probability mapping
+- `detected_r_peaks`: Array of integer sample indices corresponding to R-peaks
+- `detected_beats_count`: Total number of segmented heartbeats
+- `heart_rate_bpm`: Calculated ventricular rate
+- `mean_rr_ms`: Mean R-R interval in milliseconds
+- `signal_quality`: Categorical rating (`GOOD`, `ACCEPTABLE`, `POOR`, `UNUSABLE`)
+- `limitations`: Explicit clinical operational boundaries
+- `warnings`: Technical warnings (e.g. baseline drift, high noise)
+- `evidence_beats`: Aberrant beat indices identified by the Evidence Engine
+- `machine_comparison`: Disagreement status against machine interpretation
 
----
-
-## 5. Core Subsystem Responsibilities
-
-### 5.1 Ingestion & Device Registry (`src/ecg_input/`, `src/ecg_core/`)
-- **Unified Object Model**: Converts all inbound ECG formats into an internal `ECGRecording` instance with immutable metadata (sampling rate, duration, lead configuration, calibration units, device serial, data hash).
-- **Device Registry (`device_registry.py`)**: Catalogs known hospital ECG devices (e.g. GE MAC series, Philips PageWriter, Schiller, Welch Allyn) and validates formats against tested device profiles.
-- **Strict Format Guard**: Rejects unvalidated file types and prompts for missing metadata rather than assuming defaults.
-
-### 5.2 Signal Quality Gate (`src/safety/signal_quality_gate.py`)
-- Evaluates raw physiological voltage series against pre-inference thresholds:
-  - Missing data / NaN / Inf ratio ($= 0\%$).
-  - Saturation / rail clipping check ($< 1\%$ total duration).
-  - Powerline interference ratio (50 Hz / 60 Hz).
-  - Baseline drift variance.
-  - Overall SNR threshold ($\ge 12\text{ dB}$ for `GOOD`, $\ge 6\text{ dB}$ for `ACCEPTABLE`).
-- Output Categories:
-  - `GOOD`: Pass to full AI inference and measurements.
-  - `ACCEPTABLE`: Pass with explicit clinical noise warning flag.
-  - `POOR`: Measurements computed with warning; **AI classification suppressed**.
-  - `UNUSABLE`: **HALT PIPELINE**. No analysis, no measurements, no AI result.
-
-### 5.3 Deterministic Measurements Engine (`src/measurements/`)
-- Calculates physiological metrics using deterministic, peer-reviewed biomedical engineering algorithms:
-  - Heart Rate (BPM) derived from validated R-R intervals with refractory constraints ($\ge 300\text{ ms}$).
-  - Mean, Median, and SDNN of R-R intervals.
-  - QRS duration via derivative thresholding on confirmed R-peaks.
-- Explicit Error State: If any parameter cannot be reliably measured, returns `Not reliably measurable` (never an interpolated or default number).
-
-### 5.4 Machine Learning Inference Service (`src/ml/`, `src/inference/`)
-- Encapsulates model execution strictly within tested operational boundaries.
-- **Model Registry**: Enforces model versioning (e.g., `ECG-RF-1.0.0`).
-- **Lead Compatibility Gate**: Confirms that the input signal represents Modified Lead II (MLII) before running inference. If a 12-lead signal is provided without an isolated Lead II strip, returns `UNSUPPORTED_CONFIGURATION`.
-- **Honest Probability Output**: Model probabilities are returned as statistical distributions (e.g. `{"Normal": 0.94, "PVC": 0.05, "Other": 0.01}`) with mandatory non-equivalence disclaimer.
-
-### 5.5 Clinician Review & Sign-Off Portal (`src/review/`)
-- Presents a side-by-side display of:
-  1. Patient metadata and recording acquisition time.
-  2. Technical signal quality score and warnings.
-  3. Interactive multi-scale waveform with pan/zoom.
-  4. Extracted deterministic measurements.
-  5. Provisional AI model classification.
-- Requires affirmative physician interaction:
-  - Select diagnosis agreement or provide clinical override.
-  - Enter physician name, registration number (e.g. State Medical Council ID), and clinical notes.
-  - Apply electronic sign-off timestamp.
-
-### 5.6 Audit & Governance Logging (`src/audit/`)
-- Implements an append-only, tamper-evident audit logger recording every system transaction:
-  - `LOGIN`, `PATIENT_CREATE`, `ECG_UPLOAD`, `INFERENCE_RUN`, `REPORT_GENERATE`, `REPORT_VIEW`, `CLINICIAN_SIGN_OFF`, `SYSTEM_CONFIG_CHANGE`.
-- Stores event hashes to guarantee non-repudiation.
+### 4.3 ClinicianReview (`src/ecg_core/models.py`)
+Physician review and sign-off entity:
+- `review_id`: Unique review identifier (e.g. `REV-2026-CDE022`)
+- `analysis_id`: Linked `ECGAnalysisResult`
+- `clinician_name`: Full legal name of reviewing physician
+- `clinician_role`: Professional title (`CARDIOLOGIST`, `ELECTROPHYSIOLOGIST`, `PHYSICIAN`)
+- `registration_number`: Medical council registration number (e.g. `MCI-DEL-2024-9988`)
+- `agreement_status`: Mandatory status (`CONFIRMED`, `MODIFIED`, `REJECTED`)
+- `clinician_interpretation`: Physician's authoritative diagnosis
+- `clinical_notes`: Bedside notes, clinical correlation, treatment plan
+- `reviewed_at`: ISO-8601 review timestamp
+- `review_hash`: Cryptographic SHA-256 seal of the review and analysis
 
 ---
 
-## 6. Regulatory Traceability & Lifecycle Mapping (IEC 62304 / MDR 2017)
+## 5. Cross-Cutting Governance
 
-All system modules map directly to lifecycle requirements:
-- **Software Safety Classification**: Class B (Non-serious injury possible if incorrect decision is made without clinician review; mitigated to Class A through mandatory physician sign-off gate).
-- **Verification Protocols**: Automated test suite (`pytest`) enforcing $100\%$ pass rate on safety-critical gates prior to deployment.
-- **Software Change Protocol**: Strict semantic versioning (`MAJOR.MINOR.PATCH`) with locked model weights and mandatory regulatory reassessment upon model architecture updates.
+### 5.1 Security & Access Control
+- **Authentication:** Salted PBKDF2-HMAC-SHA256 password hashing (100,000 iterations).
+- **Authorization:** Strict Role-Based Access Control (RBAC):
+  - `DOCTOR`: View patients, run ECG analysis, review/sign reports.
+  - `CARDIOLOGIST`: Full clinical privileges, review/override AI findings, seal reports.
+  - `TECHNICIAN`: Ingest ECGs, inspect signal quality, create patient records.
+  - `ADMIN`: User management, system health monitoring, audit inspection.
+  - `RESEARCHER`: De-identified dataset inspection, model evaluation.
+- **Privacy (Zero-PHI in Logs):** Patient identifiers, names, and raw medical data are strictly excluded from console logs, system logs, and external telemetry.
+
+### 5.2 Cryptographic Audit Trail
+- Every critical system event (Login, Ingestion, Quality Analysis, AI Inference, Disagreement Detection, Review Sign-Off) is committed to an **append-only audit log**.
+- Each entry contains: `log_id`, `timestamp`, `user_id`, `event_type`, `record_id`, `details`, and `previous_hash`.
+- The `current_hash` is computed as $\text{SHA-256}(\text{details} + \text{previous\_hash})$, creating an unbreakable, tamper-evident cryptographic chain.
+
+---
+
+## 6. Verification & Architectural Readiness
+
+- **Current Operational Status:** Fully verified baseline with 72 automated pytest tests.
+- **Decoupled Engines:** Model inference, deterministic measurements, quality gatekeeper, and cryptographic audit are architected to operate independently of any specific frontend.
+- **Deployment Modalities:** Dual-mode support for local clinical workstations (Streamlit), edge serverless microservices (FastAPI), and future Dockerized hospital enterprise deployments.
