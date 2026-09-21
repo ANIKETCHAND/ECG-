@@ -1,0 +1,28 @@
+{
+  "dataset_id": "ptb_xl",
+  "task": "12lead_diagnosis",
+  "mapping_version": "1.0.0",
+  "canonical_classes": ["NORM", "MI", "STTC", "CD", "HYP"],
+  "mappings": {
+    "NORM": {"canonical": "NORM", "reason": "Normal ECG statement"},
+    "IMI": {"canonical": "MI", "reason": "Inferior myocardial infarction"},
+    "ASMI": {"canonical": "MI", "reason": "Anteroseptal myocardial infarction"},
+    "ILMI": {"canonical": "MI", "reason": "Inferolateral myocardial infarction"},
+    "AMI": {"canonical": "MI", "reason": "Anterior myocardial infarction"},
+    "ALMI": {"canonical": "MI", "reason": "Anterolateral myocardial infarction"},
+    "INJAS": {"canonical": "MI", "reason": "Ischemic injury in anteroseptal leads"},
+    "LBBB": {"canonical": "CD", "reason": "Left bundle branch block"},
+    "RBBB": {"canonical": "CD", "reason": "Right bundle branch block"},
+    "LAFB": {"canonical": "CD", "reason": "Left anterior fascicular block"},
+    "IRBBB": {"canonical": "CD", "reason": "Incomplete right bundle branch block"},
+    "IVCD": {"canonical": "CD", "reason": "Non-specific intraventricular conduction delay"},
+    "1AVB": {"canonical": "CD", "reason": "First degree AV block"},
+    "STTC": {"canonical": "STTC", "reason": "ST-T change non-specific"},
+    "NST_": {"canonical": "STTC", "reason": "Non-specific ST depression/elevation"},
+    "DIG": {"canonical": "STTC", "reason": "Digitalis effect / ST changes"},
+    "LVH": {"canonical": "HYP", "reason": "Left ventricular hypertrophy"},
+    "RVH": {"canonical": "HYP", "reason": "Right ventricular hypertrophy"},
+    "LAO/LAE": {"canonical": "HYP", "reason": "Left atrial enlargement"}
+  },
+  "unmapped_excluded": []
+}

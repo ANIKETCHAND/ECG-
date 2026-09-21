@@ -1,0 +1,33 @@
+{
+  "dataset_id": "mit_bih_arrhythmia",
+  "dataset_name": "MIT-BIH Arrhythmia Database",
+  "records_inspected": 7,
+  "patients_count": 7,
+  "sampling_rates": [
+    360.0
+  ],
+  "lead_names": [
+    "MLII",
+    "V1",
+    "V5"
+  ],
+  "total_duration_hours": 3.51,
+  "signal_units": [
+    "mV"
+  ],
+  "annotations_summary": {
+    "+": 390,
+    "N": 13119,
+    "A": 91,
+    "V": 3003,
+    "~": 105,
+    "|": 12,
+    "Q": 4,
+    "F": 737,
+    "S": 2,
+    "a": 3
+  },
+  "missing_records": [],
+  "corrupted_records": [],
+  "quality_issues": []
+}

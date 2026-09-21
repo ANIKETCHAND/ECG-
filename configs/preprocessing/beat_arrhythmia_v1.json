@@ -1,0 +1,19 @@
+{
+  "pipeline_id": "beat_arrhythmia_v1",
+  "target_fs": 360.0,
+  "resample": true,
+  "baseline_filter": {
+    "method": "butterworth_highpass",
+    "cutoff_hz": 0.5,
+    "order": 3
+  },
+  "bandpass_filter": {
+    "low_cutoff_hz": 0.5,
+    "high_cutoff_hz": 40.0,
+    "order": 3
+  },
+  "normalization": "zscore",
+  "pre_window_sec": 0.2,
+  "post_window_sec": 0.4,
+  "scaler": "StandardScaler"
+}

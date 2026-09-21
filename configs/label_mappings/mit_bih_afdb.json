@@ -1,0 +1,13 @@
+{
+  "dataset_id": "mit_bih_afdb",
+  "task": "af_detection",
+  "mapping_version": "1.0.0",
+  "canonical_classes": ["AFib", "Non-AFib"],
+  "mappings": {
+    "(AFIB": {"canonical": "AFib", "reason": "Atrial fibrillation rhythm episode onset"},
+    "(AFL": {"canonical": "AFib", "reason": "Atrial flutter rhythm episode onset"},
+    "(N": {"canonical": "Non-AFib", "reason": "Normal sinus rhythm episode onset"},
+    "(J": {"canonical": "Non-AFib", "reason": "Nodal (junctional) rhythm episode onset"}
+  },
+  "unmapped_excluded": []
+}

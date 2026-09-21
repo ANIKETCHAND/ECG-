@@ -1,0 +1,34 @@
+{
+  "ECG-RF-1.0.0": {
+    "model_id": "ECG-RF-1.0.0",
+    "task": "beat_arrhythmia",
+    "status": "PRODUCTION",
+    "artifact_path": "production/classifier.pkl",
+    "scaler_path": "production/scaler.pkl",
+    "description": "Baseline Balanced Random Forest for Single-Lead Beat Arrhythmia"
+  },
+  "ECG-RF-2.0.0-candidate": {
+    "model_id": "ECG-RF-2.0.0-candidate",
+    "task": "beat_arrhythmia",
+    "status": "VALIDATED",
+    "artifact_path": "candidate/classifier.pkl",
+    "scaler_path": "candidate/scaler.pkl",
+    "description": "Candidate Optimized Random Forest with zero patient leakage validation"
+  },
+  "ECG-MLP-1.0.0-candidate": {
+    "model_id": "ECG-MLP-1.0.0-candidate",
+    "task": "beat_arrhythmia",
+    "status": "EXPERIMENTAL",
+    "artifact_path": "candidate/deep_classifier.pkl",
+    "scaler_path": "candidate/scaler.pkl",
+    "description": "Candidate Deep Waveform Neural Network"
+  },
+  "ECG-LR-1.0.0": {
+    "model_id": "ECG-LR-1.0.0",
+    "task": "beat_arrhythmia",
+    "status": "EXPERIMENTAL",
+    "artifact_path": "candidate/baseline_classifier.pkl",
+    "scaler_path": "candidate/scaler.pkl",
+    "description": "Linear Logistic Regression Baseline"
+  }
+}

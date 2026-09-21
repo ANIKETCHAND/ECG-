@@ -1,0 +1,357 @@
+{
+  "production": {
+    "model_name": "ECG-RF-1.0.0 (Production)",
+    "accuracy": 0.9785514911120905,
+    "balanced_accuracy": 0.6572782952789116,
+    "weighted_f1": 0.9792319211070974,
+    "macro_f1": 0.6506646620656403,
+    "auroc": 0.9968508308586096,
+    "auprc": 0.9962403641529002,
+    "ece": 0.1277345304685577,
+    "per_class_sensitivity": {
+      "Normal": 0.9729404690318701,
+      "Other": 0.0,
+      "PVC": 0.9988944168048646
+    },
+    "per_class_specificity": {
+      "Normal": 0.9966996699669967,
+      "Other": 0.9976463665784054,
+      "PVC": 0.9751900760304122
+    },
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9987654320987654,
+        "recall": 0.9729404690318701,
+        "f1-score": 0.9856838257691136,
+        "support": 4989.0
+      },
+      "Other": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 9.0
+      },
+      "PVC": {
+        "precision": 0.9357845675815639,
+        "recall": 0.9988944168048646,
+        "f1-score": 0.9663101604278075,
+        "support": 1809.0
+      },
+      "accuracy": 0.9785514911120905,
+      "macro avg": {
+        "precision": 0.644849999893443,
+        "recall": 0.6572782952789116,
+        "f1-score": 0.6506646620656403,
+        "support": 6807.0
+      },
+      "weighted avg": {
+        "precision": 0.9807073635222258,
+        "recall": 0.9785514911120905,
+        "f1-score": 0.9792319211070974,
+        "support": 6807.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4854,
+        16,
+        119
+      ],
+      [
+        4,
+        0,
+        5
+      ],
+      [
+        2,
+        0,
+        1807
+      ]
+    ]
+  },
+  "baseline_lr": {
+    "model_name": "Baseline Logistic Regression",
+    "accuracy": 0.9521081239900103,
+    "balanced_accuracy": 0.7474711917351394,
+    "weighted_f1": 0.9549530653643943,
+    "macro_f1": 0.666081429124416,
+    "auroc": 0.9921613857647353,
+    "auprc": 0.9913988973125191,
+    "ece": 0.030609280838781297,
+    "per_class_sensitivity": {
+      "Normal": 0.9510924032872319,
+      "Other": 0.3333333333333333,
+      "PVC": 0.9579878385848535
+    },
+    "per_class_specificity": {
+      "Normal": 0.9559955995599559,
+      "Other": 0.9933804060017652,
+      "PVC": 0.9597839135654261
+    },
+    "classification_report": {
+      "Normal": {
+        "precision": 0.983419689119171,
+        "recall": 0.9510924032872319,
+        "f1-score": 0.966985938455268,
+        "support": 4989.0
+      },
+      "Other": {
+        "precision": 0.0625,
+        "recall": 0.3333333333333333,
+        "f1-score": 0.10526315789473684,
+        "support": 9.0
+      },
+      "PVC": {
+        "precision": 0.8960703205791106,
+        "recall": 0.9579878385848535,
+        "f1-score": 0.9259951910232433,
+        "support": 1809.0
+      },
+      "accuracy": 0.9521081239900103,
+      "macro avg": {
+        "precision": 0.6473300032327606,
+        "recall": 0.7474711917351394,
+        "f1-score": 0.666081429124416,
+        "support": 6807.0
+      },
+      "weighted avg": {
+        "precision": 0.9589884734748283,
+        "recall": 0.9521081239900103,
+        "f1-score": 0.9549530653643943,
+        "support": 6807.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4745,
+        45,
+        199
+      ],
+      [
+        4,
+        3,
+        2
+      ],
+      [
+        76,
+        0,
+        1733
+      ]
+    ]
+  },
+  "candidate_rf": {
+    "model_name": "ECG-RF-2.0.0-candidate",
+    "accuracy": 0.9832525341560159,
+    "balanced_accuracy": 0.6589465314570995,
+    "weighted_f1": 0.9831459034686073,
+    "macro_f1": 0.6537024552362316,
+    "auroc": 0.9972958663080805,
+    "auprc": 0.9965743616882313,
+    "ece": 0.0989212005742491,
+    "per_class_sensitivity": {
+      "Normal": 0.9801563439567047,
+      "Other": 0.0,
+      "PVC": 0.9966832504145937
+    },
+    "per_class_specificity": {
+      "Normal": 0.993949394939494,
+      "Other": 0.999117387466902,
+      "PVC": 0.9805922368947579
+    },
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9977555600897776,
+        "recall": 0.9801563439567047,
+        "f1-score": 0.9888776541961577,
+        "support": 4989.0
+      },
+      "Other": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 9.0
+      },
+      "PVC": {
+        "precision": 0.9489473684210527,
+        "recall": 0.9966832504145937,
+        "f1-score": 0.9722297115125371,
+        "support": 1809.0
+      },
+      "accuracy": 0.9832525341560159,
+      "macro avg": {
+        "precision": 0.6489009761702768,
+        "recall": 0.6589465314570995,
+        "f1-score": 0.6537024552362316,
+        "support": 6807.0
+      },
+      "weighted avg": {
+        "precision": 0.9834652973059475,
+        "recall": 0.9832525341560159,
+        "f1-score": 0.9831459034686073,
+        "support": 6807.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4890,
+        6,
+        93
+      ],
+      [
+        5,
+        0,
+        4
+      ],
+      [
+        6,
+        0,
+        1803
+      ]
+    ]
+  },
+  "candidate_mlp": {
+    "model_name": "ECG-MLP-1.0.0-candidate",
+    "accuracy": 0.9596004113412664,
+    "balanced_accuracy": 0.636796862439545,
+    "weighted_f1": 0.9604468763537477,
+    "macro_f1": 0.6347743304236905,
+    "auroc": 0.9923915632971522,
+    "auprc": 0.9913927999328124,
+    "ece": 0.024304099778304326,
+    "per_class_sensitivity": {
+      "Normal": 0.9673281218681098,
+      "Other": 0.0,
+      "PVC": 0.9430624654505252
+    },
+    "per_class_specificity": {
+      "Normal": 0.94004400440044,
+      "Other": 0.9972050603118564,
+      "PVC": 0.9705882352941176
+    },
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9779128672745694,
+        "recall": 0.9673281218681098,
+        "f1-score": 0.9725916968964128,
+        "support": 4989.0
+      },
+      "Other": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 9.0
+      },
+      "PVC": {
+        "precision": 0.9206691851052348,
+        "recall": 0.9430624654505252,
+        "f1-score": 0.9317312943746586,
+        "support": 1809.0
+      },
+      "accuracy": 0.9596004113412664,
+      "macro avg": {
+        "precision": 0.6328606841266015,
+        "recall": 0.636796862439545,
+        "f1-score": 0.6347743304236905,
+        "support": 6807.0
+      },
+      "weighted avg": {
+        "precision": 0.9614070590110468,
+        "recall": 0.9596004113412664,
+        "f1-score": 0.9604468763537477,
+        "support": 6807.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4826,
+        19,
+        144
+      ],
+      [
+        6,
+        0,
+        3
+      ],
+      [
+        103,
+        0,
+        1706
+      ]
+    ]
+  },
+  "classes": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "feature_names": [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "median",
+    "energy",
+    "rms",
+    "mav",
+    "snr",
+    "zero_crossing_rate",
+    "autocorr_first_peak",
+    "r_peak_amplitude",
+    "p_wave_amplitude",
+    "t_wave_amplitude",
+    "peak_to_peak_amplitude",
+    "max_slope",
+    "qrs_width_samples",
+    "total_power",
+    "lf_power",
+    "hf_power",
+    "vhf_power",
+    "dominant_frequency",
+    "max_power",
+    "spectral_entropy",
+    "pre_rr",
+    "post_rr",
+    "local_rr_ratio"
+  ],
+  "dataset_split": {
+    "task": "beat_arrhythmia",
+    "split_version": "v1",
+    "random_seed": 42,
+    "test_ratio": 0.3,
+    "val_ratio": 0.1,
+    "train": {
+      "patients": [
+        "mit_bih_arrhythmia_pt_100",
+        "mit_bih_arrhythmia_pt_106",
+        "mit_bih_arrhythmia_pt_208",
+        "mit_bih_arrhythmia_pt_213"
+      ],
+      "records": [
+        "100",
+        "106",
+        "208",
+        "213"
+      ]
+    },
+    "validation": {
+      "patients": [
+        "mit_bih_arrhythmia_pt_200"
+      ],
+      "records": [
+        "200"
+      ]
+    },
+    "test": {
+      "patients": [
+        "mit_bih_arrhythmia_pt_101",
+        "mit_bih_arrhythmia_pt_119"
+      ],
+      "records": [
+        "101",
+        "119"
+      ]
+    }
+  },
+  "timestamp": "2026-09-21T23:22:11.120790"
+}

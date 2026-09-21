@@ -1,0 +1,24 @@
+{
+  "dataset_id": "mit_bih_arrhythmia",
+  "task": "beat_arrhythmia",
+  "mapping_version": "1.0.0",
+  "canonical_classes": ["Normal", "PVC", "SVEB", "Other"],
+  "mappings": {
+    "N": {"canonical": "Normal", "reason": "Normal sinus beat"},
+    "L": {"canonical": "Normal", "reason": "Left bundle branch block beat (supraventricular origin)"},
+    "R": {"canonical": "Normal", "reason": "Right bundle branch block beat (supraventricular origin)"},
+    "e": {"canonical": "Normal", "reason": "Atrial escape beat"},
+    "j": {"canonical": "Normal", "reason": "Nodal (junctional) escape beat"},
+    "V": {"canonical": "PVC", "reason": "Premature ventricular contraction"},
+    "E": {"canonical": "PVC", "reason": "Ventricular escape beat"},
+    "F": {"canonical": "PVC", "reason": "Fusion of ventricular and normal beat"},
+    "A": {"canonical": "SVEB", "reason": "Atrial premature beat"},
+    "a": {"canonical": "SVEB", "reason": "Aberrated atrial premature beat"},
+    "J": {"canonical": "SVEB", "reason": "Nodal (junctional) premature beat"},
+    "S": {"canonical": "SVEB", "reason": "Premature or ectopic supraventricular beat"},
+    "Q": {"canonical": "Other", "reason": "Unclassifiable beat"},
+    "/": {"canonical": "Other", "reason": "Paced beat"},
+    "f": {"canonical": "Other", "reason": "Fusion of paced and normal beat"}
+  },
+  "unmapped_excluded": ["+", "~", "|", "!", "[", "]", "x"]
+}

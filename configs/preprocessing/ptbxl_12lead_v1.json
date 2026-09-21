@@ -1,0 +1,36 @@
+{
+  "pipeline_id": "ptbxl_12lead_v1",
+  "target_fs": 500.0,
+  "resample": true,
+  "leads": [
+    "I",
+    "II",
+    "III",
+    "aVR",
+    "aVL",
+    "aVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6"
+  ],
+  "baseline_filter": {
+    "method": "butterworth_highpass",
+    "cutoff_hz": 0.5,
+    "order": 3
+  },
+  "bandpass_filter": {
+    "low_cutoff_hz": 0.5,
+    "high_cutoff_hz": 50.0,
+    "order": 3
+  },
+  "notch_filter": {
+    "freq_hz": 50.0,
+    "q": 30.0
+  },
+  "normalization": "lead_wise_zscore",
+  "fixed_duration_sec": 10.0,
+  "scaler": "StandardScaler"
+}

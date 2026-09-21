@@ -21,9 +21,12 @@ except ImportError:
         remove_baseline_wander,
     )
 
+from src.ml.preprocessing.pipeline import ECGPreprocessingPipeline
+
 __all__ = [
     "preprocess_pipeline",
     "remove_baseline_wander",
     "bandpass_filter",
     "normalize_signal",
+    "ECGPreprocessingPipeline",
 ]

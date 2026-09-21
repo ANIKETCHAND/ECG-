@@ -1,0 +1,39 @@
+{
+  "task": "beat_arrhythmia",
+  "split_version": "v1",
+  "random_seed": 42,
+  "test_ratio": 0.3,
+  "val_ratio": 0.1,
+  "train": {
+    "patients": [
+      "mit_bih_arrhythmia_pt_100",
+      "mit_bih_arrhythmia_pt_106",
+      "mit_bih_arrhythmia_pt_208",
+      "mit_bih_arrhythmia_pt_213"
+    ],
+    "records": [
+      "100",
+      "106",
+      "208",
+      "213"
+    ]
+  },
+  "validation": {
+    "patients": [
+      "mit_bih_arrhythmia_pt_200"
+    ],
+    "records": [
+      "200"
+    ]
+  },
+  "test": {
+    "patients": [
+      "mit_bih_arrhythmia_pt_101",
+      "mit_bih_arrhythmia_pt_119"
+    ],
+    "records": [
+      "101",
+      "119"
+    ]
+  }
+}

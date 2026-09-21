@@ -1,0 +1,18 @@
+{
+  "pipeline_id": "af_v1",
+  "target_fs": 250.0,
+  "resample": true,
+  "baseline_filter": {
+    "method": "butterworth_highpass",
+    "cutoff_hz": 0.5,
+    "order": 3
+  },
+  "bandpass_filter": {
+    "low_cutoff_hz": 0.5,
+    "high_cutoff_hz": 40.0,
+    "order": 3
+  },
+  "segment_duration_sec": 30.0,
+  "normalization": "zscore",
+  "scaler": "StandardScaler"
+}
