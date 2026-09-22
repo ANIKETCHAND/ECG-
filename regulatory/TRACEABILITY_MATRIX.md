@@ -29,9 +29,13 @@ The Traceability Matrix establishes complete bidirectional traceability between 
 | **REQ-010** | Cryptographically chained, append-only audit trail logging all clinical actions with SHA-256 integrity verification. | Audit Logger Subsystem | [`src/audit/audit_logger.py`](file:///e:/CODE/AI-ECG-Analyzer/src/audit/audit_logger.py) | `tests/test_audit_logger.py` | H-07 | **VERIFIED** |
 | **REQ-011** | Mandatory clinician sign-off workflow supporting agreement status (`CONFIRM`, `MODIFY`, `REJECT`) and medical registration number. | Clinical Review Portal | [`app.py`](file:///e:/CODE/AI-ECG-Analyzer/app.py)<br>[`src/report/report_generator.py`](file:///e:/CODE/AI-ECG-Analyzer/src/report/report_generator.py) | `tests/test_report_generation.py::test_generate_structured_report` | H-03 | **VERIFIED** |
 | **REQ-012** | Publication-grade clinical PDF and JSON reports embedding hospital letterhead, physician sign-off, waveform strip, and disclaimer. | Reporting Subsystem | [`src/report/pdf_generator.py`](file:///e:/CODE/AI-ECG-Analyzer/src/report/pdf_generator.py)<br>[`src/report/report_generator.py`](file:///e:/CODE/AI-ECG-Analyzer/src/report/report_generator.py) | `tests/test_report_generation.py::test_generate_pdf_report`<br>`test_export_report_to_json` | H-03, H-07 | **VERIFIED** |
+| **REQ-013** | Clinical Decision Support (CDS) engine generating evidence-backed considerations, triage urgency, and guideline citations without autonomous prescribing. | CDS Engine | [`src/clinical/recommendation_engine.py`](file:///e:/CODE/AI-ECG-Analyzer/src/clinical/recommendation_engine.py) | `tests/test_clinical_decision_support.py` | H-02, H-03 | **VERIFIED** |
+| **REQ-014** | Authoritative cardiovascular medication knowledge base, drug-drug interaction checker, allergy conflict detector, and missing-context guardrail. | Medication Safety Subsystem | [`src/medications/medication_database.py`](file:///e:/CODE/AI-ECG-Analyzer/src/medications/medication_database.py)<br>[`src/medications/interaction_checker.py`](file:///e:/CODE/AI-ECG-Analyzer/src/medications/interaction_checker.py) | `tests/test_medication_safety.py` | H-03, H-06 | **VERIFIED** |
+| **REQ-015** | Alert and escalation engine categorizing AI-generated, technical, and critical hemodynamic alerts with physician acknowledgment auditing. | Alert Engine | [`src/alerts/alert_engine.py`](file:///e:/CODE/AI-ECG-Analyzer/src/alerts/alert_engine.py) | `tests/test_alert_engine.py` | H-01, H-05 | **VERIFIED** |
 
 ---
 
 ## 3. Verification Sign-Off
-- **All 12 Core Requirements** have verified, executable test coverage in the automated test suite.
+- **All 15 Core Requirements** have verified, executable test coverage in the automated test suite.
 - **Traceability Coverage:** 100% of functional requirements link to architectural units, automated tests, and ISO 14971 hazards.
+

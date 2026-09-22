@@ -62,8 +62,11 @@ from report import (
     generate_pdf_report,
 )
 from auth.auth_manager import AUTH_MANAGER, UserRole
-from database.db_manager import DB_MANAGER
+from database.db_manager import DB_MANAGER, PatientRecord
 from audit.audit_logger import AUDIT_LOGGER
+from clinical import GLOBAL_CDS_ENGINE, ClinicalRecommendation
+from medications import GLOBAL_MEDICATION_DB, check_medication_safety
+from alerts import GLOBAL_ALERT_ENGINE, AlertType, AlertSeverity
 import secrets
 from datetime import datetime
 
@@ -155,6 +158,14 @@ st.sidebar.caption(
     f"*{current_user.email}*"
 )
 st.sidebar.divider()
+
+# Workspace View Selection (Clinician vs Patient Portal)
+view_mode = st.sidebar.radio(
+    "Hospital Workspace View",
+    ["🏥 Hospital Clinician Workspace", "🧑‍💼 Patient Health Portal"],
+    index=0,
+    help="Toggle between full clinical decision support dashboard and patient-facing portal.",
+)
 
 # Input Mode Selection
 input_source_mode = st.sidebar.radio(
@@ -255,6 +266,13 @@ st.warning(
     "It does not replace certified physician evaluation or emergency cardiovascular care. "
     "If you are experiencing chest pain, palpitations, or shortness of breath, please seek emergency medical attention immediately."
 )
+
+if input_source_mode == "MIT-BIH Research Demo Mode":
+    st.error(
+        "🔬 **DEMO DATA — NOT A REAL PATIENT** | **PhysioNet MIT-BIH Arrhythmia Research Benchmark**\n\n"
+        "This record is an anonymized scientific benchmark tracing used exclusively for algorithmic validation. "
+        "It is segregated from real hospital patient records and must not be used for clinical patient management."
+    )
 
 # ---------------------------------------------------------
 # State Variables
@@ -472,12 +490,44 @@ file_stem = input_info.get("file_name", "ecg_file")
 rec_id = f"REC-{abs(hash(file_stem)) % 1000000:06d}"
 active_review = st.session_state.get(f"review_{rec_id}")
 
+# Compute initial CDS and Medication Safety dictionaries for the structured report
+primary_finding_str = "Normal Sinus Rhythm"
+if ai_results and "predicted_class" in ai_results:
+    primary_finding_str = ai_results["predicted_class"]
+
+cds_rec_obj = GLOBAL_CDS_ENGINE.evaluate_finding(
+    ecg_finding=primary_finding_str,
+    heart_rate=ai_results.get("heart_rate_bpm") if ai_results else None,
+)
+cds_data_dict = {
+    "primary_finding": cds_rec_obj.finding,
+    "urgency": cds_rec_obj.urgency,
+    "summary": cds_rec_obj.clinician_action_required,
+    "guideline_citations": cds_rec_obj.relevant_guidelines,
+    "considerations": cds_rec_obj.clinical_considerations,
+    "contraindications": cds_rec_obj.contraindication_warnings,
+}
+
+temp_eval_patient = PatientRecord(
+    patient_id="PAT-ACTIVE-01",
+    hospital_mrn="MRN-ACTIVE",
+    name="Active Patient",
+    age=65,
+    sex="M",
+    known_allergies="None documented",
+    existing_conditions="Hypertension",
+    current_medications="Metoprolol",
+)
+med_safety_eval = check_medication_safety(["Metoprolol", "Amiodarone"], patient=temp_eval_patient)
+
 report_data = generate_structured_report(
     input_info=input_info,
     ai_results=ai_results,
     extracted_measurements=extracted_measurements,
     waveform_status=waveform_status,
     clinician_review=active_review,
+    cds_report=cds_data_dict,
+    medication_safety=med_safety_eval.to_dict(),
 )
 
 # Auto-persist ECG record and inference result
@@ -510,6 +560,59 @@ if ai_results and "predicted_class" in ai_results:
         )
     except Exception:
         pass
+
+
+# Prepare waveform snippet for PDF if available
+waveform_for_pdf = ai_results["processed_signal"] if ai_results else None
+peaks_for_pdf = np.array(ai_results["detected_peaks"]) if ai_results else None
+
+pdf_bytes = generate_pdf_report(
+    report_data=report_data,
+    waveform=waveform_for_pdf,
+    fs=sampling_rate,
+    r_peaks=peaks_for_pdf,
+)
+
+# Patient Health Portal View Mode (Phase 22)
+if view_mode == "🧑‍💼 Patient Health Portal":
+    st.markdown("## 🧑‍💼 Patient Health Portal")
+    st.caption("Secure, transparent patient view of verified cardiac diagnostic results and physician instructions.")
+
+    p_name = report_data["patient_info"].get("patient_name") or "Enrolled Hospital Patient"
+    p_mrn = "MRN-ACTIVE-01"
+    p_date = report_data.get("generated_at", "")[:10]
+
+    c_rev = report_data.get("clinician_review", {})
+    is_signed = c_rev.get("status") in ["CONFIRMED", "MODIFIED", "ACCEPTED"]
+
+    if is_signed:
+        st.success(f"✅ **Diagnostic Evaluation Complete & Signed by Attending Physician** ({c_rev.get('clinician_name', 'Attending Physician')})")
+
+        st.markdown(f"### 📋 Diagnostic Summary for {p_name}")
+        st.markdown(f"**Hospital MRN:** `{p_mrn}` | **Date of Evaluation:** `{p_date}`")
+        st.markdown(f"**Reviewing Physician:** {c_rev.get('clinician_name')} ({c_rev.get('clinician_role', 'Doctor')}) — Reg No: `{c_rev.get('registration_number', 'Verified')}`")
+
+        st.info(f"🩺 **Physician Findings & Diagnosis:**\n\n{c_rev.get('clinician_interpretation', 'Normal Sinus Rhythm')}")
+
+        if c_rev.get("clinical_notes"):
+            st.markdown(f"📝 **Physician Directives & Care Plan:**\n\n{c_rev.get('clinical_notes')}")
+
+        hr_val = report_data["cardiac_parameters"].get("heart_rate_bpm")
+        if hr_val:
+            st.metric("Recorded Heart Rate", f"{hr_val:.0f} BPM")
+
+        st.markdown("### 📥 Download Your Official Signed Report")
+        st.download_button(
+            "📄 Download Official Signed PDF Report",
+            data=pdf_bytes,
+            file_name=f"patient_signed_report_{p_name.replace(' ', '_')}.pdf",
+            mime="application/pdf",
+        )
+    else:
+        st.warning("⏳ **Report Pending Physician Sign-Off**\n\nYour ECG recording has been uploaded and processed by hospital triage algorithms, but has not yet been reviewed and signed off by the attending physician. Verified results will appear here as soon as the doctor signs off.")
+
+    st.warning("🚨 **Emergency Guidance:** If you experience acute chest discomfort, shortness of breath, palpitations, or fainting, immediately call local emergency services or present to the nearest emergency department.")
+    st.stop()
 
 
 # ---------------------------------------------------------
@@ -626,6 +729,119 @@ if extracted_measurements and extracted_measurements.get("has_extracted_data"):
         st.markdown("**Printed Clinical Findings:**")
         for interp in extracted_measurements["machine_interpretation"]:
             st.markdown(f"- 📝 `{interp}`")
+
+    st.divider()
+
+    # ---------------------------------------------------------
+    # SECTION: Clinical Decision Support & Guidelines (Phases 12 & 18)
+    # ---------------------------------------------------------
+    st.markdown("### 🧠 Clinical Decision Support & Guideline Considerations")
+    st.caption("Authoritative guideline evidence (AHA/ACC/ESC). Diagnostic decisions and prescriptions remain the sole responsibility of the attending physician.")
+
+    primary_f = "Normal Sinus Rhythm"
+    if ai_results and "predicted_class" in ai_results:
+        primary_f = ai_results["predicted_class"]
+
+    cds_rec = GLOBAL_CDS_ENGINE.evaluate_finding(
+        ecg_finding=primary_f,
+        heart_rate=ai_results.get("heart_rate") if ai_results else None,
+    )
+
+    urgency_color = "badge-normal" if cds_rec.urgency == "ROUTINE REVIEW" else ("badge-warning" if cds_rec.urgency == "PROMPT REVIEW" else "badge-abnormal")
+    st.markdown(
+        f"""
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">Primary Finding: {cds_rec.finding}</span>
+                <span class="{urgency_color}"><b>{cds_rec.urgency}</b></span>
+            </div>
+            <p style="margin-bottom: 6px; color: #334155;"><b>Guideline Source:</b> {cds_rec.guideline_source} (Verified: {cds_rec.last_verified})</p>
+            <p style="margin-bottom: 0; color: #0f766e;"><b>Mandatory Clinician Action:</b> {cds_rec.clinician_action_required}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cds_c1, cds_c2 = st.columns(2)
+    with cds_c1:
+        st.markdown("**Potential Clinical Considerations:**")
+        for cons in cds_rec.clinical_considerations:
+            st.markdown(f"- 💡 {cons}")
+
+        if cds_rec.contraindication_warnings:
+            st.markdown("**Critical Contraindication Alerts:**")
+            for cw in cds_rec.contraindication_warnings:
+                st.error(f"⚠️ {cw}")
+
+    with cds_c2:
+        st.markdown("**Suggested Next Assessments (Authoritative):**")
+        for ass in cds_rec.suggested_assessments:
+            st.markdown(f"- 🩺 {ass}")
+
+        st.markdown("**Applicable Clinical Guidelines:**")
+        for gl in cds_rec.relevant_guidelines:
+            st.markdown(f"- 📚 *{gl}*")
+
+    st.divider()
+
+    # ---------------------------------------------------------
+    # SECTION: Medication Safety & Interaction Verification (Phases 13-17)
+    # ---------------------------------------------------------
+    st.markdown("### 💊 Cardiovascular Medication Safety & Interaction Check")
+    st.caption("Clinical safety verification across patient's current medications, known allergies, and organ function. Autonomous prescribing is strictly prohibited.")
+
+    with st.expander("🛡️ Patient Medication Safety Evaluation", expanded=True):
+        col_med1, col_med2 = st.columns([1, 1])
+        with col_med1:
+            patient_meds_input = st.text_input(
+                "Enter Current Patient Medications (comma-separated):",
+                value="Metoprolol, Amiodarone",
+                help="Enter active medications to evaluate drug-drug interactions and cardiac contraindications.",
+                key="inp_patient_meds",
+            )
+            patient_allergies_input = st.text_input(
+                "Patient Known Allergies:",
+                value="Penicillin",
+                key="inp_patient_allergies",
+            )
+            patient_conditions_input = st.text_input(
+                "Known Clinical Conditions:",
+                value="Hypertension, PVC Arrhythmia",
+                key="inp_patient_conditions",
+            )
+
+        with col_med2:
+            st.markdown("**Authoritative Formulary Database:**")
+            all_meds = GLOBAL_MEDICATION_DB.list_all()
+            st.caption(f"Curated active cardiovascular agents: {len(all_meds)} (Metoprolol, Amiodarone, Apixaban)")
+            st.markdown("**Regulatory Drug References:**")
+            st.caption("- FDA Prescribing Information / DailyMed\n- AHA/ACC Guideline Consensus\n- Chest Antithrombotic Guidelines")
+
+        med_list = [m.strip() for m in patient_meds_input.split(",") if m.strip()]
+        temp_patient = PatientRecord(
+            patient_id="PAT-TMP-01",
+            hospital_mrn="MRN-EVAL",
+            name="Clinical Evaluation Patient",
+            age=65,
+            sex="M",
+            known_allergies=patient_allergies_input,
+            existing_conditions=patient_conditions_input,
+            current_medications=patient_meds_input,
+        )
+
+        med_safety_report = check_medication_safety(med_list, patient=temp_patient)
+
+        if med_safety_report.alerts:
+            st.markdown(f"**Safety Alerts Identified ({len(med_safety_report.alerts)}):**")
+            for alert in med_safety_report.alerts:
+                if alert.severity == "CRITICAL":
+                    st.error(f"🚨 **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
+                elif alert.severity == "MAJOR":
+                    st.warning(f"⚠️ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
+                else:
+                    st.info(f"ℹ️ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation}")
+        else:
+            st.success("✅ **No Major Drug-Drug Interactions or Allergy Conflicts Detected** across the entered regimen.")
 
     st.divider()
 
@@ -850,6 +1066,7 @@ if AUTH_MANAGER.has_permission(current_user, "report:sign_off"):
                 status="SEALED",
                 report_sha256=f"{abs(hash(custom_diag)):x}",
             )
+            DB_MANAGER.update_ecg_workflow_status(rec_id, "SIGNED", assigned_doctor=current_user.full_name)
             AUDIT_LOGGER.log_event(
                 event_type="CLINICIAN_SIGN_OFF",
                 user_id=current_user.user_id,
@@ -977,46 +1194,73 @@ with st.expander("🏥 Hospital Clinical Worklist & Patient Database", expanded=
     col_p1, col_p2 = st.columns([2, 1])
 
     with col_p1:
-        records_list = DB_MANAGER.list_ecg_records(limit=20)
+        st.markdown("**Active Hospital ECG Worklist**")
+        status_sel = st.selectbox("Filter Worklist by Status:", ["ALL", "UPLOADED", "ANALYZED", "SIGNED", "REJECTED"], key="sel_wk_status")
+        records_list = DB_MANAGER.list_ecg_records(limit=25, status_filter=None if status_sel == "ALL" else status_sel)
         if records_list:
             rec_display = []
             for r in records_list:
                 rec_display.append({
                     "Record ID": r["record_id"],
-                    "Device": r.get("device") or "Standard ECG",
-                    "Format": r["source_format"],
-                    "Sampling Rate": f"{r['sampling_rate']:.0f} Hz",
-                    "Duration": f"{r['duration_sec']:.1f}s",
+                    "Patient MRN": r.get("hospital_mrn") or "—",
+                    "Patient Name": r.get("patient_name") or "Unassigned",
+                    "Status": r.get("workflow_status") or "UPLOADED",
+                    "Priority": r.get("priority") or "ROUTINE",
+                    "AI Prediction": r.get("prediction") or "—",
                     "Signal Quality": r.get("signal_quality") or "UNKNOWN",
-                    "Uploaded By": r.get("uploaded_by") or "technician",
-                    "Uploaded At": r["uploaded_at"][:19].replace("T", " "),
+                    "Uploaded At": r["uploaded_at"][:16].replace("T", " "),
                 })
             st.dataframe(pd.DataFrame(rec_display), use_container_width=True)
         else:
-            st.info("No persisted ECG records found in hospital database.")
+            st.info("No ECG records found matching current status filter.")
 
     with col_p2:
-        st.markdown("**Register New Patient**")
+        st.markdown("**Register Patient (Comprehensive Profile)**")
         new_mrn = st.text_input("Hospital MRN:", value=f"MRN-{secrets.token_hex(3).upper()}", key="inp_mrn")
         new_name = st.text_input("Patient Full Name:", key="inp_name")
-        new_age = st.number_input("Age:", min_value=1, max_value=120, value=45, key="inp_age")
-        new_sex = st.selectbox("Sex:", ["M", "F", "Other"], key="inp_sex")
-        if st.button("➕ Register Patient", key="btn_reg_pat"):
+        col_pa, col_pb = st.columns(2)
+        with col_pa:
+            new_age = st.number_input("Age:", min_value=1, max_value=120, value=55, key="inp_age")
+            new_sex = st.selectbox("Sex:", ["M", "F", "Other"], key="inp_sex")
+            new_blood = st.selectbox("Blood Group:", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"], key="inp_blood")
+        with col_pb:
+            new_contact = st.text_input("Contact No:", value="+91-", key="inp_contact")
+            new_smoke = st.selectbox("Smoking:", ["Non-Smoker", "Former Smoker", "Current Smoker", "Unknown"], key="inp_smoke")
+
+        new_allergies = st.text_input("Known Allergies:", placeholder="e.g. Penicillin, Sulfa drugs", key="inp_allergies")
+        new_conditions = st.text_input("Existing Clinical Conditions:", placeholder="e.g. Hypertension, Type 2 Diabetes", key="inp_conditions")
+        new_cardiac_hx = st.text_input("Previous Cardiac History:", placeholder="e.g. Prior MI in 2021, CABG, Stent", key="inp_cardiac_hx")
+        new_curr_meds = st.text_input("Current Medications:", placeholder="e.g. Metoprolol 50mg, Aspirin 75mg", key="inp_curr_meds")
+
+        if st.button("➕ Enroll Patient Profile", key="btn_reg_pat", type="primary"):
             if new_name.strip():
                 p_id = f"PAT-{secrets.token_hex(4).upper()}"
-                DB_MANAGER.create_patient(patient_id=p_id, hospital_mrn=new_mrn, name=new_name, age=int(new_age), sex=new_sex)
+                DB_MANAGER.create_patient(
+                    patient_id=p_id,
+                    hospital_mrn=new_mrn,
+                    name=new_name,
+                    age=int(new_age),
+                    sex=new_sex,
+                    contact=new_contact,
+                    blood_group=new_blood,
+                    known_allergies=new_allergies,
+                    existing_conditions=new_conditions,
+                    current_medications=new_curr_meds,
+                    previous_cardiac_history=new_cardiac_hx,
+                    smoking_status=new_smoke,
+                )
                 AUDIT_LOGGER.log_event(
                     event_type="PATIENT_CREATED",
                     user_id=current_user.user_id,
                     username=current_user.username,
                     user_role=current_user.role.value,
-                    action=f"Registered patient {new_name} ({new_mrn})",
+                    action=f"Enrolled complete clinical profile for {new_name} ({new_mrn})",
                     patient_id=p_id,
                 )
-                st.success(f"Patient registered: {new_name} ({p_id})")
+                st.success(f"Patient successfully enrolled: {new_name} ({p_id})")
                 st.rerun()
             else:
-                st.warning("Please enter patient name.")
+                st.warning("Patient full name is required.")
 
 
 # ---------------------------------------------------------

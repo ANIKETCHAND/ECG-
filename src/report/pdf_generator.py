@@ -313,7 +313,59 @@ def generate_pdf_report(
     story.append(Paragraph(f"<b>Summary:</b> {ai.get('explanation', '')}", body_style))
     story.append(Spacer(1, 8))
 
-    # 6. Clinician Review & Physician Sign-off
+    # Clinical Decision Support & Guidelines (If Available)
+    if report_data.get("clinical_decision_support"):
+        cds = report_data["clinical_decision_support"]
+        story.append(Paragraph("6. CLINICAL DECISION SUPPORT (NON-AUTONOMOUS)", sec_heading_style))
+        urg = cds.get("urgency", "ROUTINE REVIEW")
+        urg_color = "#dc3545" if "URGENT" in urg else ("#fd7e14" if "PROMPT" in urg else "#28a745")
+        cds_data = [
+            [
+                Paragraph(f"<b>Triage Urgency:</b> <font color='{urg_color}'><b>{urg}</b></font>", cell_bold),
+                Paragraph(f"<b>Primary Finding:</b> {cds.get('primary_finding', 'N/A')}", cell_normal),
+            ],
+            [
+                Paragraph(f"<b>Clinical Advisory:</b> {cds.get('summary', 'N/A')}", cell_normal),
+                Paragraph(f"<b>Guidelines:</b> {'; '.join(cds.get('guideline_citations', [])) or 'ACC/AHA/ESC'}", cell_normal),
+            ],
+        ]
+        t_cds = Table(cds_data, colWidths=[270, 270])
+        t_cds.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f1f5f9")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]))
+        story.append(t_cds)
+        story.append(Spacer(1, 4))
+
+    # Medication Safety Evaluation (If Available)
+    if report_data.get("medication_safety"):
+        meds = report_data["medication_safety"]
+        alerts = meds.get("alerts", [])
+        story.append(Paragraph("7. MEDICATION SAFETY & INTERACTION EVALUATION", sec_heading_style))
+        med_summary = f"<b>Active Regimen Evaluated:</b> {', '.join(meds.get('active_medications', [])) or 'None recorded'} | <b>Safety Alerts:</b> {len(alerts)}"
+        story.append(Paragraph(med_summary, body_style))
+        if alerts:
+            alert_rows = []
+            for a in alerts[:4]:  # Show top 4 alerts to keep within page limits
+                s_color = "#dc3545" if a.get("severity") == "CRITICAL" else ("#fd7e14" if a.get("severity") == "MAJOR" else "#0d6efd")
+                alert_rows.append([
+                    Paragraph(f"<font color='{s_color}'><b>[{a.get('severity', 'INFO')}]</b></font> {a.get('title')}: {a.get('description')}", cell_normal)
+                ])
+            t_med = Table(alert_rows, colWidths=[540])
+            t_med.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fff8f0")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#ffd8a8")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#ffe8cc")),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ]))
+            story.append(t_med)
+        story.append(Spacer(1, 4))
+
+    # Clinician Review & Physician Sign-off
     cr = report_data.get("clinician_review", {})
     c_status = cr.get("status", "PENDING_REVIEW")
     c_name = cr.get("clinician_name") or "Pending Qualified Physician Review"
@@ -325,7 +377,7 @@ def generate_pdf_report(
 
     status_color = "#28a745" if c_status == "CONFIRMED" else ("#fd7e14" if c_status == "MODIFIED" else ("#dc3545" if c_status == "REJECTED" else "#6c757d"))
 
-    story.append(Paragraph("6. CLINICAL REVIEW & PHYSICIAN SIGN-OFF", sec_heading_style))
+    story.append(Paragraph("8. CLINICAL REVIEW & PHYSICIAN SIGN-OFF", sec_heading_style))
     review_box_data = [
         [
             Paragraph(f"<b>Review Status:</b> <font color='{status_color}'><b>{c_status}</b></font>", cell_bold),

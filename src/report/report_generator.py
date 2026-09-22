@@ -31,6 +31,8 @@ def generate_structured_report(
     evidence_report: Optional[Dict[str, Any]] = None,
     machine_comparison: Optional[Dict[str, Any]] = None,
     longitudinal_comparison: Optional[Dict[str, Any]] = None,
+    cds_report: Optional[Dict[str, Any]] = None,
+    medication_safety: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Assemble complete clinical research and review report dictionary.
 
@@ -201,6 +203,8 @@ def generate_structured_report(
         "ai_evidence": evidence_report,
         "machine_comparison": machine_comparison,
         "longitudinal_comparison": longitudinal_comparison,
+        "clinical_decision_support": cds_report,
+        "medication_safety": medication_safety,
         "findings": findings,
         "disclaimer": (
             "This report is generated automatically as an AI-assisted clinical decision support tool. "
@@ -334,11 +338,46 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
             f"  Delta Heart Rate     : {long_cmp.get('delta_heart_rate_bpm') or 'N/A'} BPM",
         ])
 
+    if report.get("clinical_decision_support"):
+        cds = report["clinical_decision_support"]
+        lines.extend([
+            "",
+            "9. CLINICAL DECISION SUPPORT & GUIDELINES (NON-AUTONOMOUS)",
+            "-" * 72,
+            f"  Primary Finding      : {cds.get('primary_finding', 'N/A')}",
+            f"  Triage Urgency       : {cds.get('urgency', 'ROUTINE REVIEW')}",
+            f"  Clinical Summary     : {cds.get('summary', 'N/A')}",
+        ])
+        if cds.get("guideline_citations"):
+            lines.append("  Guideline References : " + "; ".join(cds["guideline_citations"]))
+        if cds.get("considerations"):
+            lines.append("  Clinical Considerations:")
+            for c in cds["considerations"]:
+                lines.append(f"    - {c}")
+        if cds.get("contraindications"):
+            lines.append("  Important Contraindications / Cautions:")
+            for ci in cds["contraindications"]:
+                lines.append(f"    - ⚠️ {ci}")
+
+    if report.get("medication_safety"):
+        med = report["medication_safety"]
+        lines.extend([
+            "",
+            "10. MEDICATION SAFETY & INTERACTION EVALUATION",
+            "-" * 72,
+            f"  Active Meds Evaluated: {', '.join(med.get('active_medications', [])) if med.get('active_medications') else 'None recorded'}",
+            f"  Safety Alerts Found  : {len(med.get('alerts', []))}",
+        ])
+        for a in med.get("alerts", []):
+            lines.append(f"    [{a.get('severity', 'INFO')}] {a.get('title')}: {a.get('description')}")
+            if a.get('clinical_recommendation'):
+                lines.append(f"      Action: {a.get('clinical_recommendation')}")
+
     if report.get("clinician_review"):
         cr = report["clinician_review"]
         lines.extend([
             "",
-            "9. CLINICIAN REVIEW & PHYSICIAN SIGN-OFF",
+            "11. CLINICIAN REVIEW & PHYSICIAN SIGN-OFF",
             "-" * 72,
             f"  Review Status        : {cr.get('status', 'PENDING_REVIEW')}",
             f"  Reviewing Physician  : {cr.get('clinician_name') or 'Pending Clinician Review'}",

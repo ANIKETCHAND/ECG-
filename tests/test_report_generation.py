@@ -160,3 +160,43 @@ def test_generate_structured_report_with_all_guardian_sections(mock_report_input
     assert "LONGITUDINAL PATIENT COMPARISON" in txt
     assert "CLINICIAN REVIEW & PHYSICIAN SIGN-OFF" in txt
 
+
+def test_generate_report_with_cds_and_med_safety(mock_report_inputs):
+    inp, ai_res, meas, wf_stat = mock_report_inputs
+    cds_info = {
+        "primary_finding": "Premature Ventricular Contraction (PVC)",
+        "urgency": "PROMPT CLINICIAN REVIEW",
+        "summary": "Frequent PVCs identified. Evaluate for structural heart disease.",
+        "guideline_citations": ["2019 HRS/EHRA/APHRS Expert Consensus"],
+        "considerations": ["Assess 24-hour Holter burden", "Check serum electrolytes"],
+        "contraindications": ["Avoid class IC antiarrhythmics without ruling out ischemia"],
+    }
+    med_info = {
+        "active_medications": ["Metoprolol", "Amiodarone"],
+        "alerts": [
+            {
+                "severity": "CRITICAL",
+                "title": "Severe Bradycardia / Heart Block Risk",
+                "description": "Concurrent use of Metoprolol and Amiodarone increases risk of profound bradycardia.",
+                "clinical_recommendation": "Monitor heart rate and PR interval closely.",
+            }
+        ]
+    }
+    report = generate_structured_report(
+        inp, ai_res, meas, wf_stat,
+        cds_report=cds_info,
+        medication_safety=med_info,
+    )
+    assert report["clinical_decision_support"]["urgency"] == "PROMPT CLINICIAN REVIEW"
+    assert report["medication_safety"]["alerts"][0]["severity"] == "CRITICAL"
+
+    txt = export_report_to_text(report)
+    assert "CLINICAL DECISION SUPPORT & GUIDELINES" in txt
+    assert "MEDICATION SAFETY & INTERACTION EVALUATION" in txt
+    assert "Severe Bradycardia / Heart Block Risk" in txt
+
+    pdf_bytes = generate_pdf_report(report)
+    assert isinstance(pdf_bytes, bytes)
+    assert len(pdf_bytes) > 1000
+
+

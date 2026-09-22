@@ -37,6 +37,17 @@ class PatientRecord:
     sex: Optional[str] = None  # M, F, O
     contact: Optional[str] = None
     created_at: str = ""
+    date_of_birth: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    blood_group: Optional[str] = None
+    known_allergies: Optional[str] = None
+    existing_conditions: Optional[str] = None
+    current_medications: Optional[str] = None
+    previous_cardiac_history: Optional[str] = None
+    family_history: Optional[str] = None
+    smoking_status: Optional[str] = None
+    other_relevant_history: Optional[str] = None
+    updated_at: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -80,7 +91,18 @@ class DatabaseManager:
                     age INTEGER,
                     sex TEXT,
                     contact TEXT,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    date_of_birth TEXT,
+                    emergency_contact TEXT,
+                    blood_group TEXT,
+                    known_allergies TEXT,
+                    existing_conditions TEXT,
+                    current_medications TEXT,
+                    previous_cardiac_history TEXT,
+                    family_history TEXT,
+                    smoking_status TEXT,
+                    other_relevant_history TEXT,
+                    updated_at TEXT
                 )
                 """)
 
@@ -99,6 +121,9 @@ class DatabaseManager:
                     uploaded_by TEXT,
                     uploaded_at TEXT NOT NULL,
                     raw_data_path TEXT,
+                    workflow_status TEXT DEFAULT 'UPLOADED',
+                    priority TEXT DEFAULT 'ROUTINE',
+                    assigned_doctor TEXT,
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE SET NULL
                 )
                 """)
@@ -168,18 +193,44 @@ class DatabaseManager:
                 conn.commit()
 
     # --- Patient Operations ---
-    def create_patient(self, patient_id: str, hospital_mrn: str, name: str,
-                       age: Optional[int] = None, sex: Optional[str] = None,
-                       contact: Optional[str] = None) -> PatientRecord:
+    def create_patient(
+        self,
+        patient_id: str,
+        hospital_mrn: str,
+        name: str,
+        age: Optional[int] = None,
+        sex: Optional[str] = None,
+        contact: Optional[str] = None,
+        date_of_birth: Optional[str] = None,
+        emergency_contact: Optional[str] = None,
+        blood_group: Optional[str] = None,
+        known_allergies: Optional[str] = None,
+        existing_conditions: Optional[str] = None,
+        current_medications: Optional[str] = None,
+        previous_cardiac_history: Optional[str] = None,
+        family_history: Optional[str] = None,
+        smoking_status: Optional[str] = None,
+        other_relevant_history: Optional[str] = None,
+    ) -> PatientRecord:
         created_at = datetime.now().isoformat()
         with self._lock:
             with self._db() as conn:
                 conn.execute(
                     """
-                    INSERT INTO patients (patient_id, hospital_mrn, name, age, sex, contact, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO patients (
+                        patient_id, hospital_mrn, name, age, sex, contact, created_at,
+                        date_of_birth, emergency_contact, blood_group, known_allergies,
+                        existing_conditions, current_medications, previous_cardiac_history,
+                        family_history, smoking_status, other_relevant_history, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (patient_id, hospital_mrn, name, age, sex, contact, created_at),
+                    (
+                        patient_id, hospital_mrn, name, age, sex, contact, created_at,
+                        date_of_birth, emergency_contact, blood_group, known_allergies,
+                        existing_conditions, current_medications, previous_cardiac_history,
+                        family_history, smoking_status, other_relevant_history, created_at,
+                    ),
                 )
                 conn.commit()
         return PatientRecord(
@@ -190,6 +241,59 @@ class DatabaseManager:
             sex=sex,
             contact=contact,
             created_at=created_at,
+            date_of_birth=date_of_birth,
+            emergency_contact=emergency_contact,
+            blood_group=blood_group,
+            known_allergies=known_allergies,
+            existing_conditions=existing_conditions,
+            current_medications=current_medications,
+            previous_cardiac_history=previous_cardiac_history,
+            family_history=family_history,
+            smoking_status=smoking_status,
+            other_relevant_history=other_relevant_history,
+            updated_at=created_at,
+        )
+
+    def update_patient(self, patient_id: str, **kwargs) -> bool:
+        """Update arbitrary clinical fields on a patient record."""
+        valid_cols = {
+            "name", "age", "sex", "contact", "date_of_birth", "emergency_contact",
+            "blood_group", "known_allergies", "existing_conditions", "current_medications",
+            "previous_cardiac_history", "family_history", "smoking_status", "other_relevant_history"
+        }
+        updates = {k: v for k, v in kwargs.items() if k in valid_cols}
+        if not updates:
+            return False
+        updates["updated_at"] = datetime.now().isoformat()
+        set_clauses = [f"{col} = ?" for col in updates.keys()]
+        values = list(updates.values()) + [patient_id]
+        with self._lock:
+            with self._db() as conn:
+                conn.execute(f"UPDATE patients SET {', '.join(set_clauses)} WHERE patient_id = ?", values)
+                conn.commit()
+        return True
+
+    def _row_to_patient(self, row: sqlite3.Row) -> PatientRecord:
+        d = dict(row)
+        return PatientRecord(
+            patient_id=d.get("patient_id", ""),
+            hospital_mrn=d.get("hospital_mrn", ""),
+            name=d.get("name", ""),
+            age=d.get("age"),
+            sex=d.get("sex"),
+            contact=d.get("contact"),
+            created_at=d.get("created_at", ""),
+            date_of_birth=d.get("date_of_birth"),
+            emergency_contact=d.get("emergency_contact"),
+            blood_group=d.get("blood_group"),
+            known_allergies=d.get("known_allergies"),
+            existing_conditions=d.get("existing_conditions"),
+            current_medications=d.get("current_medications"),
+            previous_cardiac_history=d.get("previous_cardiac_history"),
+            family_history=d.get("family_history"),
+            smoking_status=d.get("smoking_status"),
+            other_relevant_history=d.get("other_relevant_history"),
+            updated_at=d.get("updated_at"),
         )
 
     def get_patient(self, patient_id: str) -> Optional[PatientRecord]:
@@ -197,59 +301,41 @@ class DatabaseManager:
             row = conn.execute(
                 "SELECT * FROM patients WHERE patient_id = ?", (patient_id,)
             ).fetchone()
-            if row:
-                return PatientRecord(
-                    patient_id=row["patient_id"],
-                    hospital_mrn=row["hospital_mrn"],
-                    name=row["name"],
-                    age=row["age"],
-                    sex=row["sex"],
-                    contact=row["contact"],
-                    created_at=row["created_at"],
-                )
-            return None
+            return self._row_to_patient(row) if row else None
 
     def get_patient_by_mrn(self, hospital_mrn: str) -> Optional[PatientRecord]:
         with self._db() as conn:
             row = conn.execute(
                 "SELECT * FROM patients WHERE hospital_mrn = ?", (hospital_mrn,)
             ).fetchone()
-            if row:
-                return PatientRecord(
-                    patient_id=row["patient_id"],
-                    hospital_mrn=row["hospital_mrn"],
-                    name=row["name"],
-                    age=row["age"],
-                    sex=row["sex"],
-                    contact=row["contact"],
-                    created_at=row["created_at"],
-                )
-            return None
+            return self._row_to_patient(row) if row else None
 
     def list_patients(self, limit: int = 100) -> List[PatientRecord]:
         with self._db() as conn:
             rows = conn.execute(
                 "SELECT * FROM patients ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
-            return [
-                PatientRecord(
-                    patient_id=r["patient_id"],
-                    hospital_mrn=r["hospital_mrn"],
-                    name=r["name"],
-                    age=r["age"],
-                    sex=r["sex"],
-                    contact=r["contact"],
-                    created_at=r["created_at"],
-                )
-                for r in rows
-            ]
+            return [self._row_to_patient(r) for r in rows]
 
-    # --- ECG Record Operations ---
-    def save_ecg_record(self, record_id: str, sampling_rate: float, lead_names: List[str],
-                        duration_sec: float, file_hash: str, source_format: str,
-                        patient_id: Optional[str] = None, device: Optional[str] = None,
-                        signal_quality: Optional[str] = None, quality_score: Optional[float] = None,
-                        uploaded_by: Optional[str] = None, raw_data_path: Optional[str] = None) -> bool:
+    # --- ECG Record & Worklist Operations ---
+    def save_ecg_record(
+        self,
+        record_id: str,
+        sampling_rate: float,
+        lead_names: List[str],
+        duration_sec: float,
+        file_hash: str,
+        source_format: str,
+        patient_id: Optional[str] = None,
+        device: Optional[str] = None,
+        signal_quality: Optional[str] = None,
+        quality_score: Optional[float] = None,
+        uploaded_by: Optional[str] = None,
+        raw_data_path: Optional[str] = None,
+        workflow_status: str = "UPLOADED",
+        priority: str = "ROUTINE",
+        assigned_doctor: Optional[str] = None,
+    ) -> bool:
         uploaded_at = datetime.now().isoformat()
         lead_names_json = json.dumps(lead_names)
         with self._lock:
@@ -258,14 +344,32 @@ class DatabaseManager:
                     """
                     INSERT OR REPLACE INTO ecg_records
                     (record_id, patient_id, device, sampling_rate, lead_names, duration_sec,
-                     file_hash, source_format, signal_quality, quality_score, uploaded_by, uploaded_at, raw_data_path)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     file_hash, source_format, signal_quality, quality_score, uploaded_by,
+                     uploaded_at, raw_data_path, workflow_status, priority, assigned_doctor)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record_id, patient_id, device, sampling_rate, lead_names_json, duration_sec,
-                        file_hash, source_format, signal_quality, quality_score, uploaded_by, uploaded_at, raw_data_path,
+                        file_hash, source_format, signal_quality, quality_score, uploaded_by,
+                        uploaded_at, raw_data_path, workflow_status, priority, assigned_doctor,
                     ),
                 )
+                conn.commit()
+        return True
+
+    def update_ecg_workflow_status(self, record_id: str, status: str, assigned_doctor: Optional[str] = None) -> bool:
+        with self._lock:
+            with self._db() as conn:
+                if assigned_doctor:
+                    conn.execute(
+                        "UPDATE ecg_records SET workflow_status = ?, assigned_doctor = ? WHERE record_id = ?",
+                        (status, assigned_doctor, record_id),
+                    )
+                else:
+                    conn.execute(
+                        "UPDATE ecg_records SET workflow_status = ? WHERE record_id = ?",
+                        (status, record_id),
+                    )
                 conn.commit()
         return True
 
@@ -280,17 +384,33 @@ class DatabaseManager:
                 return d
             return None
 
-    def list_ecg_records(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_ecg_records(self, limit: int = 50, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         with self._db() as conn:
-            rows = conn.execute(
-                """
-                SELECT r.*, p.name as patient_name, p.hospital_mrn
-                FROM ecg_records r
-                LEFT JOIN patients p ON r.patient_id = p.patient_id
-                ORDER BY r.uploaded_at DESC LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
+            if status_filter:
+                rows = conn.execute(
+                    """
+                    SELECT r.*, p.name as patient_name, p.hospital_mrn,
+                           a.prediction, a.quality_score as ai_quality_score, a.heart_rate_bpm
+                    FROM ecg_records r
+                    LEFT JOIN patients p ON r.patient_id = p.patient_id
+                    LEFT JOIN analysis_results a ON r.record_id = a.record_id
+                    WHERE r.workflow_status = ?
+                    ORDER BY r.uploaded_at DESC LIMIT ?
+                    """,
+                    (status_filter, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT r.*, p.name as patient_name, p.hospital_mrn,
+                           a.prediction, a.quality_score as ai_quality_score, a.heart_rate_bpm
+                    FROM ecg_records r
+                    LEFT JOIN patients p ON r.patient_id = p.patient_id
+                    LEFT JOIN analysis_results a ON r.record_id = a.record_id
+                    ORDER BY r.uploaded_at DESC LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
             results = []
             for r in rows:
                 d = dict(r)
