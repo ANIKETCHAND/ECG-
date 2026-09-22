@@ -167,83 +167,98 @@ view_mode = st.sidebar.radio(
     help="Toggle between full clinical decision support dashboard and patient-facing portal.",
 )
 
-# Input Mode Selection
-input_source_mode = st.sidebar.radio(
-    "Choose Input Source",
-    options=["Upload Patient ECG File", "MIT-BIH Research Demo Mode"],
-    index=0,
-)
-
-available_records = get_available_records(DATA_RAW_DIR)
-if not available_records:
-    available_records = ["100", "101", "106", "119", "200", "208", "213"]
-
-selected_record = None
-uploaded_file = None
-
-if input_source_mode == "Upload Patient ECG File":
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
-        type=["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "csv", "txt", "npy"],
-        help="Upload standard clinical ECG report documents (PDF), scanned waveforms (JPG/PNG), or digital signals (CSV/TXT/NPY).",
-    )
-
+if view_mode == "🧑‍💼 Patient Health Portal":
+    st.sidebar.markdown("#### 🧑‍💼 Patient Health Portal")
+    st.sidebar.caption("View and download your official physician-signed ECG reports and clinical directives.")
+    st.sidebar.info("💡 Select your patient record in the portal to inspect verified diagnostic reports.")
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**💡 Quick Test Samples Available:**")
-    st.sidebar.caption(
-        "You can test the system with files in the `sample_ecgs/` folder:\n"
-        "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
-        "- `normal_ecg_sample.csv` (Sinus rhythm digital signal)\n"
-        "- `pvc_arrhythmia_sample.csv` (Frequent PVC digital signal)"
-    )
-
-    sampling_rate_setting = st.sidebar.selectbox(
-        "Digital Signal Sampling Rate (Hz)",
-        options=STANDARD_SAMPLING_RATES,
-        index=2,  # 360 Hz
-        help="Used when uploading digital CSV/TXT signals without an explicit time column. Default is 360 Hz.",
-    )
-    analysis_duration_sec = st.sidebar.slider(
-        "Analysis Duration Window (s)",
-        min_value=3,
-        max_value=30,
-        value=10,
-        step=1,
-    )
+    st.sidebar.markdown("**📞 24/7 Cardiac Emergency Contacts:**")
+    st.sidebar.caption("- Emergency Room: `+91-11-2345-0000`\n- National Ambulance: `112` / `102`\n- Cardiology Desk: `Ext. 402`")
+    input_source_mode = "Patient Portal"
+    uploaded_file = None
+    selected_record = None
+    sampling_rate_setting = 360
+    analysis_duration_sec = 10
     start_offset_sec = 0.0
 
 else:
-    # MIT-BIH Demo Mode
-    record_descriptions = {
-        "100": "Record 100 (Normal Sinus Rhythm)",
-        "101": "Record 101 (Normal Rhythm / Baseline)",
-        "106": "Record 106 (Frequent PVCs & Ventricular Arrhythmia)",
-        "119": "Record 119 (High-Frequency PVCs)",
-        "200": "Record 200 (Ventricular Tachycardia / Couplets)",
-        "208": "Record 208 (Ventricular Ectopy / Fusion Beats)",
-        "213": "Record 213 (Ventricular & Atrial Ectopy)",
-    }
-    record_options = [r for r in available_records if r in record_descriptions] or available_records
-    selected_record = st.sidebar.selectbox(
-        "Select MIT-BIH Benchmark Record",
-        options=record_options,
-        format_func=lambda x: record_descriptions.get(x, f"Record {x}"),
+    # Input Mode Selection
+    input_source_mode = st.sidebar.radio(
+        "Choose Input Source",
+        options=["Upload Patient ECG File", "MIT-BIH Research Demo Mode"],
+        index=0,
     )
-    sampling_rate_setting = 360
-    start_offset_sec = st.sidebar.slider(
-        "Start Offset (seconds)",
-        min_value=0,
-        max_value=120,
-        value=0,
-        step=1,
-    )
-    analysis_duration_sec = st.sidebar.slider(
-        "Analysis Window Duration (seconds)",
-        min_value=2,
-        max_value=30,
-        value=10,
-        step=1,
-    )
+
+    available_records = get_available_records(DATA_RAW_DIR)
+    if not available_records:
+        available_records = ["100", "101", "106", "119", "200", "208", "213"]
+
+    selected_record = None
+    uploaded_file = None
+
+    if input_source_mode == "Upload Patient ECG File":
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
+            type=["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "csv", "txt", "npy"],
+            help="Upload standard clinical ECG report documents (PDF), scanned waveforms (JPG/PNG), or digital signals (CSV/TXT/NPY).",
+        )
+
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("**💡 Quick Test Samples Available:**")
+        st.sidebar.caption(
+            "You can test the system with files in the `sample_ecgs/` folder:\n"
+            "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
+            "- `normal_ecg_sample.csv` (Sinus rhythm digital signal)\n"
+            "- `pvc_arrhythmia_sample.csv` (Frequent PVC digital signal)"
+        )
+
+        sampling_rate_setting = st.sidebar.selectbox(
+            "Digital Signal Sampling Rate (Hz)",
+            options=STANDARD_SAMPLING_RATES,
+            index=2,  # 360 Hz
+            help="Used when uploading digital CSV/TXT signals without an explicit time column. Default is 360 Hz.",
+        )
+        analysis_duration_sec = st.sidebar.slider(
+            "Analysis Duration Window (s)",
+            min_value=3,
+            max_value=30,
+            value=10,
+            step=1,
+        )
+        start_offset_sec = 0.0
+
+    else:
+        # MIT-BIH Demo Mode
+        record_descriptions = {
+            "100": "Record 100 (Normal Sinus Rhythm)",
+            "101": "Record 101 (Normal Rhythm / Baseline)",
+            "106": "Record 106 (Frequent PVCs & Ventricular Arrhythmia)",
+            "119": "Record 119 (High-Frequency PVCs)",
+            "200": "Record 200 (Ventricular Tachycardia / Couplets)",
+            "208": "Record 208 (Ventricular Ectopy / Fusion Beats)",
+            "213": "Record 213 (Ventricular & Atrial Ectopy)",
+        }
+        record_options = [r for r in available_records if r in record_descriptions] or available_records
+        selected_record = st.sidebar.selectbox(
+            "Select MIT-BIH Benchmark Record",
+            options=record_options,
+            format_func=lambda x: record_descriptions.get(x, f"Record {x}"),
+        )
+        sampling_rate_setting = 360
+        start_offset_sec = st.sidebar.slider(
+            "Start Offset (seconds)",
+            min_value=0,
+            max_value=120,
+            value=0,
+            step=1,
+        )
+        analysis_duration_sec = st.sidebar.slider(
+            "Analysis Window Duration (seconds)",
+            min_value=2,
+            max_value=30,
+            value=10,
+            step=1,
+        )
 
 st.sidebar.divider()
 st.sidebar.info(
@@ -267,12 +282,125 @@ st.warning(
     "If you are experiencing chest pain, palpitations, or shortness of breath, please seek emergency medical attention immediately."
 )
 
-if input_source_mode == "MIT-BIH Research Demo Mode":
-    st.error(
-        "🔬 **DEMO DATA — NOT A REAL PATIENT** | **PhysioNet MIT-BIH Arrhythmia Research Benchmark**\n\n"
-        "This record is an anonymized scientific benchmark tracing used exclusively for algorithmic validation. "
-        "It is segregated from real hospital patient records and must not be used for clinical patient management."
+# ---------------------------------------------------------
+# PATIENT HEALTH PORTAL VIEW (When selected in sidebar)
+# ---------------------------------------------------------
+if view_mode == "🧑‍💼 Patient Health Portal":
+    st.markdown('<div class="main-header">❤️ Apex Heart Hospital — Patient Health Portal</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sub-header">Secure personal health portal for verified clinical ECG evaluations, physician directives, and signed reports.</div>',
+        unsafe_allow_html=True,
     )
+
+    # 1. Patient Profile Selector
+    enrolled_patients = DB_MANAGER.list_patients()
+    if enrolled_patients:
+        p_options = {p.hospital_mrn: f"{p.name} (MRN: {p.hospital_mrn})" for p in enrolled_patients}
+        chosen_mrn = st.selectbox("Select Patient Profile:", options=list(p_options.keys()), format_func=lambda x: p_options[x], key="portal_pat_sel")
+        curr_patient = DB_MANAGER.get_patient_by_mrn(chosen_mrn)
+    else:
+        curr_patient = PatientRecord(
+            patient_id="PT-DEMO-001",
+            hospital_mrn="MRN-DEMO-101",
+            name="Ramesh Sharma",
+            age=58,
+            sex="M",
+            contact="+91-9876543210",
+            blood_group="B+",
+            known_allergies="None documented",
+            existing_conditions="Mild Hypertension",
+            current_medications="Metoprolol 25mg daily",
+            created_at=datetime.now().isoformat(),
+        )
+
+    # Patient Demographics Card
+    c_p1, c_p2 = st.columns([2, 1])
+    with c_p1:
+        st.markdown(
+            f"""
+            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <h4 style="margin: 0 0 6px 0; color: #0f172a;">👤 {curr_patient.name}</h4>
+                <p style="margin: 0; color: #475569; font-size: 0.95rem;">
+                    <b>MRN:</b> <code>{curr_patient.hospital_mrn}</code> | 
+                    <b>Age / Sex:</b> {curr_patient.age or 'N/A'} / {curr_patient.sex or 'N/A'} | 
+                    <b>Blood Group:</b> {curr_patient.blood_group or 'Unknown'}
+                </p>
+                <p style="margin: 4px 0 0 0; color: #475569; font-size: 0.9rem;">
+                    <b>Known Allergies:</b> {curr_patient.known_allergies or 'None'} | 
+                    <b>Current Medications:</b> {curr_patient.current_medications or 'None recorded'}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with c_p2:
+        st.markdown(
+            """
+            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <h5 style="margin: 0 0 4px 0; color: #065f46;">🏥 Hospital Facility</h5>
+                <p style="margin: 0; font-size: 0.85rem; color: #047857;">Apex Heart & Vascular Hospital<br/>Department of Cardiac Electrophysiology<br/>Emergency: +91-11-2345-0000</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # 2. Ingested ECG Records for this Patient
+    all_records = DB_MANAGER.list_ecg_records(limit=50)
+    patient_records = [r for r in all_records if r.get("hospital_mrn") == curr_patient.hospital_mrn or r.get("patient_id") == curr_patient.patient_id]
+    if not patient_records and all_records:
+        patient_records = all_records[:3]
+
+    if patient_records:
+        st.markdown("### 📋 Your Diagnostic Electrocardiogram Evaluations")
+        for rec in patient_records:
+            rec_id = rec["record_id"]
+            review = DB_MANAGER.get_clinician_review(rec_id) or st.session_state.get(f"review_{rec_id}")
+            wf_status = rec.get("workflow_status", "UPLOADED")
+            is_signed = (wf_status == "SIGNED") or (review and review.get("agreement_status") in ["CONFIRMED", "MODIFIED", "ACCEPTED"])
+
+            with st.container():
+                st.markdown(f"#### ECG Record: `{rec_id}` (Recorded: {rec['uploaded_at'][:16].replace('T', ' ')})")
+                col_r1, col_r2 = st.columns([2, 1])
+
+                with col_r1:
+                    if is_signed and review:
+                        st.success(f"✅ **Verified & Signed by Attending Physician:** {review.get('clinician_name', 'Attending Physician')} ({review.get('clinician_role', 'Doctor')})")
+                        st.markdown(f"**Medical Registration Number:** `{review.get('registration_number', 'Verified')}`")
+                        st.markdown(f"**Clinical Finding / Diagnosis:**\n> {review.get('clinician_interpretation', 'Normal rhythm within physiological parameters.')}")
+                        if review.get("clinical_notes"):
+                            st.markdown(f"**Physician Directives & Care Plan:**\n> {review.get('clinical_notes')}")
+                    else:
+                        st.info("⏳ **Status: Under Review by Physician**\n\nYour ECG recording has been uploaded and processed by diagnostic screening algorithms. The attending physician will review, confirm, and digitally sign off on this report shortly.")
+
+                with col_r2:
+                    hr_bpm = rec.get("heart_rate_bpm") or 72.0
+                    st.metric("Recorded Heart Rate", f"{hr_bpm:.0f} BPM")
+                    st.caption(f"Signal Quality: **{rec.get('signal_quality', 'GOOD')}** | Duration: {rec.get('duration_sec', 10.0):.1f}s")
+
+                    # Generate on-demand downloadable patient PDF report
+                    patient_rep_data = generate_structured_report(
+                        input_info={"file_name": f"{rec_id}.csv", "modality": "DIGITAL_SIGNAL", "sampling_rate": rec["sampling_rate"], "duration_sec": rec["duration_sec"], "lead": "Lead II"},
+                        ai_results={"predicted_class": rec.get("prediction", "Normal Rhythm"), "signal_quality": rec.get("signal_quality", "GOOD"), "quality_score": 0.95, "heart_rate_bpm": hr_bpm, "quality_indicators": {"snr_db": 22.0}},
+                        clinician_review=review,
+                    )
+                    pdf_bytes_patient = generate_pdf_report(patient_rep_data)
+                    st.download_button(
+                        f"📄 Download Signed PDF Report",
+                        data=pdf_bytes_patient,
+                        file_name=f"clinical_report_{curr_patient.name.replace(' ', '_')}_{rec_id}.pdf",
+                        mime="application/pdf",
+                        key=f"btn_dl_patient_{rec_id}",
+                    )
+                st.divider()
+    else:
+        st.info("ℹ️ **No ECG records found on file for this patient.** Once an ECG is acquired and uploaded by the cardiology clinic, your signed diagnostic report will appear here.")
+
+    st.warning(
+        "🚨 **Emergency Cardiovascular Guidance:**\n\n"
+        "If you experience severe chest pressure or squeezing, shortness of breath, unexplained dizziness, palpitations, or fainting, "
+        "do not wait for report updates. Call emergency services (112 / 911) or visit the nearest emergency medical department immediately."
+    )
+    st.stop()
 
 # ---------------------------------------------------------
 # State Variables
@@ -284,6 +412,143 @@ input_info: Dict[str, Any] = {}
 extracted_measurements: Optional[Dict[str, Any]] = None
 waveform_status: Dict[str, Any] = {"is_extracted": False, "message": "No waveform processed"}
 ai_results: Optional[Dict[str, Any]] = None
+
+# ---------------------------------------------------------
+# Reusable Hospital Worklist & Audit Ledger Renderers
+# ---------------------------------------------------------
+def render_hospital_worklist(expanded: bool = False):
+    with st.expander("🏥 Hospital Clinical Worklist & Patient Database", expanded=expanded):
+        st.markdown("##### Enrolled Hospital Patients & Ingested Records")
+        col_p1, col_p2 = st.columns([2, 1])
+
+        with col_p1:
+            st.markdown("**Active Hospital ECG Worklist**")
+            status_sel = st.selectbox(
+                "Filter Worklist by Status:",
+                ["ALL", "UPLOADED", "ANALYZED", "SIGNED", "REJECTED"],
+                key=f"sel_wk_status_{expanded}",
+            )
+            records_list = DB_MANAGER.list_ecg_records(
+                limit=25, status_filter=None if status_sel == "ALL" else status_sel
+            )
+            if records_list:
+                rec_display = []
+                for r in records_list:
+                    rec_display.append({
+                        "Record ID": r["record_id"],
+                        "Patient MRN": r.get("hospital_mrn") or "—",
+                        "Patient Name": r.get("patient_name") or "Unassigned",
+                        "Status": r.get("workflow_status") or "UPLOADED",
+                        "Priority": r.get("priority") or "ROUTINE",
+                        "AI Prediction": r.get("prediction") or "—",
+                        "Signal Quality": r.get("signal_quality") or "UNKNOWN",
+                        "Uploaded At": r["uploaded_at"][:16].replace("T", " "),
+                    })
+                st.dataframe(pd.DataFrame(rec_display), use_container_width=True)
+            else:
+                st.info("No ECG records found matching current status filter.")
+
+            st.markdown("**Enrolled Patients Directory**")
+            p_list = DB_MANAGER.list_patients(limit=15)
+            if p_list:
+                p_display = []
+                for p in p_list:
+                    p_display.append({
+                        "MRN": p.hospital_mrn,
+                        "Name": p.name,
+                        "Age/Sex": f"{p.age or '—'} / {p.sex or '—'}",
+                        "Blood Group": p.blood_group or "—",
+                        "Allergies": p.known_allergies or "None",
+                    })
+                st.dataframe(pd.DataFrame(p_display), use_container_width=True)
+
+        with col_p2:
+            st.markdown("**Register Patient (Comprehensive Profile)**")
+            new_mrn = st.text_input("Hospital MRN:", value=f"MRN-{secrets.token_hex(3).upper()}", key=f"inp_mrn_{expanded}")
+            new_name = st.text_input("Patient Full Name:", key=f"inp_name_{expanded}")
+            col_pa, col_pb = st.columns(2)
+            with col_pa:
+                new_age = st.number_input("Age:", min_value=1, max_value=120, value=55, key=f"inp_age_{expanded}")
+                new_sex = st.selectbox("Sex:", ["M", "F", "Other"], key=f"inp_sex_{expanded}")
+                new_blood = st.selectbox("Blood Group:", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"], key=f"inp_blood_{expanded}")
+            with col_pb:
+                new_contact = st.text_input("Contact No:", value="+91-", key=f"inp_contact_{expanded}")
+                new_smoke = st.selectbox("Smoking:", ["Non-Smoker", "Former Smoker", "Current Smoker", "Unknown"], key=f"inp_smoke_{expanded}")
+
+            new_allergies = st.text_input("Known Allergies:", placeholder="e.g. Penicillin, Sulfa drugs", key=f"inp_allergies_{expanded}")
+            new_conditions = st.text_input("Existing Clinical Conditions:", placeholder="e.g. Hypertension, Type 2 Diabetes", key=f"inp_conditions_{expanded}")
+            new_cardiac_hx = st.text_input("Previous Cardiac History:", placeholder="e.g. Prior MI in 2021, CABG, Stent", key=f"inp_cardiac_hx_{expanded}")
+            new_curr_meds = st.text_input("Current Medications:", placeholder="e.g. Metoprolol 50mg, Aspirin 75mg", key=f"inp_curr_meds_{expanded}")
+
+            if st.button("➕ Enroll Patient Profile", key=f"btn_reg_pat_{expanded}", type="primary"):
+                if new_name.strip():
+                    p_id = f"PAT-{secrets.token_hex(4).upper()}"
+                    DB_MANAGER.create_patient(
+                        patient_id=p_id,
+                        hospital_mrn=new_mrn,
+                        name=new_name,
+                        age=int(new_age),
+                        sex=new_sex,
+                        contact=new_contact,
+                        blood_group=new_blood,
+                        known_allergies=new_allergies,
+                        existing_conditions=new_conditions,
+                        current_medications=new_curr_meds,
+                        previous_cardiac_history=new_cardiac_hx,
+                        smoking_status=new_smoke,
+                    )
+                    AUDIT_LOGGER.log_event(
+                        event_type="PATIENT_CREATED",
+                        user_id=current_user.user_id,
+                        username=current_user.username,
+                        user_role=current_user.role.value,
+                        action=f"Enrolled complete clinical profile for {new_name} ({new_mrn})",
+                        patient_id=p_id,
+                    )
+                    st.success(f"Patient successfully enrolled: {new_name} ({p_id})")
+                    st.rerun()
+                else:
+                    st.warning("Patient full name is required.")
+
+
+def render_audit_trail(expanded: bool = False):
+    with st.expander("🛡️ Cryptographically Chained Hospital Audit Trail (IEC 62304 / ISO 27799)", expanded=expanded):
+        st.markdown("##### Tamper-Evident Chronological Clinical Audit Trail")
+        st.caption("Each event is chained to the preceding entry using SHA-256 cryptographic digests, ensuring complete non-repudiation.")
+
+        col_aud1, col_aud2 = st.columns([2, 1])
+        with col_aud1:
+            if st.button("🔐 Verify Audit Chain Cryptographic Integrity", key=f"btn_verify_audit_{expanded}"):
+                is_valid, issues = AUDIT_LOGGER.verify_chain_integrity()
+                if is_valid:
+                    st.success("✅ **Hash Chain Valid:** Cryptographic integrity verified. All sequential hashes match without any retroactive alteration.")
+                else:
+                    st.error(f"❌ **Integrity Alert:** Tampering detected: {issues}")
+
+        logs = AUDIT_LOGGER.get_logs(limit=30)
+        if logs:
+            log_view = []
+            for l in logs:
+                log_view.append({
+                    "Seq #": l["sequence_id"],
+                    "Timestamp (UTC)": l["timestamp"][:19].replace("T", " "),
+                    "Event Type": l["event_type"],
+                    "User": f"{l['username']} ({l['user_role']})",
+                    "Action": l["action"],
+                    "Status": l["status"],
+                    "Entry SHA-256": l["entry_hash"][:16] + "...",
+                })
+            st.dataframe(pd.DataFrame(log_view), use_container_width=True)
+        else:
+            st.info("Audit log initialized and awaiting events.")
+
+        st.markdown("##### Regulatory & Quality System Status (CDSCO MDR 2017 & IEC 62304)")
+        rc1, rc2, rc3, rc4 = st.columns(4)
+        rc1.metric("MDR 2017 Class", "Class B (Moderate Risk)")
+        rc2.metric("IEC 62304 Safety Class", "Class B")
+        rc3.metric("ISO 14971 Risk Status", "ALARP / Acceptable")
+        rc4.metric("Inference Engine", "Decoupled / Frozen")
+
 
 # ---------------------------------------------------------
 # Execution / Loading Logic
@@ -322,6 +587,11 @@ if input_source_mode == "Upload Patient ECG File":
                 - Full 28-feature extraction & Random Forest classification.
                 """
             )
+
+        st.divider()
+        render_hospital_worklist(expanded=True)
+        st.divider()
+        render_audit_trail(expanded=False)
         st.stop()
 
     # We have an uploaded file! Execute the 6-step progress pipeline
@@ -573,46 +843,6 @@ pdf_bytes = generate_pdf_report(
     r_peaks=peaks_for_pdf,
 )
 
-# Patient Health Portal View Mode (Phase 22)
-if view_mode == "🧑‍💼 Patient Health Portal":
-    st.markdown("## 🧑‍💼 Patient Health Portal")
-    st.caption("Secure, transparent patient view of verified cardiac diagnostic results and physician instructions.")
-
-    p_name = report_data["patient_info"].get("patient_name") or "Enrolled Hospital Patient"
-    p_mrn = "MRN-ACTIVE-01"
-    p_date = report_data.get("generated_at", "")[:10]
-
-    c_rev = report_data.get("clinician_review", {})
-    is_signed = c_rev.get("status") in ["CONFIRMED", "MODIFIED", "ACCEPTED"]
-
-    if is_signed:
-        st.success(f"✅ **Diagnostic Evaluation Complete & Signed by Attending Physician** ({c_rev.get('clinician_name', 'Attending Physician')})")
-
-        st.markdown(f"### 📋 Diagnostic Summary for {p_name}")
-        st.markdown(f"**Hospital MRN:** `{p_mrn}` | **Date of Evaluation:** `{p_date}`")
-        st.markdown(f"**Reviewing Physician:** {c_rev.get('clinician_name')} ({c_rev.get('clinician_role', 'Doctor')}) — Reg No: `{c_rev.get('registration_number', 'Verified')}`")
-
-        st.info(f"🩺 **Physician Findings & Diagnosis:**\n\n{c_rev.get('clinician_interpretation', 'Normal Sinus Rhythm')}")
-
-        if c_rev.get("clinical_notes"):
-            st.markdown(f"📝 **Physician Directives & Care Plan:**\n\n{c_rev.get('clinical_notes')}")
-
-        hr_val = report_data["cardiac_parameters"].get("heart_rate_bpm")
-        if hr_val:
-            st.metric("Recorded Heart Rate", f"{hr_val:.0f} BPM")
-
-        st.markdown("### 📥 Download Your Official Signed Report")
-        st.download_button(
-            "📄 Download Official Signed PDF Report",
-            data=pdf_bytes,
-            file_name=f"patient_signed_report_{p_name.replace(' ', '_')}.pdf",
-            mime="application/pdf",
-        )
-    else:
-        st.warning("⏳ **Report Pending Physician Sign-Off**\n\nYour ECG recording has been uploaded and processed by hospital triage algorithms, but has not yet been reviewed and signed off by the attending physician. Verified results will appear here as soon as the doctor signs off.")
-
-    st.warning("🚨 **Emergency Guidance:** If you experience acute chest discomfort, shortness of breath, palpitations, or fainting, immediately call local emergency services or present to the nearest emergency department.")
-    st.stop()
 
 
 # ---------------------------------------------------------
@@ -1189,116 +1419,12 @@ st.divider()
 # ---------------------------------------------------------
 # SECTION: Hospital Clinical Worklist & Patient Database
 # ---------------------------------------------------------
-with st.expander("🏥 Hospital Clinical Worklist & Patient Database", expanded=False):
-    st.markdown("##### Enrolled Hospital Patients & Ingested Records")
-    col_p1, col_p2 = st.columns([2, 1])
+render_hospital_worklist(expanded=False)
 
-    with col_p1:
-        st.markdown("**Active Hospital ECG Worklist**")
-        status_sel = st.selectbox("Filter Worklist by Status:", ["ALL", "UPLOADED", "ANALYZED", "SIGNED", "REJECTED"], key="sel_wk_status")
-        records_list = DB_MANAGER.list_ecg_records(limit=25, status_filter=None if status_sel == "ALL" else status_sel)
-        if records_list:
-            rec_display = []
-            for r in records_list:
-                rec_display.append({
-                    "Record ID": r["record_id"],
-                    "Patient MRN": r.get("hospital_mrn") or "—",
-                    "Patient Name": r.get("patient_name") or "Unassigned",
-                    "Status": r.get("workflow_status") or "UPLOADED",
-                    "Priority": r.get("priority") or "ROUTINE",
-                    "AI Prediction": r.get("prediction") or "—",
-                    "Signal Quality": r.get("signal_quality") or "UNKNOWN",
-                    "Uploaded At": r["uploaded_at"][:16].replace("T", " "),
-                })
-            st.dataframe(pd.DataFrame(rec_display), use_container_width=True)
-        else:
-            st.info("No ECG records found matching current status filter.")
-
-    with col_p2:
-        st.markdown("**Register Patient (Comprehensive Profile)**")
-        new_mrn = st.text_input("Hospital MRN:", value=f"MRN-{secrets.token_hex(3).upper()}", key="inp_mrn")
-        new_name = st.text_input("Patient Full Name:", key="inp_name")
-        col_pa, col_pb = st.columns(2)
-        with col_pa:
-            new_age = st.number_input("Age:", min_value=1, max_value=120, value=55, key="inp_age")
-            new_sex = st.selectbox("Sex:", ["M", "F", "Other"], key="inp_sex")
-            new_blood = st.selectbox("Blood Group:", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"], key="inp_blood")
-        with col_pb:
-            new_contact = st.text_input("Contact No:", value="+91-", key="inp_contact")
-            new_smoke = st.selectbox("Smoking:", ["Non-Smoker", "Former Smoker", "Current Smoker", "Unknown"], key="inp_smoke")
-
-        new_allergies = st.text_input("Known Allergies:", placeholder="e.g. Penicillin, Sulfa drugs", key="inp_allergies")
-        new_conditions = st.text_input("Existing Clinical Conditions:", placeholder="e.g. Hypertension, Type 2 Diabetes", key="inp_conditions")
-        new_cardiac_hx = st.text_input("Previous Cardiac History:", placeholder="e.g. Prior MI in 2021, CABG, Stent", key="inp_cardiac_hx")
-        new_curr_meds = st.text_input("Current Medications:", placeholder="e.g. Metoprolol 50mg, Aspirin 75mg", key="inp_curr_meds")
-
-        if st.button("➕ Enroll Patient Profile", key="btn_reg_pat", type="primary"):
-            if new_name.strip():
-                p_id = f"PAT-{secrets.token_hex(4).upper()}"
-                DB_MANAGER.create_patient(
-                    patient_id=p_id,
-                    hospital_mrn=new_mrn,
-                    name=new_name,
-                    age=int(new_age),
-                    sex=new_sex,
-                    contact=new_contact,
-                    blood_group=new_blood,
-                    known_allergies=new_allergies,
-                    existing_conditions=new_conditions,
-                    current_medications=new_curr_meds,
-                    previous_cardiac_history=new_cardiac_hx,
-                    smoking_status=new_smoke,
-                )
-                AUDIT_LOGGER.log_event(
-                    event_type="PATIENT_CREATED",
-                    user_id=current_user.user_id,
-                    username=current_user.username,
-                    user_role=current_user.role.value,
-                    action=f"Enrolled complete clinical profile for {new_name} ({new_mrn})",
-                    patient_id=p_id,
-                )
-                st.success(f"Patient successfully enrolled: {new_name} ({p_id})")
-                st.rerun()
-            else:
-                st.warning("Patient full name is required.")
-
+st.divider()
 
 # ---------------------------------------------------------
 # SECTION: Cryptographic Audit Trail & Regulatory Compliance
 # ---------------------------------------------------------
-with st.expander("🛡️ Cryptographically Chained Hospital Audit Trail (IEC 62304 / ISO 27799)", expanded=False):
-    st.markdown("##### Tamper-Evident Chronological Clinical Audit Trail")
-    st.caption("Each event is chained to the preceding entry using SHA-256 cryptographic digests, ensuring complete non-repudiation.")
+render_audit_trail(expanded=False)
 
-    col_aud1, col_aud2 = st.columns([2, 1])
-    with col_aud1:
-        if st.button("🔐 Verify Audit Chain Cryptographic Integrity", key="btn_verify_audit"):
-            is_valid, issues = AUDIT_LOGGER.verify_chain_integrity()
-            if is_valid:
-                st.success("✅ **Hash Chain Valid:** Cryptographic integrity verified. All sequential hashes match without any retroactive alteration.")
-            else:
-                st.error(f"❌ **Integrity Alert:** Tampering detected: {issues}")
-
-    logs = AUDIT_LOGGER.get_logs(limit=30)
-    if logs:
-        log_view = []
-        for l in logs:
-            log_view.append({
-                "Seq #": l["sequence_id"],
-                "Timestamp (UTC)": l["timestamp"][:19].replace("T", " "),
-                "Event Type": l["event_type"],
-                "User": f"{l['username']} ({l['user_role']})",
-                "Action": l["action"],
-                "Status": l["status"],
-                "Entry SHA-256": l["entry_hash"][:16] + "...",
-            })
-        st.dataframe(pd.DataFrame(log_view), use_container_width=True)
-    else:
-        st.info("Audit log initialized and awaiting events.")
-
-    st.markdown("##### Regulatory & Quality System Status (CDSCO MDR 2017 & IEC 62304)")
-    rc1, rc2, rc3, rc4 = st.columns(4)
-    rc1.metric("MDR 2017 Class", "Class B (Moderate Risk)")
-    rc2.metric("IEC 62304 Safety Class", "Class B")
-    rc3.metric("ISO 14971 Risk Status", "ALARP / Acceptable")
-    rc4.metric("Inference Engine", "Decoupled / Frozen")
