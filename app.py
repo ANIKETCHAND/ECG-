@@ -197,35 +197,136 @@ else:
     uploaded_file = None
 
     if input_source_mode == "Upload Patient ECG File":
-        uploaded_file = st.sidebar.file_uploader(
-            "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
-            type=["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "csv", "txt", "npy"],
-            help="Upload standard clinical ECG report documents (PDF), scanned waveforms (JPG/PNG), or digital signals (CSV/TXT/NPY).",
-        )
+        # ------------------------------------------------
+        # Step 1: Patient Registration
+        # ------------------------------------------------
+        st.sidebar.markdown("#### 👤 Step 1 — Register Patient")
 
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("**💡 Quick Test Samples Available:**")
-        st.sidebar.caption(
-            "You can test the system with files in the `sample_ecgs/` folder:\n"
-            "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
-            "- `normal_ecg_sample.csv` (Sinus rhythm digital signal)\n"
-            "- `pvc_arrhythmia_sample.csv` (Frequent PVC digital signal)"
-        )
+        if "registered_patient_data" not in st.session_state:
+            st.session_state["registered_patient_data"] = None
+        if "sidebar_mrn" not in st.session_state:
+            import secrets as _sec_init
+            st.session_state["sidebar_mrn"] = f"MRN-{_sec_init.token_hex(3).upper()}"
 
-        sampling_rate_setting = st.sidebar.selectbox(
-            "Digital Signal Sampling Rate (Hz)",
-            options=STANDARD_SAMPLING_RATES,
-            index=2,  # 360 Hz
-            help="Used when uploading digital CSV/TXT signals without an explicit time column. Default is 360 Hz.",
-        )
-        analysis_duration_sec = st.sidebar.slider(
-            "Analysis Duration Window (s)",
-            min_value=3,
-            max_value=30,
-            value=10,
-            step=1,
-        )
-        start_offset_sec = 0.0
+        if st.session_state["registered_patient_data"] is None:
+            # Show registration form
+            import secrets as _sec
+            with st.sidebar.form("patient_registration_form", clear_on_submit=False):
+                _mrn    = st.text_input("Hospital MRN", value=st.session_state["sidebar_mrn"], key="form_mrn")
+                _name   = st.text_input("Patient Full Name *", placeholder="e.g. Rajesh Kumar", key="form_name")
+                _c1, _c2 = st.columns(2)
+                with _c1:
+                    _age   = st.number_input("Age", min_value=1, max_value=120, value=55, key="form_age")
+                    _sex   = st.selectbox("Sex", ["M", "F", "Other"], key="form_sex")
+                with _c2:
+                    _blood = st.selectbox("Blood Group", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"], key="form_blood")
+                    _smoke = st.selectbox("Smoking", ["Non-Smoker", "Former Smoker", "Current Smoker", "Unknown"], key="form_smoke")
+                _contact   = st.text_input("Contact No.", value="+91-", key="form_contact")
+                _allergies = st.text_input("Known Allergies", placeholder="e.g. Penicillin", key="form_allergies")
+                _conds     = st.text_input("Existing Conditions", placeholder="e.g. Hypertension, Diabetes", key="form_conds")
+                _cardiac   = st.text_input("Cardiac History", placeholder="e.g. Prior MI 2021, Stent", key="form_cardiac")
+                _meds      = st.text_input("Current Medications", placeholder="e.g. Metoprolol 50mg", key="form_meds")
+                _submitted = st.form_submit_button("✅ Register Patient & Proceed to Upload", type="primary", use_container_width=True)
+
+            if _submitted:
+                if not st.session_state.get("form_name", "").strip():
+                    st.sidebar.error("⚠️ Patient Full Name is required.")
+                else:
+                    _p_id = f"PAT-{_sec.token_hex(4).upper()}"
+                    try:
+                        DB_MANAGER.create_patient(
+                            patient_id=_p_id,
+                            hospital_mrn=st.session_state["form_mrn"],
+                            name=st.session_state["form_name"],
+                            age=int(st.session_state["form_age"]),
+                            sex=st.session_state["form_sex"],
+                            contact=st.session_state["form_contact"],
+                            blood_group=st.session_state["form_blood"],
+                            known_allergies=st.session_state["form_allergies"],
+                            existing_conditions=st.session_state["form_conds"],
+                            current_medications=st.session_state["form_meds"],
+                            previous_cardiac_history=st.session_state["form_cardiac"],
+                            smoking_status=st.session_state["form_smoke"],
+                        )
+                        AUDIT_LOGGER.log_event(
+                            event_type="PATIENT_CREATED",
+                            user_id=current_user.user_id,
+                            username=current_user.username,
+                            user_role=current_user.role.value,
+                            action=f"Registered patient {st.session_state['form_name']} ({st.session_state['form_mrn']}) before ECG upload",
+                            patient_id=_p_id,
+                        )
+                    except Exception:
+                        pass
+
+                    st.session_state["registered_patient_data"] = {
+                        "patient_id":               _p_id,
+                        "hospital_mrn":             st.session_state["form_mrn"],
+                        "name":                     st.session_state["form_name"],
+                        "age":                      int(st.session_state["form_age"]),
+                        "sex":                      st.session_state["form_sex"],
+                        "blood_group":              st.session_state["form_blood"],
+                        "contact":                  st.session_state["form_contact"],
+                        "known_allergies":          st.session_state["form_allergies"] or "None",
+                        "existing_conditions":      st.session_state["form_conds"] or "None",
+                        "previous_cardiac_history": st.session_state["form_cardiac"] or "None",
+                        "current_medications":      st.session_state["form_meds"] or "None",
+                        "smoking_status":           st.session_state["form_smoke"],
+                    }
+                    st.rerun()
+
+            # No patient registered yet — keep uploader hidden
+            uploaded_file = None
+            sampling_rate_setting = 360
+            analysis_duration_sec = 10
+            start_offset_sec = 0.0
+
+        else:
+            # Patient registered — show summary card and Step 2 upload
+            _pat = st.session_state["registered_patient_data"]
+            st.sidebar.success(
+                f"✅ **Patient Registered**\n\n"
+                f"👤 **{_pat['name']}**\n"
+                f"MRN: `{_pat['hospital_mrn']}` | Age: {_pat['age']} / {_pat['sex']}"
+            )
+            if st.sidebar.button("🔄 Change Patient", key="btn_change_patient"):
+                st.session_state["registered_patient_data"] = None
+                import secrets as _sec_r
+                st.session_state["sidebar_mrn"] = f"MRN-{_sec_r.token_hex(3).upper()}"
+                st.rerun()
+
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("#### 📁 Step 2 — Upload ECG File")
+
+            uploaded_file = st.sidebar.file_uploader(
+                "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
+                type=["pdf", "jpg", "jpeg", "png", "bmp", "tiff", "csv", "txt", "npy"],
+                help="Upload standard clinical ECG report documents (PDF), scanned waveforms (JPG/PNG), or digital signals (CSV/TXT/NPY).",
+            )
+
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("**💡 Quick Test Samples Available:**")
+            st.sidebar.caption(
+                "You can test the system with files in the `sample_ecgs/` folder:\n"
+                "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
+                "- `normal_ecg_sample.csv` (Sinus rhythm digital signal)\n"
+                "- `pvc_arrhythmia_sample.csv` (Frequent PVC digital signal)"
+            )
+
+            sampling_rate_setting = st.sidebar.selectbox(
+                "Digital Signal Sampling Rate (Hz)",
+                options=STANDARD_SAMPLING_RATES,
+                index=2,
+                help="Used when uploading digital CSV/TXT signals without an explicit time column. Default is 360 Hz.",
+            )
+            analysis_duration_sec = st.sidebar.slider(
+                "Analysis Duration Window (s)",
+                min_value=3,
+                max_value=30,
+                value=10,
+                step=1,
+            )
+            start_offset_sec = 0.0
 
     else:
         # MIT-BIH Demo Mode
@@ -259,6 +360,8 @@ else:
             value=10,
             step=1,
         )
+
+
 
 st.sidebar.divider()
 st.sidebar.info(
@@ -788,7 +891,25 @@ temp_eval_patient = PatientRecord(
     existing_conditions="Hypertension",
     current_medications="Metoprolol",
 )
-med_safety_eval = check_medication_safety(["Metoprolol", "Amiodarone"], patient=temp_eval_patient)
+# Override with the real registered patient if available
+_reg_pat = st.session_state.get("registered_patient_data")
+if _reg_pat:
+    temp_eval_patient = PatientRecord(
+        patient_id=_reg_pat.get("patient_id", "PAT-ACTIVE-01"),
+        hospital_mrn=_reg_pat.get("hospital_mrn", "MRN-ACTIVE"),
+        name=_reg_pat.get("name", "Unknown"),
+        age=_reg_pat.get("age", 0),
+        sex=_reg_pat.get("sex", ""),
+        blood_group=_reg_pat.get("blood_group", ""),
+        known_allergies=_reg_pat.get("known_allergies", "None"),
+        existing_conditions=_reg_pat.get("existing_conditions", "None"),
+        current_medications=_reg_pat.get("current_medications", "None"),
+        previous_cardiac_history=_reg_pat.get("previous_cardiac_history", "None"),
+    )
+
+_curr_meds_list = [m.strip() for m in ((_reg_pat or {}).get("current_medications") or "").split(",") if m.strip()] or ["Metoprolol", "Amiodarone"]
+med_safety_eval = check_medication_safety(_curr_meds_list, patient=temp_eval_patient)
+
 
 report_data = generate_structured_report(
     input_info=input_info,
@@ -800,7 +921,23 @@ report_data = generate_structured_report(
     medication_safety=med_safety_eval.to_dict(),
 )
 
-# Auto-persist ECG record and inference result
+# Inject registered patient details into report_data so PDF and UI both show real patient
+if _reg_pat:
+    report_data["patient_info"].update({
+        "patient_name":         _reg_pat.get("name", ""),
+        "patient_age":          _reg_pat.get("age", ""),
+        "patient_sex":          _reg_pat.get("sex", ""),
+        "hospital_mrn":         _reg_pat.get("hospital_mrn", ""),
+        "blood_group":          _reg_pat.get("blood_group", ""),
+        "known_allergies":      _reg_pat.get("known_allergies", "None"),
+        "existing_conditions":  _reg_pat.get("existing_conditions", "None"),
+        "current_medications":  _reg_pat.get("current_medications", "None"),
+        "previous_cardiac_history": _reg_pat.get("previous_cardiac_history", "None"),
+        "smoking_status":       _reg_pat.get("smoking_status", ""),
+        "contact":              _reg_pat.get("contact", ""),
+    })
+
+
 if ai_results and "predicted_class" in ai_results:
     analysis_id = f"ANL-{rec_id[4:]}"
     try:
@@ -844,6 +981,45 @@ pdf_bytes = generate_pdf_report(
 )
 
 
+
+# ---------------------------------------------------------
+# PATIENT IDENTITY CARD (shown when a patient is registered)
+# ---------------------------------------------------------
+_disp_pat = st.session_state.get("registered_patient_data") or report_data.get("patient_info", {})
+_pat_name = _disp_pat.get("name") or _disp_pat.get("patient_name")
+if _pat_name:
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+                    border: 1.5px solid #0ea5e9; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <span style="font-size:1.1rem; font-weight:700; color:#0369a1;">
+                        👤 {_disp_pat.get('name') or _disp_pat.get('patient_name')}
+                    </span>
+                    &nbsp;&nbsp;
+                    <code style="background:#bae6fd; padding:2px 8px; border-radius:4px; color:#075985; font-size:0.85rem;">
+                        MRN: {_disp_pat.get('hospital_mrn') or '—'}
+                    </code>
+                </div>
+                <div style="color:#0369a1; font-size:0.88rem;">
+                    <b>Age/Sex:</b> {_disp_pat.get('age') or _disp_pat.get('patient_age') or '—'} /
+                    {_disp_pat.get('sex') or _disp_pat.get('patient_sex') or '—'}
+                    &nbsp;|&nbsp;
+                    <b>Blood Group:</b> {_disp_pat.get('blood_group') or '—'}
+                    &nbsp;|&nbsp;
+                    <b>Allergies:</b> {_disp_pat.get('known_allergies') or 'None'}
+                </div>
+            </div>
+            <div style="margin-top:6px; color:#075985; font-size:0.84rem;">
+                <b>Conditions:</b> {_disp_pat.get('existing_conditions') or 'None documented'}
+                &nbsp;|&nbsp;
+                <b>Current Medications:</b> {_disp_pat.get('current_medications') or 'None recorded'}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ---------------------------------------------------------
 # TOP OVERVIEW METRIC CARDS

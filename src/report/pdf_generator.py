@@ -177,14 +177,32 @@ def generate_pdf_report(
         [
             Paragraph("<b>Patient Name:</b>", cell_bold),
             Paragraph(str(p_info.get("patient_name") or "Not Specified"), cell_normal),
-            Paragraph("<b>File Name:</b>", cell_bold),
-            Paragraph(str(i_info.get("filename") or "Uploaded ECG"), cell_normal),
+            Paragraph("<b>Hospital MRN:</b>", cell_bold),
+            Paragraph(str(p_info.get("hospital_mrn") or "Not Assigned"), cell_normal),
         ],
         [
             Paragraph("<b>Age / Sex:</b>", cell_bold),
-            Paragraph(f"{p_info.get('patient_age') or 'N/A'} / {p_info.get('patient_sex') or 'N/A'}", cell_normal),
-            Paragraph("<b>Input Modality:</b>", cell_bold),
-            Paragraph(str(i_info.get("modality") or "Digital Signal"), cell_normal),
+            Paragraph(f"{p_info.get('patient_age') or 'N/A'} yrs / {p_info.get('patient_sex') or 'N/A'}", cell_normal),
+            Paragraph("<b>Blood Group:</b>", cell_bold),
+            Paragraph(str(p_info.get("blood_group") or "Unknown"), cell_normal),
+        ],
+        [
+            Paragraph("<b>Known Allergies:</b>", cell_bold),
+            Paragraph(str(p_info.get("known_allergies") or "None documented"), cell_normal),
+            Paragraph("<b>Smoking Status:</b>", cell_bold),
+            Paragraph(str(p_info.get("smoking_status") or "Not recorded"), cell_normal),
+        ],
+        [
+            Paragraph("<b>Existing Conditions:</b>", cell_bold),
+            Paragraph(str(p_info.get("existing_conditions") or "None documented"), cell_normal),
+            Paragraph("<b>Contact No.:</b>", cell_bold),
+            Paragraph(str(p_info.get("contact") or "Not provided"), cell_normal),
+        ],
+        [
+            Paragraph("<b>Current Medications:</b>", cell_bold),
+            Paragraph(str(p_info.get("current_medications") or "None recorded"), cell_normal),
+            Paragraph("<b>Cardiac History:</b>", cell_bold),
+            Paragraph(str(p_info.get("previous_cardiac_history") or "None documented"), cell_normal),
         ],
         [
             Paragraph("<b>Recording Date:</b>", cell_bold),
@@ -193,7 +211,8 @@ def generate_pdf_report(
             Paragraph(f"{i_info.get('sampling_rate', 360)} Hz ({i_info.get('lead', 'Lead II')})", cell_normal),
         ],
     ]
-    t_meta = Table(meta_table_data, colWidths=[100, 160, 120, 160])
+    t_meta = Table(meta_table_data, colWidths=[110, 160, 110, 160])
+
     t_meta.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8f9fa")),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dee2e6")),
