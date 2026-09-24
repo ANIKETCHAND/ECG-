@@ -320,7 +320,7 @@ def run_ecg_inference(
             feats_ordered = feats_df
 
         # Scale features
-        x_scaled = scaler.transform(feats_ordered)
+        x_scaled = scaler.transform(feats_ordered.values if hasattr(feats_ordered, "values") else feats_ordered)
 
         # Beat-level predictions and probabilities
         beat_preds = clf.predict(x_scaled)

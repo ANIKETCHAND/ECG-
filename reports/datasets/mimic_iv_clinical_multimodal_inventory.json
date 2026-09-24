@@ -1,0 +1,32 @@
+{
+  "dataset_name": "MIMIC-IV Clinical Database",
+  "physionet_url": "https://physionet.org/content/mimiciv/2.2/",
+  "license": "PhysioNet Credentialed Health Data License 1.5.0",
+  "ecg_waveform_available": false,
+  "number_of_leads": 0,
+  "lead_names": [],
+  "sampling_rate_hz": [],
+  "patient_id_available": true,
+  "patient_count_estimate": 299712,
+  "ecg_timestamp_available": false,
+  "age_available": true,
+  "sex_available": true,
+  "blood_group_available": false,
+  "symptoms_available": true,
+  "diagnoses_available": true,
+  "medications_available": true,
+  "allergies_available": false,
+  "vital_signs_available": true,
+  "laboratory_values_available": true,
+  "previous_ecg_available": false,
+  "machine_interpretation_available": false,
+  "clinician_report_available": true,
+  "multimodal_suitability": "EHR contextual backbone paired with MIMIC-IV-ECG.",
+  "dataset_id": "mimic_iv_clinical",
+  "local_presence": {
+    "has_raw_files": false,
+    "raw_file_count": 0,
+    "has_processed_features": false,
+    "local_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\data\\datasets\\mimic_iv_clinical\\raw"
+  }
+}

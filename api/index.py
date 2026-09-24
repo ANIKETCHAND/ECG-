@@ -11,7 +11,7 @@ Endpoints for Vercel deployment:
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 # Ensure project root and src are in sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,10 +26,17 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from fastapi.responses import Response
+
 from ecg_core.models import ECGRecording
 from inference.inference_engine import ACTIVE_MODEL_ID, run_ecg_inference
 from measurements.measurement_engine import compute_ecg_measurements
 from safety.signal_quality_gate import QualityCategory, evaluate_signal_quality_gate
+from clinical.recommendation_engine import GLOBAL_CDS_ENGINE
+from medications.interaction_checker import check_medication_safety
+from report.report_generator import generate_structured_report
+from report.pdf_generator import generate_doctor_report
+from services import REPORT_PERSISTENCE_SERVICE
 
 app = FastAPI(
     title="AI-ECG Clinical Decision Support API",
@@ -51,8 +58,21 @@ class AnalyzeRequest(BaseModel):
     signal: List[float]
     fs: float = 360.0
     lead: str = "II"
+    patient_id: Optional[str] = "PAT-ANON"
     patient_name: Optional[str] = "Anonymous"
     patient_mrn: Optional[str] = None
+    age: Optional[int] = None
+    patient_age: Optional[int] = None
+    sex: Optional[str] = None
+    patient_sex: Optional[str] = None
+    blood_group: Optional[str] = None
+    symptoms: Optional[Union[str, List[str]]] = None
+    existing_conditions: Optional[Union[str, List[str]]] = None
+    cardiac_history: Optional[Union[str, List[str]]] = None
+    current_medications: Optional[Union[str, List[str]]] = None
+    vital_signs: Optional[Dict[str, Any]] = None
+    laboratory_results: Optional[Dict[str, Any]] = None
+    include_full_report: bool = False
 
 
 class ReviewRequest(BaseModel):
@@ -63,6 +83,9 @@ class ReviewRequest(BaseModel):
     agreement_status: str  # CONFIRMED, MODIFIED, REJECTED
     clinician_interpretation: str
     clinical_notes: Optional[str] = ""
+
+AnalyzeRequest.model_rebuild()
+ReviewRequest.model_rebuild()
 
 
 router = APIRouter()
@@ -106,6 +129,7 @@ def get_sample_data(sample_type: str = "normal"):
     return {
         "sample_type": sample_type,
         "fs": fs,
+        "sampling_rate": fs,
         "duration_sec": duration_sec,
         "lead": "II",
         "signal": sig.tolist(),
@@ -157,7 +181,48 @@ def analyze_ecg(req: AnalyzeRequest):
         leads_available=[req.lead],
     )
 
-    return {
+    # Normalize clinical fields (handling both string and list inputs, plus aliases)
+    eff_age = req.age if req.age is not None else req.patient_age
+    eff_sex = req.sex if req.sex is not None else req.patient_sex
+
+    if isinstance(req.current_medications, list):
+        med_list = [str(m).strip() for m in req.current_medications if str(m).strip()]
+        curr_meds_str = ", ".join(med_list)
+    else:
+        med_list = [m.strip() for m in (req.current_medications or "").split(",") if m.strip()]
+        curr_meds_str = req.current_medications
+
+    if isinstance(req.existing_conditions, list):
+        existing_cond_str = ", ".join(str(c).strip() for c in req.existing_conditions if str(c).strip())
+    else:
+        existing_cond_str = req.existing_conditions
+
+    if isinstance(req.symptoms, list):
+        symptoms_str = ", ".join(str(s).strip() for s in req.symptoms if str(s).strip())
+    else:
+        symptoms_str = req.symptoms
+
+    if isinstance(req.cardiac_history, list):
+        cardiac_hist_str = ", ".join(str(h).strip() for h in req.cardiac_history if str(h).strip())
+    else:
+        cardiac_hist_str = req.cardiac_history
+
+    # 4. Multimodal Medication Safety Check
+    med_safety = check_medication_safety(
+        medication_names=med_list,
+        ecg_finding=analysis_res.prediction,
+        ecg_measurements={"heart_rate": analysis_res.heart_rate_bpm, "qtc_ms": measurements.qtc_bazett_ms},
+        vital_signs=req.vital_signs,
+        laboratory_results=req.laboratory_results,
+    )
+
+    # 5. Clinical Decision Support Evaluation
+    cds_rec = GLOBAL_CDS_ENGINE.evaluate_finding(
+        ecg_finding=analysis_res.prediction,
+        heart_rate=analysis_res.heart_rate_bpm,
+    )
+
+    resp_data = {
         "status": "SUCCESS",
         "analysis_id": analysis_res.analysis_id,
         "record_id": rec.record_id,
@@ -185,18 +250,186 @@ def analyze_ecg(req: AnalyzeRequest):
             "limitations": analysis_res.limitations,
         },
         "detected_r_peaks": analysis_res.detected_r_peaks,
+        "medication_safety": med_safety.to_dict(),
+        "clinical_decision_support": {
+            "primary_finding": cds_rec.finding,
+            "urgency": cds_rec.urgency,
+            "summary": cds_rec.clinician_action_required,
+            "guidelines": cds_rec.relevant_guidelines,
+            "considerations": cds_rec.clinical_considerations,
+        },
         "disclaimer": (
             "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review. "
             "Not an autonomous medical diagnostic device (CDSCO MDR 2017 & IEC 62304)."
         ),
+        "criteria_metadata": {
+            "model_version": analysis_res.model_id,
+            "ecg_model_inputs": [
+                "ECG waveform",
+                "R-peak features",
+                "Beat segmentation",
+                "RR intervals",
+                "QRS characteristics",
+                "28 extracted ECG features",
+                "Signal quality gatekeeper",
+            ],
+            "waveform_processing": [
+                "Baseline correction",
+                "Bandpass filtering",
+                "Normalization",
+            ],
+            "cardiac_measurements_criteria": [
+                "Detected R-peaks",
+                "Instantaneous R-R intervals",
+                "QRS onset/offset fiducials",
+                "Bazett formula",
+            ],
+            "patient_context_considered": [
+                field_name for field_name, val in [
+                    ("Age", eff_age),
+                    ("Sex", eff_sex),
+                    ("Blood pressure", (req.vital_signs or {}).get("systolic_bp") or (req.vital_signs or {}).get("blood_pressure")),
+                    ("Heart rate", (req.vital_signs or {}).get("heart_rate")),
+                    ("Laboratory results", req.laboratory_results),
+                    ("Existing conditions", existing_cond_str),
+                    ("Presenting symptoms", symptoms_str),
+                    ("Cardiac history", cardiac_hist_str),
+                    ("Current medications", curr_meds_str),
+                ] if val and str(val).lower() not in ("none", "not provided")
+            ],
+            "input_sources": {
+                "ecg": [
+                    "ECG waveform",
+                    "R-peak features",
+                    "Beat segmentation",
+                    "RR intervals",
+                    "QRS characteristics",
+                    "28 extracted ECG features",
+                ],
+                "patient_context": [
+                    field_name for field_name, val in [
+                        ("Age", eff_age),
+                        ("Sex", eff_sex),
+                        ("Blood pressure", (req.vital_signs or {}).get("systolic_bp") or (req.vital_signs or {}).get("blood_pressure")),
+                        ("Heart rate", (req.vital_signs or {}).get("heart_rate")),
+                        ("Laboratory results", req.laboratory_results),
+                        ("Existing conditions", existing_cond_str),
+                        ("Presenting symptoms", symptoms_str),
+                        ("Cardiac history", cardiac_hist_str),
+                        ("Current medications", curr_meds_str),
+                    ] if val and str(val).lower() not in ("none", "not provided")
+                ],
+            },
+        },
     }
+
+    report_dict = generate_structured_report(
+        input_info={"file_name": rec.record_id, "sampling_rate": req.fs, "duration_sec": rec.duration, "lead": req.lead},
+        ai_results={"predicted_class": analysis_res.prediction, "probabilities": analysis_res.model_probabilities, "heart_rate_bpm": analysis_res.heart_rate_bpm, "signal_quality": quality_res.category.value},
+        extracted_measurements={"qrs_duration_ms": measurements.qrs_duration_ms, "qt_interval_ms": measurements.qt_interval_ms, "qtc_interval_ms": measurements.qtc_bazett_ms},
+        cds_report=resp_data["clinical_decision_support"],
+        medication_safety=resp_data["medication_safety"],
+        patient_profile={
+            "patient_id": req.patient_id, "name": req.patient_name, "mrn": req.patient_mrn,
+            "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
+            "symptoms": symptoms_str, "conditions": existing_cond_str,
+            "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+        },
+        vital_signs=req.vital_signs,
+        laboratory_results=req.laboratory_results,
+    )
+
+    # Persist immutable report snapshot to Supabase / Local storage
+    persist_res = REPORT_PERSISTENCE_SERVICE.save_report_snapshot(
+        report_data=report_dict,
+        patient_id=req.patient_id,
+        ecg_id=rec.record_id,
+        analysis_id=analysis_res.analysis_id,
+        status="PENDING_REVIEW",
+    )
+    resp_data["report_id"] = persist_res.get("report_id")
+    resp_data["report_number"] = persist_res.get("report_number")
+    resp_data["persistence_status"] = persist_res.get("status")
+
+    if req.include_full_report:
+        resp_data["full_report"] = report_dict
+
+    return resp_data
+
+
+@router.post("/report/pdf")
+def generate_pdf_endpoint(req: AnalyzeRequest):
+    """Generate and return publication-grade PDF report."""
+    analysis = analyze_ecg(req)
+    if analysis.get("status") == "UNUSABLE_SIGNAL":
+        raise HTTPException(status_code=422, detail="Signal unusable. PDF report blocked for patient safety.")
+
+    sig_arr = np.array(req.signal, dtype=float)
+    r_peaks = np.array(analysis.get("detected_r_peaks", []))
+
+    eff_age = req.age if req.age is not None else req.patient_age
+    eff_sex = req.sex if req.sex is not None else req.patient_sex
+    curr_meds_str = ", ".join(str(m).strip() for m in req.current_medications if str(m).strip()) if isinstance(req.current_medications, list) else req.current_medications
+    existing_cond_str = ", ".join(str(c).strip() for c in req.existing_conditions if str(c).strip()) if isinstance(req.existing_conditions, list) else req.existing_conditions
+    symptoms_str = ", ".join(str(s).strip() for s in req.symptoms if str(s).strip()) if isinstance(req.symptoms, list) else req.symptoms
+    cardiac_hist_str = ", ".join(str(h).strip() for h in req.cardiac_history if str(h).strip()) if isinstance(req.cardiac_history, list) else req.cardiac_history
+
+    report_dict = generate_structured_report(
+        input_info={"file_name": "ecg_recording", "sampling_rate": req.fs, "duration_sec": len(sig_arr)/req.fs, "lead": req.lead},
+        ai_results={"predicted_class": analysis["ai_classification"]["prediction"], "probabilities": analysis["ai_classification"]["probabilities"], "heart_rate_bpm": analysis["cardiac_parameters"]["heart_rate_bpm"], "signal_quality": analysis["signal_quality"]["category"]},
+        extracted_measurements={"qrs_duration_ms": analysis["cardiac_parameters"]["qrs_duration_ms"], "qt_interval_ms": analysis["cardiac_parameters"]["qt_interval_ms"], "qtc_interval_ms": analysis["cardiac_parameters"]["qtc_bazett_ms"]},
+        cds_report=analysis.get("clinical_decision_support"),
+        medication_safety=analysis.get("medication_safety"),
+        patient_profile={
+            "patient_id": req.patient_id, "name": req.patient_name, "mrn": req.patient_mrn,
+            "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
+            "symptoms": symptoms_str, "conditions": existing_cond_str,
+            "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+        },
+        vital_signs=req.vital_signs,
+        laboratory_results=req.laboratory_results,
+    )
+    pdf_bytes = generate_doctor_report(report_dict, waveform=sig_arr, fs=req.fs, r_peaks=r_peaks)
+
+    # Persist PDF to storage
+    try:
+        REPORT_PERSISTENCE_SERVICE.save_report_snapshot(
+            report_data=report_dict,
+            pdf_bytes=pdf_bytes,
+            patient_id=req.patient_id,
+            ecg_id=f"ECG-{analysis.get('analysis_id', 'REC')}",
+            analysis_id=analysis.get("analysis_id"),
+            status="PENDING_REVIEW",
+        )
+    except Exception:
+        pass
+
+    rep_num = analysis.get("report_number") or "ecg_report"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={rep_num}.pdf"}
+    )
 
 
 @router.post("/review")
 def record_clinician_review(rev: ReviewRequest):
+    """Cryptographically seal clinical review and persist to database."""
+    seal_res = REPORT_PERSISTENCE_SERVICE.sign_and_seal_report(
+        report_id=rev.analysis_id,
+        clinician_user_id=f"USER-{hash(rev.clinician_name) & 0xFFFF:04X}",
+        clinician_name=rev.clinician_name,
+        clinician_role=rev.clinician_role,
+        registration_number=rev.registration_number,
+        agreement_status=rev.agreement_status,
+        clinician_interpretation=rev.clinician_interpretation,
+        clinical_notes=rev.clinical_notes or "",
+    )
     return {
-        "review_id": f"REV-VERCEL-{hash(rev.analysis_id) & 0xFFFFFF:06X}",
+        "review_id": f"REV-{hash(rev.analysis_id) & 0xFFFFFF:06X}",
         "analysis_id": rev.analysis_id,
+        "report_id": seal_res.get("report_id", rev.analysis_id),
+        "report_number": seal_res.get("report_number"),
         "clinician_name": rev.clinician_name,
         "clinician_role": rev.clinician_role,
         "registration_number": rev.registration_number,
@@ -204,8 +437,51 @@ def record_clinician_review(rev: ReviewRequest):
         "clinician_interpretation": rev.clinician_interpretation,
         "clinical_notes": rev.clinical_notes,
         "status": "SEALED",
-        "message": "Clinician review recorded and cryptographically sealed.",
+        "message": "Clinician review recorded and cryptographically sealed in persistent storage.",
     }
+
+
+@router.get("/reports")
+def list_reports_endpoint(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """List historical reports with search and status filters (Phase 28 & 29)."""
+    reports = REPORT_PERSISTENCE_SERVICE.list_reports(
+        search_query=search,
+        status_filter=status,
+        limit=limit,
+        offset=offset,
+    )
+    return {"status": "SUCCESS", "count": len(reports), "reports": reports}
+
+
+@router.get("/reports/{report_identifier}")
+def get_report_endpoint(report_identifier: str):
+    """Retrieve full immutable report snapshot by ID or report number without re-running ML (Phase 30 & 31)."""
+    rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Report not found in persistent registry.")
+    return {"status": "SUCCESS", "report": rep}
+
+
+@router.get("/reports/{report_identifier}/pdf")
+def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor"):
+    """Download PDF for historical report (Phase 32)."""
+    pdf_bytes = REPORT_PERSISTENCE_SERVICE.get_report_pdf(report_identifier, report_type=type)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Report or PDF not found.")
+
+    rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
+    rep_num = (rep.get("report_number") if rep else None) or "ecg_report"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={rep_num}_{type}.pdf"}
+    )
+
 
 
 # Register routes both with and without /api prefix to guarantee route matching across Vercel environments
@@ -213,7 +489,17 @@ app.include_router(router, prefix="/api")
 app.include_router(router)
 
 
+from fastapi.responses import FileResponse
+
+PUBLIC_DIR = BASE_DIR / "public"
+
 @app.get("/")
+def serve_index():
+    index_file = PUBLIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return health_check()
+
 @app.get("/api")
 def root_ping():
     return health_check()

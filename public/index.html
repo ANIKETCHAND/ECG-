@@ -105,6 +105,10 @@
             <i class="fa-solid fa-ban text-rose-400"></i>
             <span>Artifact / Unusable (Safety Gate)</span>
           </button>
+          <button onclick="openHistoryModal()" class="sample-btn px-3 py-1.5 rounded-lg bg-sky-950/40 hover:bg-sky-900/50 border border-sky-500/40 text-xs text-sky-300 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Report History</span>
+          </button>
         </div>
       </div>
 
@@ -154,6 +158,14 @@
         </div>
       </div>
       <div id="plotlyChart" class="w-full h-72 rounded-lg ecg-grid"></div>
+      <div id="waveformCriteriaFooter" class="mt-2 pt-2 border-t border-clinical-border/40 text-[11px] text-gray-400 flex flex-wrap items-center gap-1.5 leading-relaxed">
+        <span class="font-semibold text-gray-300">Criteria used:</span>
+        <span>Raw ECG signal <span class="text-gray-500">•</span> Sampling rate (360 Hz) <span class="text-gray-500">•</span> Lead II <span class="text-gray-500">•</span> Signal duration</span>
+        <div class="w-full text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
+          <span class="font-semibold text-gray-400">Processing:</span>
+          <span>Baseline correction (0.5 Hz) <span class="text-gray-600">•</span> Bandpass filtering (0.5-45 Hz) <span class="text-gray-600">•</span> Amplitude normalization</span>
+        </div>
+      </div>
     </section>
 
     <!-- Metrics & AI Classification Cards -->
@@ -194,6 +206,10 @@
           <div id="metricAiProbBar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
         </div>
         <p id="metricAiProb" class="text-[10px] text-gray-400 mt-1 text-right font-mono">Confidence: --%</p>
+      </div>
+
+      <div id="resultsCriteriaFooter" class="col-span-1 md:col-span-4 bg-clinical-card/40 border border-clinical-border/60 rounded-lg p-2.5 text-[11px] text-gray-400 flex flex-col gap-1">
+        <!-- Injected dynamically -->
       </div>
     </section>
 
@@ -237,6 +253,11 @@
           <span>Sign & Cryptographically Seal Report</span>
         </button>
       </div>
+
+      <div id="reviewCriteriaFooter" class="mt-3 pt-3 border-t border-clinical-border/40 text-[11px] text-gray-400">
+        <span class="font-semibold text-gray-300">Criteria verified:</span>
+        <span>Attending clinician review <span class="text-gray-500">•</span> Physician registration ID <span class="text-gray-500">•</span> Agreement status <span class="text-gray-500">•</span> Tamper-evident SHA-256 seal</span>
+      </div>
     </section>
   </main>
 
@@ -246,6 +267,7 @@
   </footer>
 
   <script>
+    const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
     let currentSignal = [];
     let currentFs = 360.0;
     let currentAnalysisId = null;
@@ -272,7 +294,7 @@
       }
 
       try {
-        const res = await fetch(`/api/sample?sample_type=${type}`);
+        const res = await fetch(`${API_BASE}/api/sample?sample_type=${type}`);
         const data = await res.json();
         currentSignal = data.signal;
         currentFs = data.fs;
@@ -377,7 +399,7 @@
           lead: document.getElementById('leadSelect').value || 'II'
         };
 
-        const res = await fetch('/api/analyze', {
+        const res = await fetch(`${API_BASE}/api/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -437,6 +459,35 @@
         `;
         gateAlert.classList.remove('hidden');
 
+        // Dynamically inject criteria footers from backend metadata
+        if (data.criteria_metadata) {
+          const cm = data.criteria_metadata;
+          const aiInputs = cm.ecg_model_inputs || ["ECG waveform", "R-peaks", "RR intervals", "QRS features", "28 extracted features"];
+          const measInputs = cm.cardiac_measurements_criteria || ["Detected R-peaks", "Instantaneous R-R intervals", "QRS fiducials", "Bazett formula"];
+          
+          document.getElementById('resultsCriteriaFooter').innerHTML = `
+            <div class="flex flex-wrap items-center gap-1.5 leading-relaxed">
+              <span class="font-semibold text-gray-300">Model inputs (${cm.model_version || 'BeatArrhythmia-RF-v1'}):</span>
+              <span>${aiInputs.join(' <span class="text-gray-500">•</span> ')}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 border-t border-clinical-border/30 pt-1 mt-0.5">
+              <span class="font-semibold text-gray-400">Measurement criteria:</span>
+              <span>${measInputs.join(' <span class="text-gray-600">•</span> ')}</span>
+            </div>
+          `;
+          
+          if (cm.waveform_processing) {
+            document.getElementById('waveformCriteriaFooter').innerHTML = `
+              <span class="font-semibold text-gray-300">Criteria used:</span>
+              <span>Raw ECG signal <span class="text-gray-500">•</span> Sampling rate (${payload.fs} Hz) <span class="text-gray-500">•</span> Lead ${payload.lead} <span class="text-gray-500">•</span> Signal duration</span>
+              <div class="w-full text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
+                <span class="font-semibold text-gray-400">Processing:</span>
+                <span>${cm.waveform_processing.join(' <span class="text-gray-600">•</span> ')}</span>
+              </div>
+            `;
+          }
+        }
+
         resultsSection.classList.remove('hidden');
         reviewSection.classList.remove('hidden');
 
@@ -459,7 +510,7 @@
       const notes = document.getElementById('clinicianNotes').value;
 
       try {
-        const res = await fetch('/api/review', {
+        const res = await fetch(`${API_BASE}/api/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -484,6 +535,83 @@
         alert('Review submission failed: ' + err.message);
       }
     }
+
+    async function openHistoryModal() {
+      const modal = document.getElementById('historyModal');
+      const listDiv = document.getElementById('historyList');
+      modal.classList.remove('hidden');
+      listDiv.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner animate-spin text-xl mr-2"></i>Loading persistent archive…</div>';
+      
+      try {
+        const res = await fetch(`${API_BASE}/api/reports`);
+        const data = await res.json();
+        const reports = data.reports || [];
+        
+        if (reports.length === 0) {
+          listDiv.innerHTML = '<div class="text-center py-8 text-gray-400">No archived reports found. Run an analysis to persist reports.</div>';
+          return;
+        }
+        
+        listDiv.innerHTML = reports.map(r => {
+          const isSigned = r.status === 'SIGNED' || r.status === 'SEALED';
+          const badge = isSigned 
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ SIGNED</span>'
+            : '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ DRAFT</span>';
+          const dateStr = (r.generated_at || '').substring(0, 16).replace('T', ' ');
+          
+          return `
+            <div class="bg-clinical-card border border-clinical-border rounded-lg p-3.5 flex items-center justify-between gap-4">
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-mono text-xs font-bold text-sky-400">${r.report_number || r.report_id}</span>
+                  ${badge}
+                  <span class="text-[10px] text-gray-400">${dateStr}</span>
+                </div>
+                <div class="text-xs text-gray-200">
+                  <strong>${r.patient_name || 'Anonymous'}</strong> 
+                  <span class="text-gray-400 text-[11px]">(MRN: ${r.hospital_mrn || '—'})</span> · 
+                  <span class="text-gray-300">Finding: <strong>${r.primary_prediction || 'Normal'}</strong></span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <a href="${API_BASE}/api/reports/${r.report_id}/pdf" target="_blank" class="px-2.5 py-1 rounded bg-clinical-panel hover:bg-clinical-border border border-clinical-border text-xs text-sky-400 flex items-center space-x-1 transition">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  <span>PDF</span>
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        listDiv.innerHTML = `<div class="text-center py-8 text-rose-400">Failed to load reports: ${e.message}</div>`;
+      }
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.add('hidden');
+    }
   </script>
+
+  <!-- Report History Modal -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-clinical-panel border border-clinical-border rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-clinical-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Permanent ECG Report Archive</h3>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="historyList" class="p-4 overflow-y-auto space-y-3 flex-1">
+        <!-- Injected via openHistoryModal -->
+      </div>
+      <div class="p-3 border-t border-clinical-border bg-clinical-card/40 flex justify-between items-center text-xs text-gray-400">
+        <span>Reports loaded from Supabase / Local SQLite Dual Store</span>
+        <button onclick="closeHistoryModal()" class="px-3 py-1 bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 rounded">Close</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

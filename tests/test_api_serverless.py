@@ -72,3 +72,69 @@ def test_api_clinician_review():
     assert data["status"] == "SEALED"
     assert data["clinician_name"] == "Dr. Sarah Rao"
     assert "review_id" in data
+
+
+def test_api_analyze_with_multimodal_patient_context():
+    sample_resp = client.get("/api/sample?sample_type=normal")
+    signal = sample_resp.json()["signal"]
+
+    payload = {
+        "signal": signal,
+        "fs": 360.0,
+        "lead": "II",
+        "patient_name": "Arjun Mehta",
+        "patient_mrn": "MRN-10928",
+        "age": 62,
+        "sex": "M",
+        "blood_group": "O+",
+        "existing_conditions": "Hypertension, Atrial Fibrillation",
+        "current_medications": "Metoprolol, Amiodarone",
+        "vital_signs": {"systolic_bp": 118, "diastolic_bp": 76, "heart_rate": 42},
+        "laboratory_results": {"potassium": 4.1, "creatinine": 1.1},
+        "include_full_report": True,
+    }
+    response = client.post("/api/analyze", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUCCESS"
+    assert "medication_safety" in data
+    assert "clinical_decision_support" in data
+    assert "full_report" in data
+    # Verify Blood Group and Vitals are included in full report
+    assert data["full_report"]["patient_info"]["blood_group"] == "O+"
+    assert data["full_report"]["vital_signs"]["status"] == "RECORDED"
+
+    # Criteria metadata verification (Rule 4 & 5)
+    assert "criteria_metadata" in data
+    cm = data["criteria_metadata"]
+    assert "ecg_model_inputs" in cm
+    assert "patient_context_considered" in cm
+    # Blood group must NEVER be claimed as an ML model input
+    assert not any("blood" in item.lower() and "group" in item.lower() for item in cm["ecg_model_inputs"])
+    # Dynamic patient context considered should capture available fields
+    p_ctx = " ".join(cm["patient_context_considered"])
+    assert "Age" in p_ctx
+    assert "Sex" in p_ctx
+    assert "Blood pressure" in p_ctx
+
+
+def test_api_generate_pdf_endpoint():
+    sample_resp = client.get("/api/sample?sample_type=normal")
+    signal = sample_resp.json()["signal"]
+
+    payload = {
+        "signal": signal,
+        "fs": 360.0,
+        "lead": "II",
+        "patient_name": "Sunita Patil",
+        "age": 58,
+        "sex": "F",
+        "blood_group": "B+",
+    }
+    response = client.post("/api/report/pdf", json=payload)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert len(response.content) > 1000
+    # PDF magic header bytes
+    assert response.content[:4] == b"%PDF"
+

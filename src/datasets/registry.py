@@ -200,6 +200,42 @@ APPROVED_DATASETS: Dict[str, DatasetEntry] = {
         download_size_mb=250.0,
         notes="Standard ESC benchmark for transient myocardial ischemia monitoring.",
     ),
+
+    # Dataset Group D — Hospital-Level & Credentialed Benchmarks
+    "mimic_iv_ecg": DatasetEntry(
+        dataset_id="mimic_iv_ecg",
+        name="MIMIC-IV-ECG: Diagnostic Electrocardiogram Database",
+        description="Large-scale hospital database of ~800,000 diagnostic 12-lead ECGs matched to clinical records.",
+        source_url="https://physionet.org/content/mimic-iv-ecg/1.0/",
+        physionet_slug="mimic-iv-ecg",
+        version="1.0",
+        license_type="PhysioNet Credentialed Health Data License 1.5.0",
+        lead_count=12,
+        lead_names=["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"],
+        sampling_rates=[500.0],
+        total_records=800000,
+        task_suitability=["12lead_diagnosis", "quality_gate"],
+        status="MANUAL_ACCESS_REQUIRED",
+        download_size_mb=45000.0,
+        notes="Requires CITI 'Data or Specimens Only Research' certification and formal PhysioNet DUA approval.",
+    ),
+    "mimic_iv_clinical": DatasetEntry(
+        dataset_id="mimic_iv_clinical",
+        name="MIMIC-IV Clinical Database",
+        description="Comprehensive de-identified ICU and emergency clinical database (labs, medications, conditions).",
+        source_url="https://physionet.org/content/mimiciv/2.2/",
+        physionet_slug="mimiciv",
+        version="2.2",
+        license_type="PhysioNet Credentialed Health Data License 1.5.0",
+        lead_count=1,
+        lead_names=["CLINICAL_RECORD"],
+        sampling_rates=[0.0],
+        total_records=299712,
+        task_suitability=["clinical_decision_support", "medication_safety"],
+        status="MANUAL_ACCESS_REQUIRED",
+        download_size_mb=35000.0,
+        notes="Credentialed clinical database for correlating ECG electrophysiology with ICU outcomes and medications.",
+    ),
 }
 
 

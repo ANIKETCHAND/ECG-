@@ -1,0 +1,73 @@
+{
+  "1. ECG Only": {
+    "features_count": 28,
+    "weighted_f1": 0.9445,
+    "auroc": 0.9769,
+    "ece": 0.0446,
+    "clinical_contribution": "Baseline"
+  },
+  "2. ECG + Demographics": {
+    "features_count": 32,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "3. ECG + Symptoms": {
+    "features_count": 32,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "4. ECG + Vital Signs": {
+    "features_count": 34,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "5. ECG + Medical History": {
+    "features_count": 33,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "6. ECG + Labs": {
+    "features_count": 34,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "7. ECG + Medications": {
+    "features_count": 32,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "8. ECG + Blood Group (Empirical Test)": {
+    "features_count": 33,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  },
+  "9. ECG + All Permitted Clinical Features": {
+    "features_count": 57,
+    "weighted_f1": 0.9465,
+    "auroc": 0.9768,
+    "ece": 0.0321,
+    "delta_vs_ecg_only": 0.002,
+    "clinical_contribution": "+0.0020 F1"
+  }
+}

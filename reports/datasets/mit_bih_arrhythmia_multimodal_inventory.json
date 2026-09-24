@@ -1,0 +1,39 @@
+{
+  "dataset_name": "MIT-BIH Arrhythmia Database",
+  "physionet_url": "https://physionet.org/content/mitdb/1.0.0/",
+  "license": "Open PhysioNet (ODC-BY 1.0)",
+  "ecg_waveform_available": true,
+  "number_of_leads": 2,
+  "lead_names": [
+    "MLII",
+    "V1"
+  ],
+  "sampling_rate_hz": [
+    360.0
+  ],
+  "patient_id_available": true,
+  "patient_count_estimate": 47,
+  "ecg_timestamp_available": false,
+  "age_available": true,
+  "sex_available": true,
+  "blood_group_available": false,
+  "symptoms_available": false,
+  "diagnoses_available": true,
+  "diagnosis_type": "Beat-by-beat expert arrhythmia annotations (AAMI classes)",
+  "medications_available": false,
+  "medication_notes": "Occasional free-text annotations in header comments only",
+  "allergies_available": false,
+  "vital_signs_available": false,
+  "laboratory_values_available": false,
+  "previous_ecg_available": false,
+  "machine_interpretation_available": false,
+  "clinician_report_available": false,
+  "multimodal_suitability": "Beat-level arrhythmia baseline only. Unsuitable for full multimodal EHR modeling.",
+  "dataset_id": "mit_bih_arrhythmia",
+  "local_presence": {
+    "has_raw_files": false,
+    "raw_file_count": 0,
+    "has_processed_features": true,
+    "local_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\data\\datasets\\mit_bih_arrhythmia\\raw"
+  }
+}

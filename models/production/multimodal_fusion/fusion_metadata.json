@@ -1,0 +1,10 @@
+{
+  "fusion_type": "calibrated_logistic",
+  "classes": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "architecture": "Decoupled ECG Model + Clinical Context Model + Calibrated Fusion Layer",
+  "regulatory_note": "Rule 2 Compliant \u2014 Sub-models are independently evaluated."
+}

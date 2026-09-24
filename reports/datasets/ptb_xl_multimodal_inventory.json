@@ -1,0 +1,51 @@
+{
+  "dataset_name": "PTB-XL Diagnostic Electrocardiography Database",
+  "physionet_url": "https://physionet.org/content/ptb-xl/1.0.3/",
+  "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "ecg_waveform_available": true,
+  "number_of_leads": 12,
+  "lead_names": [
+    "I",
+    "II",
+    "III",
+    "aVR",
+    "aVL",
+    "aVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6"
+  ],
+  "sampling_rate_hz": [
+    100.0,
+    500.0
+  ],
+  "patient_id_available": true,
+  "patient_count_estimate": 18885,
+  "ecg_timestamp_available": true,
+  "age_available": true,
+  "sex_available": true,
+  "blood_group_available": false,
+  "symptoms_available": false,
+  "diagnoses_available": true,
+  "diagnosis_type": "71 SCP-ECG diagnostic statements, 5 superclasses (NORM, MI, STTC, CD, HYP)",
+  "medications_available": false,
+  "allergies_available": false,
+  "vital_signs_available": false,
+  "laboratory_values_available": false,
+  "previous_ecg_available": true,
+  "previous_ecg_notes": "Multiple longitudinal records available for a subset of patients via patient_id",
+  "machine_interpretation_available": true,
+  "machine_interpretation_notes": "GE Marquette 12SL automated statements and measurements in companion dataset",
+  "clinician_report_available": true,
+  "multimodal_suitability": "Excellent for 12-lead diagnostic classification and demographic conditioning (Age, Sex, Weight, Height).",
+  "dataset_id": "ptb_xl",
+  "local_presence": {
+    "has_raw_files": false,
+    "raw_file_count": 0,
+    "has_processed_features": false,
+    "local_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\data\\datasets\\ptb_xl\\raw"
+  }
+}

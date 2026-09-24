@@ -58,6 +58,8 @@ class ECG1DCNNClassifier:
         """
         if X.ndim == 3:
             X = X.reshape(X.shape[0], -1)
+        if len(X) < 100:
+            self.model.early_stopping = False
         X_scaled = self.scaler.fit_transform(X)
         self.model.fit(X_scaled, y)
         self.is_fitted = True

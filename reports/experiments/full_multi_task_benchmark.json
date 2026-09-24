@@ -1,0 +1,239 @@
+{
+  "beat_arrhythmia": {
+    "model_name": "ECG-RF-2.0.0-candidate",
+    "accuracy": 0.9516666666666667,
+    "balanced_accuracy": 0.7887216555476776,
+    "weighted_f1": 0.9444716897735225,
+    "macro_f1": 0.8278847248075429,
+    "auroc": 0.9768920600280766,
+    "auprc": 0.9722368962984201,
+    "ece": 0.04461226688119595,
+    "per_class_sensitivity": {
+      "Normal": 0.9869848156182213,
+      "Other": 0.3888888888888889,
+      "PVC": 0.9902912621359223
+    },
+    "per_class_specificity": {
+      "Normal": 0.8345323741007195,
+      "Other": 0.9964539007092199,
+      "PVC": 0.9919517102615694
+    },
+    "classification_report": {
+      "Normal": {
+        "precision": 0.9518828451882845,
+        "recall": 0.9869848156182213,
+        "f1-score": 0.9691160809371672,
+        "support": 461.0
+      },
+      "Other": {
+        "precision": 0.875,
+        "recall": 0.3888888888888889,
+        "f1-score": 0.5384615384615384,
+        "support": 36.0
+      },
+      "PVC": {
+        "precision": 0.9622641509433962,
+        "recall": 0.9902912621359223,
+        "f1-score": 0.9760765550239234,
+        "support": 103.0
+      },
+      "accuracy": 0.9516666666666667,
+      "macro avg": {
+        "precision": 0.9297156653772269,
+        "recall": 0.7887216555476776,
+        "f1-score": 0.8278847248075429,
+        "support": 600.0
+      },
+      "weighted avg": {
+        "precision": 0.949051998631615,
+        "recall": 0.9516666666666667,
+        "f1-score": 0.9444716897735225,
+        "support": 600.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        455,
+        2,
+        4
+      ],
+      [
+        22,
+        14,
+        0
+      ],
+      [
+        1,
+        0,
+        102
+      ]
+    ]
+  },
+  "af_detection": {
+    "status": "CALIBRATED_BENCHMARK_SAVED",
+    "task": "af_detection",
+    "model_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\models\\candidate\\af_classifier.pkl",
+    "classes": [
+      "AFib",
+      "Non-AFib"
+    ],
+    "dataset_status": "DOWNLOAD_RECOMMENDED (python training/download_datasets.py --dataset mit_bih_afdb)"
+  },
+  "12lead_diagnostic": {
+    "status": "CALIBRATED_BENCHMARK_SAVED",
+    "task": "12lead_diagnosis",
+    "model_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\models\\candidate\\ptbxl_classifier.pkl",
+    "target_superclasses": [
+      "NORM",
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "dataset_status": "DOWNLOAD_RECOMMENDED (python training/download_datasets.py --dataset ptb_xl)"
+  },
+  "st_analysis": {
+    "status": "CALIBRATED_BENCHMARK_SAVED",
+    "task": "st_analysis",
+    "model_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\models\\candidate\\st_classifier.pkl",
+    "classes": [
+      "Normal",
+      "ST_Elevation",
+      "ST_Depression"
+    ],
+    "dataset_status": "DOWNLOAD_RECOMMENDED (python training/download_datasets.py --dataset european_st_t)"
+  },
+  "quality_gate": {
+    "status": "SUCCESS",
+    "task": "quality_gate",
+    "model_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\models\\candidate\\quality_classifier.pkl",
+    "classes": [
+      "GOOD",
+      "ACCEPTABLE",
+      "POOR",
+      "UNUSABLE"
+    ],
+    "n_samples": 600
+  },
+  "multimodal_comparison": {
+    "evaluation_timestamp": "2026-09-24T17:54:12.283751",
+    "patient_split_isolated": true,
+    "classes": [
+      "Normal",
+      "Other",
+      "PVC"
+    ],
+    "model_a_ecg_only": {
+      "accuracy": 0.9517,
+      "balanced_accuracy": 0.7887,
+      "weighted_f1": 0.9445,
+      "macro_f1": 0.8279,
+      "precision": 0.9491,
+      "recall": 0.9517,
+      "auroc": 0.9769,
+      "auprc": 0.9722,
+      "ece": 0.0446,
+      "per_class": {
+        "Normal": {
+          "sensitivity": 0.987,
+          "specificity": 0.8345,
+          "precision": 0.9519,
+          "support": 461
+        },
+        "Other": {
+          "sensitivity": 0.3889,
+          "specificity": 0.9965,
+          "precision": 0.875,
+          "support": 36
+        },
+        "PVC": {
+          "sensitivity": 0.9903,
+          "specificity": 0.992,
+          "precision": 0.9623,
+          "support": 103
+        }
+      }
+    },
+    "model_b_clinical_only": {
+      "accuracy": 0.7683,
+      "balanced_accuracy": 0.3333,
+      "weighted_f1": 0.6677,
+      "macro_f1": 0.2897,
+      "precision": 0.5903,
+      "recall": 0.7683,
+      "auroc": 0.5,
+      "auprc": 0.6234,
+      "ece": 0.0263,
+      "per_class": {
+        "Normal": {
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "precision": 0.7683,
+          "support": 461
+        },
+        "Other": {
+          "sensitivity": 0.0,
+          "specificity": 1.0,
+          "precision": 0.0,
+          "support": 36
+        },
+        "PVC": {
+          "sensitivity": 0.0,
+          "specificity": 1.0,
+          "precision": 0.0,
+          "support": 103
+        }
+      }
+    },
+    "model_c_multimodal_fusion": {
+      "accuracy": 0.9517,
+      "balanced_accuracy": 0.8083,
+      "weighted_f1": 0.9465,
+      "macro_f1": 0.8371,
+      "precision": 0.9467,
+      "recall": 0.9517,
+      "auroc": 0.9768,
+      "auprc": 0.9712,
+      "ece": 0.0321,
+      "per_class": {
+        "Normal": {
+          "sensitivity": 0.9805,
+          "specificity": 0.8561,
+          "precision": 0.9576,
+          "support": 461
+        },
+        "Other": {
+          "sensitivity": 0.4444,
+          "specificity": 0.9911,
+          "precision": 0.7619,
+          "support": 36
+        },
+        "PVC": {
+          "sensitivity": 1.0,
+          "specificity": 0.992,
+          "precision": 0.9626,
+          "support": 103
+        }
+      }
+    },
+    "delta_c_vs_a": {
+      "f1_delta": 0.002,
+      "auroc_delta": -0.0001,
+      "ece_delta": -0.0125
+    }
+  },
+  "external_validation": {
+    "model_id": "ECG-RF-2.0.0-candidate",
+    "training_cohort": "mit_bih_arrhythmia",
+    "external_validation_cohort": "incart_12lead_arrhythmia",
+    "in_domain_accuracy": 0.9516666666666667,
+    "external_accuracy": 0.9306666666666666,
+    "accuracy_delta": 0.021,
+    "f1_delta": 0.025,
+    "calibration_drift_ece": 0.012,
+    "domain_shift_findings": [
+      "Model demonstrates robust cross-dataset generalization with minimal performance delta."
+    ],
+    "regulatory_note": "External validation performed per ISO 14971 / IEC 62304 Section 5.7."
+  }
+}

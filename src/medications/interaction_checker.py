@@ -12,8 +12,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from src.database.db_manager import PatientRecord
-from src.medications.medication_database import GLOBAL_MEDICATION_DB, MedicationEntry
+try:
+    from database.db_manager import PatientRecord
+    from medications.medication_database import GLOBAL_MEDICATION_DB, MedicationEntry
+except (ImportError, ValueError):
+    from src.database.db_manager import PatientRecord
+    from src.medications.medication_database import GLOBAL_MEDICATION_DB, MedicationEntry
 
 
 @dataclass
@@ -50,8 +54,12 @@ class MedicationSafetyReport:
 def check_medication_safety(
     medication_names: List[str],
     patient: Optional[PatientRecord] = None,
+    ecg_finding: Optional[str] = None,
+    ecg_measurements: Optional[Dict[str, Any]] = None,
+    vital_signs: Optional[Dict[str, Any]] = None,
+    laboratory_results: Optional[Dict[str, Any]] = None,
 ) -> MedicationSafetyReport:
-    """Evaluate drug interactions, contraindications, and allergy safety."""
+    """Evaluate drug interactions, contraindications, allergy safety, and multimodal physiological conflicts."""
     alerts: List[SafetyAlert] = []
     missing_fields: List[str] = []
 
@@ -169,6 +177,189 @@ def check_medication_safety(
                         clinical_recommendation="Do not administer without explicit allergy clearance by attending physician.",
                         source="Hospital Pharmacy Safety Standards",
                         evidence_level="Level A",
+                    )
+                )
+
+    # 5. Multimodal Cross-Checks: ECG Findings & Waveform Measurements
+    qtc_val = None
+    ecg_hr = None
+    pr_val = None
+    if ecg_measurements:
+        qtc_val = ecg_measurements.get("qtc_ms") or ecg_measurements.get("qtc")
+        ecg_hr = ecg_measurements.get("heart_rate") or ecg_measurements.get("hr")
+        pr_val = ecg_measurements.get("pr_interval_ms") or ecg_measurements.get("pr_ms")
+
+    for med in entry_list:
+        # 5a. QT Prolonging Agents + Prolonged QTc
+        if med.qt_prolongation_risk in ["HIGH", "MODERATE"]:
+            threshold = 460 if (patient and patient.sex == "F") else 450
+            if qtc_val is not None and qtc_val > threshold:
+                alerts.append(
+                    SafetyAlert(
+                        category="PHYSIOLOGICAL_CONFLICT",
+                        severity="CRITICAL",
+                        title=f"Critical QTc Alert: {med.generic_name} with Prolonged QTc ({qtc_val} ms)",
+                        description=(
+                            f"{med.generic_name} carries {med.qt_prolongation_risk} QT-prolongation risk. "
+                            f"Current measured QTc is {qtc_val:.0f} ms (normal upper limit: {threshold} ms), "
+                            "substantially elevating risk of Torsades de Pointes and ventricular fibrillation."
+                        ),
+                        clinical_recommendation="Immediate clinician evaluation: hold or dose-reduce QT-prolonging agent, order serum K+/Mg2+, and maintain continuous telemetry.",
+                        source="AHA/ACC Scientific Statement on Prevention of Torsades de Pointes",
+                        evidence_level="Level A",
+                    )
+                )
+
+        # 5b. Bradycardia / AV Nodal Conduction Slowing Agents
+        is_nodal_agent = any(k in med.drug_class.lower() for k in ["beta", "calcium channel", "glycoside"])
+        effective_hr = ecg_hr
+        if vital_signs and vital_signs.get("heart_rate") is not None:
+            effective_hr = vital_signs.get("heart_rate")
+
+        if is_nodal_agent and effective_hr is not None and effective_hr < 50:
+            alerts.append(
+                SafetyAlert(
+                    category="PHYSIOLOGICAL_CONFLICT",
+                    severity="CRITICAL",
+                    title=f"Severe Bradycardia Alert: {med.generic_name} (HR {effective_hr:.0f} bpm)",
+                    description=(
+                        f"{med.generic_name} impairs AV nodal conduction and slows sinus node rate. "
+                        f"Patient is currently bradycardic (Heart Rate: {effective_hr:.0f} bpm)."
+                    ),
+                    clinical_recommendation="Urgent clinician review: evaluate for hemodynamically unstable bradycardia, hold nodal-blocking medications.",
+                    source="2023 ACC/AHA Bradycardia Management Guidelines",
+                    evidence_level="Level A",
+                )
+            )
+
+        if is_nodal_agent and pr_val is not None and pr_val > 220:
+            alerts.append(
+                SafetyAlert(
+                    category="PHYSIOLOGICAL_CONFLICT",
+                    severity="MAJOR",
+                    title=f"First-Degree AV Block Warning: {med.generic_name} (PR {pr_val:.0f} ms)",
+                    description=f"{med.generic_name} can further lengthen PR interval ({pr_val:.0f} ms) towards high-degree AV block.",
+                    clinical_recommendation="Review baseline PR interval; monitor serial ECGs if continuation is clinically necessary.",
+                    source="AHA/ACC Guidelines",
+                    evidence_level="Level B",
+                )
+            )
+
+    # 6. Multimodal Cross-Checks: Vital Signs (Hypotension)
+    if vital_signs:
+        sbp = vital_signs.get("systolic_bp") or vital_signs.get("sbp")
+        if sbp is not None and sbp < 90:
+            for med in entry_list:
+                if any(k in med.drug_class.lower() for k in ["antagonist", "inhibitor", "blocker"]):
+                    alerts.append(
+                        SafetyAlert(
+                            category="PHYSIOLOGICAL_CONFLICT",
+                            severity="CRITICAL",
+                            title=f"Severe Hypotension Alert: {med.generic_name} (SBP {sbp:.0f} mmHg)",
+                            description=f"Patient systolic BP is {sbp:.0f} mmHg. Antihypertensive agent {med.generic_name} may precipitate shock.",
+                            clinical_recommendation="Urgent clinician bed-side evaluation: hold antihypertensive therapies and evaluate perfusion.",
+                            source="Hospital Critical Care Protocol",
+                            evidence_level="Level A",
+                        )
+                    )
+
+    # 7. Multimodal Cross-Checks: Laboratory Results (Electrolytes & Renal Function)
+    if laboratory_results:
+        k_val = laboratory_results.get("potassium") or laboratory_results.get("k")
+        cr_val = laboratory_results.get("creatinine") or laboratory_results.get("serum_creatinine")
+        egfr_val = laboratory_results.get("egfr")
+        mg_val = laboratory_results.get("magnesium") or laboratory_results.get("mg")
+
+        # Hypokalemia / Hypomagnesemia + Digoxin / QT agents
+        if k_val is not None and k_val < 3.5:
+            for med in entry_list:
+                if "digoxin" in med.generic_name.lower():
+                    alerts.append(
+                        SafetyAlert(
+                            category="LABORATORY_CONFLICT",
+                            severity="CRITICAL",
+                            title="Potassium-Digoxin Toxicity Alert (K+ < 3.5 mEq/L)",
+                            description=f"Serum potassium is {k_val:.1f} mEq/L. Hypokalemia markedly sensitizes myocardium to lethal digoxin toxicity and dysrhythmias.",
+                            clinical_recommendation="Check serum digoxin level, correct potassium urgently (target >= 4.0 mEq/L), and withhold digoxin.",
+                            source="AHA Scientific Statement on Digoxin Toxicity",
+                            evidence_level="Level A",
+                        )
+                    )
+                elif med.qt_prolongation_risk in ["HIGH", "MODERATE"]:
+                    alerts.append(
+                        SafetyAlert(
+                            category="LABORATORY_CONFLICT",
+                            severity="MAJOR",
+                            title=f"Electrolyte Risk with QT Agent: {med.generic_name} (K+ {k_val:.1f} mEq/L)",
+                            description="Hypokalemia compounds QT dispersion and heightens vulnerability to Torsades de Pointes.",
+                            clinical_recommendation="Promptly re-pleat potassium to >= 4.0 mEq/L under clinician supervision.",
+                            source="ACC/AHA Guidelines",
+                            evidence_level="Level A",
+                        )
+                    )
+
+        # Hyperkalemia + K-sparing diuretics / ACEi
+        if k_val is not None and k_val > 5.0:
+            for med in entry_list:
+                is_k_retaining = (
+                    "spironolactone" in med.generic_name.lower()
+                    or any(k in med.drug_class.lower() for k in ["potassium-sparing", "aldosterone", "mineralocorticoid", "angiotensin", "ace"])
+                )
+                if is_k_retaining:
+                    alerts.append(
+                        SafetyAlert(
+                            category="LABORATORY_CONFLICT",
+                            severity="CRITICAL",
+                            title=f"Hyperkalemia Hazard: {med.generic_name} (K+ {k_val:.1f} mEq/L)",
+                            description=f"{med.generic_name} impairs renal potassium excretion. Current K+ is elevated at {k_val:.1f} mEq/L.",
+                            clinical_recommendation="Hold potassium-retaining agents immediately; check urgent stat ECG for peaked T waves / sine waves.",
+                            source="AHA/ACC Heart Failure Guidelines",
+                            evidence_level="Level A",
+                        )
+                    )
+
+        # Renal Impairment (Creatinine / eGFR) + DOACs / Digoxin
+        has_renal_impairment = (cr_val is not None and cr_val >= 1.5) or (egfr_val is not None and egfr_val < 50)
+        if has_renal_impairment:
+            for med in entry_list:
+                if "apixaban" in med.generic_name.lower():
+                    alerts.append(
+                        SafetyAlert(
+                            category="LABORATORY_CONFLICT",
+                            severity="MAJOR",
+                            title="Apixaban Renal Dosing Advisory",
+                            description=f"Patient exhibits impaired renal function (Cr: {cr_val or 'N/A'}, eGFR: {egfr_val or 'N/A'}). DOAC accumulation increases bleeding risk.",
+                            clinical_recommendation="Clinician must evaluate apixaban dose-reduction criteria (reduce to 2.5 mg BID if 2 of: Age >= 80, Wt <= 60 kg, Cr >= 1.5 mg/dL).",
+                            source="FDA Prescribing Information (Eliquis) / CHEST Guidelines",
+                            evidence_level="Level A",
+                        )
+                    )
+                elif "digoxin" in med.generic_name.lower():
+                    alerts.append(
+                        SafetyAlert(
+                            category="LABORATORY_CONFLICT",
+                            severity="CRITICAL",
+                            title="Digoxin Renal Accumulation Hazard",
+                            description=f"Digoxin is cleared by glomerular filtration. Renal insufficiency (Cr: {cr_val or 'N/A'}, eGFR: {egfr_val or 'N/A'}) predisposes to fatal toxicity.",
+                            clinical_recommendation="Mandatory dosage adjustment and therapeutic drug monitoring of serum digoxin level.",
+                            source="FDA Prescribing Information (Lanoxin)",
+                            evidence_level="Level A",
+                        )
+                    )
+
+    # 8. Age-Related Beers Criteria
+    if patient and patient.age is not None and patient.age >= 75:
+        for med in entry_list:
+            if "digoxin" in med.generic_name.lower():
+                alerts.append(
+                    SafetyAlert(
+                        category="AGE_PRECAUTION",
+                        severity="MODERATE",
+                        title=f"AGS Beers Criteria Advisory: Digoxin in Geriatric Patient (Age {patient.age})",
+                        description="Digoxin in patients aged >= 65 is associated with increased toxicity risk due to age-related decline in renal clearance.",
+                        clinical_recommendation="Consider alternative rate-control therapies; if required, keep dose <= 0.125 mg daily.",
+                        source="American Geriatrics Society Beers Criteria (2023 Update)",
+                        evidence_level="Level B",
                     )
                 )
 

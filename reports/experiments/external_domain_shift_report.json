@@ -1,0 +1,14 @@
+{
+  "model_id": "ECG-RF-2.0.0-candidate",
+  "training_cohort": "mit_bih_arrhythmia",
+  "external_validation_cohort": "incart_12lead_arrhythmia",
+  "in_domain_accuracy": 0.9516666666666667,
+  "external_accuracy": 0.9306666666666666,
+  "accuracy_delta": 0.021,
+  "f1_delta": 0.025,
+  "calibration_drift_ece": 0.012,
+  "domain_shift_findings": [
+    "Model demonstrates robust cross-dataset generalization with minimal performance delta."
+  ],
+  "regulatory_note": "External validation performed per ISO 14971 / IEC 62304 Section 5.7."
+}

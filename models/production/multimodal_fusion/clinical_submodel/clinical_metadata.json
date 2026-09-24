@@ -1,0 +1,40 @@
+{
+  "model_type": "gradient_boosting",
+  "classes": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "feature_names": [
+    "age",
+    "is_female",
+    "bmi",
+    "bmi_is_missing",
+    "systolic_bp",
+    "systolic_bp_is_missing",
+    "diastolic_bp",
+    "diastolic_bp_is_missing",
+    "spo2_percent",
+    "spo2_is_missing",
+    "potassium_mmol_l",
+    "potassium_is_missing",
+    "serum_creatinine_mg_dl",
+    "creatinine_is_missing",
+    "troponin_elevated",
+    "troponin_is_missing",
+    "symptom_chest_pain",
+    "symptom_dyspnea",
+    "symptom_palpitations",
+    "symptom_syncope",
+    "has_hypertension",
+    "has_cad_or_prior_mi",
+    "has_heart_failure",
+    "has_diabetes",
+    "med_beta_blocker",
+    "med_antiarrhythmic",
+    "med_acei_or_arb",
+    "med_anticoagulant",
+    "is_smoker"
+  ],
+  "include_blood_group": false
+}

@@ -1,0 +1,107 @@
+{
+  "evaluation_timestamp": "2026-09-24T17:54:12.283751",
+  "patient_split_isolated": true,
+  "classes": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "model_a_ecg_only": {
+    "accuracy": 0.9517,
+    "balanced_accuracy": 0.7887,
+    "weighted_f1": 0.9445,
+    "macro_f1": 0.8279,
+    "precision": 0.9491,
+    "recall": 0.9517,
+    "auroc": 0.9769,
+    "auprc": 0.9722,
+    "ece": 0.0446,
+    "per_class": {
+      "Normal": {
+        "sensitivity": 0.987,
+        "specificity": 0.8345,
+        "precision": 0.9519,
+        "support": 461
+      },
+      "Other": {
+        "sensitivity": 0.3889,
+        "specificity": 0.9965,
+        "precision": 0.875,
+        "support": 36
+      },
+      "PVC": {
+        "sensitivity": 0.9903,
+        "specificity": 0.992,
+        "precision": 0.9623,
+        "support": 103
+      }
+    }
+  },
+  "model_b_clinical_only": {
+    "accuracy": 0.7683,
+    "balanced_accuracy": 0.3333,
+    "weighted_f1": 0.6677,
+    "macro_f1": 0.2897,
+    "precision": 0.5903,
+    "recall": 0.7683,
+    "auroc": 0.5,
+    "auprc": 0.6234,
+    "ece": 0.0263,
+    "per_class": {
+      "Normal": {
+        "sensitivity": 1.0,
+        "specificity": 0.0,
+        "precision": 0.7683,
+        "support": 461
+      },
+      "Other": {
+        "sensitivity": 0.0,
+        "specificity": 1.0,
+        "precision": 0.0,
+        "support": 36
+      },
+      "PVC": {
+        "sensitivity": 0.0,
+        "specificity": 1.0,
+        "precision": 0.0,
+        "support": 103
+      }
+    }
+  },
+  "model_c_multimodal_fusion": {
+    "accuracy": 0.9517,
+    "balanced_accuracy": 0.8083,
+    "weighted_f1": 0.9465,
+    "macro_f1": 0.8371,
+    "precision": 0.9467,
+    "recall": 0.9517,
+    "auroc": 0.9768,
+    "auprc": 0.9712,
+    "ece": 0.0321,
+    "per_class": {
+      "Normal": {
+        "sensitivity": 0.9805,
+        "specificity": 0.8561,
+        "precision": 0.9576,
+        "support": 461
+      },
+      "Other": {
+        "sensitivity": 0.4444,
+        "specificity": 0.9911,
+        "precision": 0.7619,
+        "support": 36
+      },
+      "PVC": {
+        "sensitivity": 1.0,
+        "specificity": 0.992,
+        "precision": 0.9626,
+        "support": 103
+      }
+    }
+  },
+  "delta_c_vs_a": {
+    "f1_delta": 0.002,
+    "auroc_delta": -0.0001,
+    "ece_delta": -0.0125
+  }
+}

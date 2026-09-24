@@ -1,0 +1,39 @@
+{
+  "dataset_name": "European ST-T Database",
+  "physionet_url": "https://physionet.org/content/edb/1.0.0/",
+  "license": "Open PhysioNet (ODC-BY 1.0)",
+  "ecg_waveform_available": true,
+  "number_of_leads": 2,
+  "lead_names": [
+    "ECG1",
+    "ECG2"
+  ],
+  "sampling_rate_hz": [
+    250.0
+  ],
+  "patient_id_available": true,
+  "patient_count_estimate": 90,
+  "ecg_timestamp_available": false,
+  "age_available": true,
+  "sex_available": true,
+  "blood_group_available": false,
+  "symptoms_available": false,
+  "diagnoses_available": true,
+  "diagnosis_type": "ST segment depression/elevation and T-wave alterations",
+  "medications_available": true,
+  "medication_notes": "Anti-ischemic medication comments in clinical headers",
+  "allergies_available": false,
+  "vital_signs_available": false,
+  "laboratory_values_available": false,
+  "previous_ecg_available": false,
+  "machine_interpretation_available": false,
+  "clinician_report_available": false,
+  "multimodal_suitability": "Dedicated ST-segment ischemia screening benchmark.",
+  "dataset_id": "european_st_t",
+  "local_presence": {
+    "has_raw_files": false,
+    "raw_file_count": 0,
+    "has_processed_features": false,
+    "local_path": "C:\\Users\\Lenovo\\Downloads\\ECG--main\\ECG--main\\data\\datasets\\european_st_t\\raw"
+  }
+}

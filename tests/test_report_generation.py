@@ -200,3 +200,26 @@ def test_generate_report_with_cds_and_med_safety(mock_report_inputs):
     assert len(pdf_bytes) > 1000
 
 
+def test_generate_doctor_and_patient_dual_reports(mock_report_inputs):
+    from report.pdf_generator import generate_doctor_report, generate_patient_report
+    inp, ai_res, meas, wf_stat = mock_report_inputs
+    report = generate_structured_report(inp, ai_res, meas, wf_stat)
+
+    fs = 360.0
+    waveform = np.sin(2 * np.pi * 1.0 * np.linspace(0, 3.0, int(3.0 * fs)))
+    r_peaks = np.array([360, 720])
+
+    # 1. Doctor Report
+    doc_bytes = generate_doctor_report(report, waveform=waveform, fs=fs, r_peaks=r_peaks)
+    assert isinstance(doc_bytes, bytes)
+    assert len(doc_bytes) > 2000
+    assert doc_bytes.startswith(b"%PDF")
+
+    # 2. Patient Report
+    pat_bytes = generate_patient_report(report, waveform=waveform, fs=fs, r_peaks=r_peaks)
+    assert isinstance(pat_bytes, bytes)
+    assert len(pat_bytes) > 2000
+    assert pat_bytes.startswith(b"%PDF")
+
+
+

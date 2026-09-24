@@ -1,0 +1,182 @@
+{
+  "governance_version": "1.0.0",
+  "policy_name": "ECG Guardian Clinical Feature Governance & Leakage Prevention Policy",
+  "compliance_standards": [
+    "CDSCO MDR 2017 Class B SaMD",
+    "IEC 62304 Section 5.3",
+    "ISO 14971 Risk Management",
+    "FDA Marketing Submission Recommendations for AI/ML Software (2023)"
+  ],
+  "features": {
+    "age": {
+      "source": "demographics",
+      "type": "numeric",
+      "unit": "years",
+      "timestamp_requirement": "none_static_or_admission",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Age is an established physiological modulator of cardiac conduction velocity, QT duration, and baseline arrhythmia prevalence.",
+      "missing_value_policy": "impute_population_median_with_indicator"
+    },
+    "sex": {
+      "source": "demographics",
+      "type": "categorical",
+      "unit": null,
+      "timestamp_requirement": "none_static_or_admission",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Sex influences repolarization intervals (QTc) and hormone-dependent channelopathies.",
+      "missing_value_policy": "one_hot_unknown"
+    },
+    "blood_group": {
+      "source": "demographics",
+      "type": "categorical",
+      "unit": null,
+      "timestamp_requirement": "none_static",
+      "allowed_for_training": "task_dependent_requires_empirical_ablation",
+      "allowed_for_report": true,
+      "clinical_reason": "Essential for emergency resuscitation and transfusion readiness. NOT an automatic electrophysiological predictor. Default excluded from pure rhythm classifiers unless justified by empirical ablation.",
+      "missing_value_policy": "explicit_not_provided"
+    },
+    "bmi": {
+      "source": "demographics",
+      "type": "numeric",
+      "unit": "kg/m2",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Obesity alters chest wall electrical impedance and low voltage amplitudes.",
+      "missing_value_policy": "impute_median_with_missing_flag"
+    },
+    "systolic_bp": {
+      "source": "vital_signs",
+      "type": "numeric",
+      "unit": "mmHg",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Hemodynamic indicator of afterload and myocardial strain.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "diastolic_bp": {
+      "source": "vital_signs",
+      "type": "numeric",
+      "unit": "mmHg",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Indicator of coronary perfusion pressure during diastole.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "spo2_percent": {
+      "source": "vital_signs",
+      "type": "numeric",
+      "unit": "%",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Hypoxemia triggers sinus tachycardia, ectopy, and ischemic ST depression.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "potassium_mmol_l": {
+      "source": "laboratory_results",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Critical electrolyte directly determining resting membrane potential, T-wave peakedness, and life-threatening ventricular ectopies.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "serum_creatinine_mg_dl": {
+      "source": "laboratory_results",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Renal clearance failure causes drug accumulation and secondary hyperkalemic conduction delays.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "troponin_elevated": {
+      "source": "laboratory_results",
+      "type": "binary",
+      "unit": null,
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Biomarker of acute myocardial injury and ischemic necrosis.",
+      "missing_value_policy": "explicit_missing_indicator"
+    },
+    "acute_symptoms": {
+      "source": "patient_symptoms",
+      "type": "categorical_set",
+      "unit": null,
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Chest pain, syncope, or palpitations provide acute pre-test probability context.",
+      "missing_value_policy": "explicit_not_provided"
+    },
+    "chronic_conditions": {
+      "source": "patient_history",
+      "type": "categorical_set",
+      "unit": null,
+      "timestamp_requirement": "t_event <= t_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Pre-existing structural heart disease, prior infarction, or heart failure.",
+      "missing_value_policy": "explicit_not_provided"
+    },
+    "known_allergies": {
+      "source": "patient_allergies",
+      "type": "categorical_set",
+      "unit": null,
+      "timestamp_requirement": "none_static",
+      "allowed_for_training": false,
+      "allowed_for_report": true,
+      "clinical_reason": "Restricted strictly to the Medication Safety Engine to prevent allergic drug reactions. Disallowed for rhythm prediction.",
+      "missing_value_policy": "explicit_not_provided"
+    },
+    "current_medications": {
+      "source": "patient_medications",
+      "type": "drug_regimen",
+      "unit": null,
+      "timestamp_requirement": "active_at_t_ecg",
+      "allowed_for_training": "controlled_class_indicators_only",
+      "allowed_for_report": true,
+      "clinical_reason": "Beta-blockers, antiarrhythmics, and QT-prolonging drugs alter electrophysiology. Used primarily by Medication Safety Engine.",
+      "missing_value_policy": "explicit_not_provided"
+    },
+    "future_diagnosis": {
+      "source": "hospital_discharge_records",
+      "type": "icd_codes",
+      "unit": null,
+      "timestamp_requirement": "t_event > t_ecg",
+      "allowed_for_training": false,
+      "allowed_for_report": false,
+      "clinical_reason": "STRICT TEMPORAL LEAKAGE VIOLATION. Future discharge diagnoses must never be used to predict an earlier ECG.",
+      "missing_value_policy": "hard_rejection"
+    },
+    "future_medication": {
+      "source": "hospital_pharmacy_orders",
+      "type": "drug_orders",
+      "unit": null,
+      "timestamp_requirement": "t_event > t_ecg",
+      "allowed_for_training": false,
+      "allowed_for_report": false,
+      "clinical_reason": "STRICT TEMPORAL LEAKAGE VIOLATION. Post-ECG drug orders must never be used to predict an earlier ECG.",
+      "missing_value_policy": "hard_rejection"
+    },
+    "ecg_waveform_28_features": {
+      "source": "measured_ecg_signal",
+      "type": "continuous_vector",
+      "unit": "mV_and_sec",
+      "timestamp_requirement": "synchronous_with_ecg",
+      "allowed_for_training": true,
+      "allowed_for_report": true,
+      "clinical_reason": "Direct electrophysiological manifestation of cardiac depolarization and repolarization.",
+      "missing_value_policy": "fail_quality_gate"
+    }
+  }
+}

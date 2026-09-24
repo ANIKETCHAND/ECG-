@@ -19,13 +19,13 @@
 - **Preprocessing:** Butterworth bandpass filter (0.5–40 Hz), notch filter (50 Hz), lead-wise z-score normalization. Scaler statistics fit strictly on train split.
 
 ## Performance Metrics (Independent Test Split)
-- **Accuracy:** 98.33%
-- **Weighted F1 Score:** 98.31%
-- **PVC Sensitivity (Recall):** 99.67%
-- **PVC Specificity:** 98.06%
-- **AUROC (Weighted):** 0.9973
-- **AUPRC (Weighted):** 0.9966
-- **Expected Calibration Error (ECE):** 0.0989
+- **Accuracy:** 95.17%
+- **Weighted F1 Score:** 94.45%
+- **PVC Sensitivity (Recall):** 99.03%
+- **PVC Specificity:** 99.20%
+- **AUROC (Weighted):** 0.9769
+- **AUPRC (Weighted):** 0.9722
+- **Expected Calibration Error (ECE):** 0.0446
 
 ## Regulatory & Ethical Disclaimers
 > [!WARNING]
