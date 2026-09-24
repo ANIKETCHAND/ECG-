@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI ECG Analyzer - Universal Clinical Research & Educational Dashboard
 ======================================================================
 
@@ -72,8 +72,8 @@ from datetime import datetime
 
 # Page configuration
 st.set_page_config(
-    page_title="AI ECG Platform â€” Hospital Telemetry & Decision Support",
-    page_icon="â¤ï¸",
+    page_title="AI ECG Platform — Hospital Telemetry & Decision Support",
+    page_icon="❤️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -134,10 +134,10 @@ SAMPLE_ECGS_DIR = Path(__file__).resolve().parent / "sample_ecgs"
 # ---------------------------------------------------------
 # Sidebar Configuration & Clinical Identity
 # ---------------------------------------------------------
-st.sidebar.title("â¤ï¸ AI-ECG Platform")
+st.sidebar.title("❤️ AI-ECG Platform")
 st.sidebar.markdown("**Hospital Telemetry & Decision Support**")
 
-st.sidebar.markdown("#### ðŸ‘¤ Clinical Identity & Role")
+st.sidebar.markdown("#### 👤 Clinical Identity & Role")
 all_users = AUTH_MANAGER.list_users()
 user_map = {u.username: f"{u.full_name} ({u.role.value})" for u in all_users}
 if "active_user_name" not in st.session_state:
@@ -162,17 +162,17 @@ st.sidebar.divider()
 # Workspace View Selection (Clinician vs Patient Portal)
 view_mode = st.sidebar.radio(
     "Hospital Workspace View",
-    ["ðŸ¥ Hospital Clinician Workspace", "ðŸ§‘â€ðŸ’¼ Patient Health Portal"],
+    ["🏥 Hospital Clinician Workspace", "🧑‍💼 Patient Health Portal"],
     index=0,
     help="Toggle between full clinical decision support dashboard and patient-facing portal.",
 )
 
-if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
-    st.sidebar.markdown("#### ðŸ§‘â€ðŸ’¼ Patient Health Portal")
+if view_mode == "🧑‍💼 Patient Health Portal":
+    st.sidebar.markdown("#### 🧑‍💼 Patient Health Portal")
     st.sidebar.caption("View and download your official physician-signed ECG reports and clinical directives.")
-    st.sidebar.info("ðŸ’¡ Select your patient record in the portal to inspect verified diagnostic reports.")
+    st.sidebar.info("💡 Select your patient record in the portal to inspect verified diagnostic reports.")
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**ðŸ“ž 24/7 Cardiac Emergency Contacts:**")
+    st.sidebar.markdown("**📞 24/7 Cardiac Emergency Contacts:**")
     st.sidebar.caption("- Emergency Room: `+91-11-2345-0000`\n- National Ambulance: `112` / `102`\n- Cardiology Desk: `Ext. 402`")
     input_source_mode = "Patient Portal"
     uploaded_file = None
@@ -200,7 +200,7 @@ else:
         # ------------------------------------------------
         # Step 1: Patient Registration
         # ------------------------------------------------
-        st.sidebar.markdown("#### ðŸ‘¤ Step 1 â€” Register Patient")
+        st.sidebar.markdown("#### 👤 Step 1 — Register Patient")
 
         if "registered_patient_data" not in st.session_state:
             st.session_state["registered_patient_data"] = None
@@ -226,11 +226,11 @@ else:
                 _conds     = st.text_input("Existing Conditions", placeholder="e.g. Hypertension, Diabetes", key="form_conds")
                 _cardiac   = st.text_input("Cardiac History", placeholder="e.g. Prior MI 2021, Stent", key="form_cardiac")
                 _meds      = st.text_input("Current Medications", placeholder="e.g. Metoprolol 50mg", key="form_meds")
-                _submitted = st.form_submit_button("âœ… Register Patient & Proceed to Upload", type="primary", width='stretch')
+                _submitted = st.form_submit_button("✅ Register Patient & Proceed to Upload", type="primary", width='stretch')
 
             if _submitted:
                 if not st.session_state.get("form_name", "").strip():
-                    st.sidebar.error("âš ï¸ Patient Full Name is required.")
+                    st.sidebar.error("⚠️ Patient Full Name is required.")
                 else:
                     _p_id = f"PAT-{_sec.token_hex(4).upper()}"
                     try:
@@ -275,28 +275,28 @@ else:
                     }
                     st.rerun()
 
-            # No patient registered yet â€” keep uploader hidden
+            # No patient registered yet — keep uploader hidden
             uploaded_file = None
             sampling_rate_setting = 360
             analysis_duration_sec = 10
             start_offset_sec = 0.0
 
         else:
-            # Patient registered â€” show summary card and Step 2 upload
+            # Patient registered — show summary card and Step 2 upload
             _pat = st.session_state["registered_patient_data"]
             st.sidebar.success(
-                f"âœ… **Patient Registered**\n\n"
-                f"ðŸ‘¤ **{_pat['name']}**\n"
+                f"✅ **Patient Registered**\n\n"
+                f"👤 **{_pat['name']}**\n"
                 f"MRN: `{_pat['hospital_mrn']}` | Age: {_pat['age']} / {_pat['sex']}"
             )
-            if st.sidebar.button("ðŸ”„ Change Patient", key="btn_change_patient"):
+            if st.sidebar.button("🔄 Change Patient", key="btn_change_patient"):
                 st.session_state["registered_patient_data"] = None
                 import secrets as _sec_r
                 st.session_state["sidebar_mrn"] = f"MRN-{_sec_r.token_hex(3).upper()}"
                 st.rerun()
 
             st.sidebar.markdown("---")
-            st.sidebar.markdown("#### ðŸ“ Step 2 â€” Upload ECG File")
+            st.sidebar.markdown("#### 📁 Step 2 — Upload ECG File")
 
             uploaded_file = st.sidebar.file_uploader(
                 "Upload ECG (PDF, JPG, PNG, CSV, TXT, NPY)",
@@ -305,7 +305,7 @@ else:
             )
 
             st.sidebar.markdown("---")
-            st.sidebar.markdown("**ðŸ’¡ Quick Test Samples Available:**")
+            st.sidebar.markdown("**💡 Quick Test Samples Available:**")
             st.sidebar.caption(
                 "You can test the system with files in the `sample_ecgs/` folder:\n"
                 "- `sample_clinical_ecg_report.pdf` (Clinical 12-lead PDF)\n"
@@ -365,7 +365,7 @@ else:
 
 st.sidebar.divider()
 st.sidebar.info(
-    "âš ï¸ **Educational & Research Notice**\n\n"
+    "⚠️ **Educational & Research Notice**\n\n"
     "This platform is developed strictly for educational and scientific research purposes. "
     "It is **not** a certified clinical diagnostic medical device."
 )
@@ -373,14 +373,14 @@ st.sidebar.info(
 # ---------------------------------------------------------
 # Main Page Header & Banner
 # ---------------------------------------------------------
-st.markdown('<div class="main-header">â¤ï¸ AI ECG Abnormality Detection & Reporting</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">❤️ AI ECG Abnormality Detection & Reporting</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="sub-header">Universal multi-format clinical ECG analysis, zero-hallucination validation, and instant publication-grade reporting.</div>',
     unsafe_allow_html=True,
 )
 
 st.warning(
-    "ðŸ›¡ï¸ **Clinical Disclaimer:** This system provides automated research screening analysis. "
+    "🛡️ **Clinical Disclaimer:** This system provides automated research screening analysis. "
     "It does not replace certified physician evaluation or emergency cardiovascular care. "
     "If you are experiencing chest pain, palpitations, or shortness of breath, please seek emergency medical attention immediately."
 )
@@ -388,8 +388,8 @@ st.warning(
 # ---------------------------------------------------------
 # PATIENT HEALTH PORTAL VIEW (When selected in sidebar)
 # ---------------------------------------------------------
-if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
-    st.markdown('<div class="main-header">â¤ï¸ Apex Heart Hospital â€” Patient Health Portal</div>', unsafe_allow_html=True)
+if view_mode == "🧑‍💼 Patient Health Portal":
+    st.markdown('<div class="main-header">❤️ Apex Heart Hospital — Patient Health Portal</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="sub-header">Secure personal health portal for verified clinical ECG evaluations, physician directives, and signed reports.</div>',
         unsafe_allow_html=True,
@@ -422,7 +422,7 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
         st.markdown(
             f"""
             <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-                <h4 style="margin: 0 0 6px 0; color: #0f172a;">ðŸ‘¤ {curr_patient.name}</h4>
+                <h4 style="margin: 0 0 6px 0; color: #0f172a;">👤 {curr_patient.name}</h4>
                 <p style="margin: 0; color: #475569; font-size: 0.95rem;">
                     <b>MRN:</b> <code>{curr_patient.hospital_mrn}</code> | 
                     <b>Age / Sex:</b> {curr_patient.age or 'N/A'} / {curr_patient.sex or 'N/A'} | 
@@ -440,7 +440,7 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
         st.markdown(
             """
             <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-                <h5 style="margin: 0 0 4px 0; color: #065f46;">ðŸ¥ Hospital Facility</h5>
+                <h5 style="margin: 0 0 4px 0; color: #065f46;">🏥 Hospital Facility</h5>
                 <p style="margin: 0; font-size: 0.85rem; color: #047857;">Apex Heart & Vascular Hospital<br/>Department of Cardiac Electrophysiology<br/>Emergency: +91-11-2345-0000</p>
             </div>
             """,
@@ -454,7 +454,7 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
         patient_records = all_records[:3]
 
     if patient_records:
-        st.markdown("### ðŸ“‹ Your Diagnostic Electrocardiogram Evaluations")
+        st.markdown("### 📋 Your Diagnostic Electrocardiogram Evaluations")
         for rec in patient_records:
             rec_id = rec["record_id"]
             review = DB_MANAGER.get_clinician_review(rec_id) or st.session_state.get(f"review_{rec_id}")
@@ -467,13 +467,13 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
 
                 with col_r1:
                     if is_signed and review:
-                        st.success(f"âœ… **Verified & Signed by Attending Physician:** {review.get('clinician_name', 'Attending Physician')} ({review.get('clinician_role', 'Doctor')})")
+                        st.success(f"✅ **Verified & Signed by Attending Physician:** {review.get('clinician_name', 'Attending Physician')} ({review.get('clinician_role', 'Doctor')})")
                         st.markdown(f"**Medical Registration Number:** `{review.get('registration_number', 'Verified')}`")
                         st.markdown(f"**Clinical Finding / Diagnosis:**\n> {review.get('clinician_interpretation', 'Normal rhythm within physiological parameters.')}")
                         if review.get("clinical_notes"):
                             st.markdown(f"**Physician Directives & Care Plan:**\n> {review.get('clinical_notes')}")
                     else:
-                        st.info("â³ **Status: Under Review by Physician**\n\nYour ECG recording has been uploaded and processed by diagnostic screening algorithms. The attending physician will review, confirm, and digitally sign off on this report shortly.")
+                        st.info("⏳ **Status: Under Review by Physician**\n\nYour ECG recording has been uploaded and processed by diagnostic screening algorithms. The attending physician will review, confirm, and digitally sign off on this report shortly.")
 
                 with col_r2:
                     hr_bpm = rec.get("heart_rate_bpm") or 72.0
@@ -488,7 +488,7 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
                     )
                     pdf_bytes_patient = generate_pdf_report(patient_rep_data)
                     st.download_button(
-                        f"ðŸ“„ Download Signed PDF Report",
+                        f"📄 Download Signed PDF Report",
                         data=pdf_bytes_patient,
                         file_name=f"clinical_report_{curr_patient.name.replace(' ', '_')}_{rec_id}.pdf",
                         mime="application/pdf",
@@ -496,10 +496,10 @@ if view_mode == "ðŸ§‘â€ðŸ’¼ Patient Health Portal":
                     )
                 st.divider()
     else:
-        st.info("â„¹ï¸ **No ECG records found on file for this patient.** Once an ECG is acquired and uploaded by the cardiology clinic, your signed diagnostic report will appear here.")
+        st.info("ℹ️ **No ECG records found on file for this patient.** Once an ECG is acquired and uploaded by the cardiology clinic, your signed diagnostic report will appear here.")
 
     st.warning(
-        "ðŸš¨ **Emergency Cardiovascular Guidance:**\n\n"
+        "🚨 **Emergency Cardiovascular Guidance:**\n\n"
         "If you experience severe chest pressure or squeezing, shortness of breath, unexplained dizziness, palpitations, or fainting, "
         "do not wait for report updates. Call emergency services (112 / 911) or visit the nearest emergency medical department immediately."
     )
@@ -520,7 +520,7 @@ ai_results: Optional[Dict[str, Any]] = None
 # Reusable Hospital Worklist & Audit Ledger Renderers
 # ---------------------------------------------------------
 def render_hospital_worklist(expanded: bool = False):
-    with st.expander("ðŸ¥ Hospital Clinical Worklist & Patient Database", expanded=expanded):
+    with st.expander("🏥 Hospital Clinical Worklist & Patient Database", expanded=expanded):
         st.markdown("##### Enrolled Hospital Patients & Ingested Records")
         col_p1, col_p2 = st.columns([2, 1])
 
@@ -539,11 +539,11 @@ def render_hospital_worklist(expanded: bool = False):
                 for r in records_list:
                     rec_display.append({
                         "Record ID": r["record_id"],
-                        "Patient MRN": r.get("hospital_mrn") or "â€”",
+                        "Patient MRN": r.get("hospital_mrn") or "—",
                         "Patient Name": r.get("patient_name") or "Unassigned",
                         "Status": r.get("workflow_status") or "UPLOADED",
                         "Priority": r.get("priority") or "ROUTINE",
-                        "AI Prediction": r.get("prediction") or "â€”",
+                        "AI Prediction": r.get("prediction") or "—",
                         "Signal Quality": r.get("signal_quality") or "UNKNOWN",
                         "Uploaded At": r["uploaded_at"][:16].replace("T", " "),
                     })
@@ -559,8 +559,8 @@ def render_hospital_worklist(expanded: bool = False):
                     p_display.append({
                         "MRN": p.hospital_mrn,
                         "Name": p.name,
-                        "Age/Sex": f"{p.age or 'â€”'} / {p.sex or 'â€”'}",
-                        "Blood Group": p.blood_group or "â€”",
+                        "Age/Sex": f"{p.age or '—'} / {p.sex or '—'}",
+                        "Blood Group": p.blood_group or "—",
                         "Allergies": p.known_allergies or "None",
                     })
                 st.dataframe(pd.DataFrame(p_display), width='stretch')
@@ -583,7 +583,7 @@ def render_hospital_worklist(expanded: bool = False):
             new_cardiac_hx = st.text_input("Previous Cardiac History:", placeholder="e.g. Prior MI in 2021, CABG, Stent", key=f"inp_cardiac_hx_{expanded}")
             new_curr_meds = st.text_input("Current Medications:", placeholder="e.g. Metoprolol 50mg, Aspirin 75mg", key=f"inp_curr_meds_{expanded}")
 
-            if st.button("âž• Enroll Patient Profile", key=f"btn_reg_pat_{expanded}", type="primary"):
+            if st.button("➕ Enroll Patient Profile", key=f"btn_reg_pat_{expanded}", type="primary"):
                 if new_name.strip():
                     p_id = f"PAT-{secrets.token_hex(4).upper()}"
                     DB_MANAGER.create_patient(
@@ -615,18 +615,18 @@ def render_hospital_worklist(expanded: bool = False):
 
 
 def render_audit_trail(expanded: bool = False):
-    with st.expander("ðŸ›¡ï¸ Cryptographically Chained Hospital Audit Trail (IEC 62304 / ISO 27799)", expanded=expanded):
+    with st.expander("🛡️ Cryptographically Chained Hospital Audit Trail (IEC 62304 / ISO 27799)", expanded=expanded):
         st.markdown("##### Tamper-Evident Chronological Clinical Audit Trail")
         st.caption("Each event is chained to the preceding entry using SHA-256 cryptographic digests, ensuring complete non-repudiation.")
 
         col_aud1, col_aud2 = st.columns([2, 1])
         with col_aud1:
-            if st.button("ðŸ” Verify Audit Chain Cryptographic Integrity", key=f"btn_verify_audit_{expanded}"):
+            if st.button("🔐 Verify Audit Chain Cryptographic Integrity", key=f"btn_verify_audit_{expanded}"):
                 is_valid, issues = AUDIT_LOGGER.verify_chain_integrity()
                 if is_valid:
-                    st.success("âœ… **Hash Chain Valid:** Cryptographic integrity verified. All sequential hashes match without any retroactive alteration.")
+                    st.success("✅ **Hash Chain Valid:** Cryptographic integrity verified. All sequential hashes match without any retroactive alteration.")
                 else:
-                    st.error(f"âŒ **Integrity Alert:** Tampering detected: {issues}")
+                    st.error(f"❌ **Integrity Alert:** Tampering detected: {issues}")
 
         logs = AUDIT_LOGGER.get_logs(limit=30)
         if logs:
@@ -658,15 +658,15 @@ def render_audit_trail(expanded: bool = False):
 # ---------------------------------------------------------
 if input_source_mode == "Upload Patient ECG File":
     if uploaded_file is None:
-        st.info("ðŸ‘ˆ **Get Started:** Drag and drop an ECG file (PDF, JPG, PNG, CSV, TXT, NPY) in the sidebar to begin instant analysis.")
+        st.info("👈 **Get Started:** Drag and drop an ECG file (PDF, JPG, PNG, CSV, TXT, NPY) in the sidebar to begin instant analysis.")
         
         # Display sample cards
-        st.markdown("### ðŸ“‹ Supported Upload Formats & Workflows")
+        st.markdown("### 📋 Supported Upload Formats & Workflows")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown(
                 """
-                **ðŸ“„ Clinical ECG Reports (PDF)**
+                **📄 Clinical ECG Reports (PDF)**
                 - Extracts printed text & machine measurements (HR, PR, QRS, QT/QTc, Axes).
                 - Identifies machine interpretations directly from source.
                 - Analyzes rhythm strip if embedded without fabricating missing data.
@@ -675,7 +675,7 @@ if input_source_mode == "Upload Patient ECG File":
         with c2:
             st.markdown(
                 """
-                **ðŸ“ˆ Scanned ECG Images (JPG/PNG)**
+                **📈 Scanned ECG Images (JPG/PNG)**
                 - Color segmentation to eliminate pink/red ECG grid lines.
                 - Column-wise trace extraction with continuity verification.
                 - Rigorous validation gate rejects occluded/flat traces.
@@ -684,7 +684,7 @@ if input_source_mode == "Upload Patient ECG File":
         with c3:
             st.markdown(
                 """
-                **ðŸ“Š Digital Signal Files (CSV/TXT/NPY)**
+                **📊 Digital Signal Files (CSV/TXT/NPY)**
                 - Auto-detects delimiters (comma, tab, space, semicolon).
                 - Isolates voltage columns and normalizes sampling rate.
                 - Full 28-feature extraction & Random Forest classification.
@@ -727,7 +727,7 @@ if input_source_mode == "Upload Patient ECG File":
         )
         if not sig_res["success"]:
             progress_box.empty()
-            st.error(f"âŒ Could not load digital signal: {sig_res['message']}")
+            st.error(f"❌ Could not load digital signal: {sig_res['message']}")
             st.stop()
 
         signal_data = sig_res["signal"]
@@ -775,7 +775,7 @@ if input_source_mode == "Upload Patient ECG File":
         img_res = process_ecg_image(io.BytesIO(file_bytes))
         if not img_res["is_ecg"]:
             progress_box.empty()
-            st.error(f"âŒ Image Error: {img_res['status_message']}")
+            st.error(f"❌ Image Error: {img_res['status_message']}")
             st.stop()
 
         progress_bar.progress(50, text="STEP 3/6: Extracting Waveform Trace via Color Isolation...")
@@ -799,7 +799,7 @@ if input_source_mode == "Upload Patient ECG File":
 
     else:
         progress_box.empty()
-        st.error(f"âŒ Unsupported file format `{ext}`. Supported formats are PDF, JPG, JPEG, PNG, BMP, TIFF, CSV, TXT, NPY.")
+        st.error(f"❌ Unsupported file format `{ext}`. Supported formats are PDF, JPG, JPEG, PNG, BMP, TIFF, CSV, TXT, NPY.")
         st.stop()
 
     # Step 3, 4, 5: Model Inference (only if signal_data is present and verified)
@@ -995,18 +995,18 @@ if _pat_name:
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div>
                     <span style="font-size:1.1rem; font-weight:700; color:#0369a1;">
-                        ðŸ‘¤ {_disp_pat.get('name') or _disp_pat.get('patient_name')}
+                        👤 {_disp_pat.get('name') or _disp_pat.get('patient_name')}
                     </span>
                     &nbsp;&nbsp;
                     <code style="background:#bae6fd; padding:2px 8px; border-radius:4px; color:#075985; font-size:0.85rem;">
-                        MRN: {_disp_pat.get('hospital_mrn') or 'â€”'}
+                        MRN: {_disp_pat.get('hospital_mrn') or '—'}
                     </code>
                 </div>
                 <div style="color:#0369a1; font-size:0.88rem;">
-                    <b>Age/Sex:</b> {_disp_pat.get('age') or _disp_pat.get('patient_age') or 'â€”'} /
-                    {_disp_pat.get('sex') or _disp_pat.get('patient_sex') or 'â€”'}
+                    <b>Age/Sex:</b> {_disp_pat.get('age') or _disp_pat.get('patient_age') or '—'} /
+                    {_disp_pat.get('sex') or _disp_pat.get('patient_sex') or '—'}
                     &nbsp;|&nbsp;
-                    <b>Blood Group:</b> {_disp_pat.get('blood_group') or 'â€”'}
+                    <b>Blood Group:</b> {_disp_pat.get('blood_group') or '—'}
                     &nbsp;|&nbsp;
                     <b>Allergies:</b> {_disp_pat.get('known_allergies') or 'None'}
                 </div>
@@ -1024,7 +1024,7 @@ if _pat_name:
 # ---------------------------------------------------------
 # TOP OVERVIEW METRIC CARDS
 # ---------------------------------------------------------
-st.markdown("### ðŸ“Š Rapid Clinical Overview")
+st.markdown("### 📊 Rapid Clinical Overview")
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -1104,9 +1104,9 @@ st.divider()
 # SECTION: Printed Machine Interpretation (Zero-Hallucination)
 # ---------------------------------------------------------
 if extracted_measurements and extracted_measurements.get("has_extracted_data"):
-    st.markdown("### ðŸ“‹ Printed ECG Machine Measurements (Source Document)")
+    st.markdown("### 📋 Printed ECG Machine Measurements (Source Document)")
     st.info(
-        "â„¹ï¸ **Direct Document Data:** The parameters below were extracted directly from the uploaded report. "
+        "ℹ️ **Direct Document Data:** The parameters below were extracted directly from the uploaded report. "
         "They represent the recording machine's native interpretation and standard 12-lead measurements."
     )
 
@@ -1115,33 +1115,33 @@ if extracted_measurements and extracted_measurements.get("has_extracted_data"):
         st.markdown("**Extracted Patient & Recording Metadata:**")
         meta_items = [
             ("Patient Name", extracted_measurements.get("patient_name") or "Unspecified"),
-            ("Age / Sex", f"{extracted_measurements.get('patient_age') or 'â€”'} yr / {extracted_measurements.get('patient_sex') or 'â€”'}"),
+            ("Age / Sex", f"{extracted_measurements.get('patient_age') or '—'} yr / {extracted_measurements.get('patient_sex') or '—'}"),
             ("Recording Date", extracted_measurements.get("recording_date") or "Unspecified"),
-            ("Printed Vent. Rate", f"{extracted_measurements.get('heart_rate_printed') or 'â€”'} BPM"),
+            ("Printed Vent. Rate", f"{extracted_measurements.get('heart_rate_printed') or '—'} BPM"),
         ]
         st.table(pd.DataFrame(meta_items, columns=["Parameter", "Report Value"]))
 
     with m_col2:
         st.markdown("**Printed Electrical Intervals & Axes:**")
         interval_items = [
-            ("PR Interval", f"{extracted_measurements.get('pr_interval_ms') or 'â€”'} ms"),
-            ("QRS Duration", f"{extracted_measurements.get('qrs_duration_ms') or 'â€”'} ms"),
-            ("QT / QTc Interval", f"{extracted_measurements.get('qt_interval_ms') or 'â€”'} / {extracted_measurements.get('qtc_interval_ms') or 'â€”'} ms"),
-            ("P - QRS - T Axes", f"{extracted_measurements.get('p_axis_deg') or 'â€”'}Â° / {extracted_measurements.get('qrs_axis_deg') or 'â€”'}Â° / {extracted_measurements.get('t_axis_deg') or 'â€”'}Â°"),
+            ("PR Interval", f"{extracted_measurements.get('pr_interval_ms') or '—'} ms"),
+            ("QRS Duration", f"{extracted_measurements.get('qrs_duration_ms') or '—'} ms"),
+            ("QT / QTc Interval", f"{extracted_measurements.get('qt_interval_ms') or '—'} / {extracted_measurements.get('qtc_interval_ms') or '—'} ms"),
+            ("P - QRS - T Axes", f"{extracted_measurements.get('p_axis_deg') or '—'}° / {extracted_measurements.get('qrs_axis_deg') or '—'}° / {extracted_measurements.get('t_axis_deg') or '—'}°"),
         ]
         st.table(pd.DataFrame(interval_items, columns=["Interval / Axis", "Measured Value"]))
 
     if extracted_measurements.get("machine_interpretation"):
         st.markdown("**Printed Clinical Findings:**")
         for interp in extracted_measurements["machine_interpretation"]:
-            st.markdown(f"- ðŸ“ `{interp}`")
+            st.markdown(f"- 📝 `{interp}`")
 
     st.divider()
 
     # ---------------------------------------------------------
     # SECTION: Clinical Decision Support & Guidelines (Phases 12 & 18)
     # ---------------------------------------------------------
-    st.markdown("### ðŸ§  Clinical Decision Support & Guideline Considerations")
+    st.markdown("### 🧠 Clinical Decision Support & Guideline Considerations")
     st.caption("Authoritative guideline evidence (AHA/ACC/ESC). Diagnostic decisions and prescriptions remain the sole responsibility of the attending physician.")
 
     primary_f = "Normal Sinus Rhythm"
@@ -1172,31 +1172,31 @@ if extracted_measurements and extracted_measurements.get("has_extracted_data"):
     with cds_c1:
         st.markdown("**Potential Clinical Considerations:**")
         for cons in cds_rec.clinical_considerations:
-            st.markdown(f"- ðŸ’¡ {cons}")
+            st.markdown(f"- 💡 {cons}")
 
         if cds_rec.contraindication_warnings:
             st.markdown("**Critical Contraindication Alerts:**")
             for cw in cds_rec.contraindication_warnings:
-                st.error(f"âš ï¸ {cw}")
+                st.error(f"⚠️ {cw}")
 
     with cds_c2:
         st.markdown("**Suggested Next Assessments (Authoritative):**")
         for ass in cds_rec.suggested_assessments:
-            st.markdown(f"- ðŸ©º {ass}")
+            st.markdown(f"- 🩺 {ass}")
 
         st.markdown("**Applicable Clinical Guidelines:**")
         for gl in cds_rec.relevant_guidelines:
-            st.markdown(f"- ðŸ“š *{gl}*")
+            st.markdown(f"- 📚 *{gl}*")
 
     st.divider()
 
     # ---------------------------------------------------------
     # SECTION: Medication Safety & Interaction Verification (Phases 13-17)
     # ---------------------------------------------------------
-    st.markdown("### ðŸ’Š Cardiovascular Medication Safety & Interaction Check")
+    st.markdown("### 💊 Cardiovascular Medication Safety & Interaction Check")
     st.caption("Clinical safety verification across patient's current medications, known allergies, and organ function. Autonomous prescribing is strictly prohibited.")
 
-    with st.expander("ðŸ›¡ï¸ Patient Medication Safety Evaluation", expanded=True):
+    with st.expander("🛡️ Patient Medication Safety Evaluation", expanded=True):
         col_med1, col_med2 = st.columns([1, 1])
         with col_med1:
             patient_meds_input = st.text_input(
@@ -1241,13 +1241,13 @@ if extracted_measurements and extracted_measurements.get("has_extracted_data"):
             st.markdown(f"**Safety Alerts Identified ({len(med_safety_report.alerts)}):**")
             for alert in med_safety_report.alerts:
                 if alert.severity == "CRITICAL":
-                    st.error(f"ðŸš¨ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
+                    st.error(f"🚨 **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
                 elif alert.severity == "MAJOR":
-                    st.warning(f"âš ï¸ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
+                    st.warning(f"⚠️ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation} *(Source: {alert.source})*")
                 else:
-                    st.info(f"â„¹ï¸ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation}")
+                    st.info(f"ℹ️ **{alert.title}**: {alert.description}\n\n*Action:* {alert.clinical_recommendation}")
         else:
-            st.success("âœ… **No Major Drug-Drug Interactions or Allergy Conflicts Detected** across the entered regimen.")
+            st.success("✅ **No Major Drug-Drug Interactions or Allergy Conflicts Detected** across the entered regimen.")
 
     st.divider()
 
@@ -1256,9 +1256,9 @@ if extracted_measurements and extracted_measurements.get("has_extracted_data"):
 # SECTION: Waveform Extraction Notice (If Applicable)
 # ---------------------------------------------------------
 if not waveform_status.get("is_extracted") and signal_data is None:
-    st.markdown("### ðŸ” Waveform Trace Extraction Status")
+    st.markdown("### 🔍 Waveform Trace Extraction Status")
     st.warning(
-        f"âš ï¸ **Waveform Notice:** {waveform_status.get('message')}\n\n"
+        f"⚠️ **Waveform Notice:** {waveform_status.get('message')}\n\n"
         "To ensure clinical safety and scientific integrity, this system **never synthesizes or hallucinates** artificial ECG signals. "
         "The printed parameters above have been preserved in your downloadable reports."
     )
@@ -1290,7 +1290,7 @@ if signal_data is not None and len(signal_data) > 0 and ai_results is not None:
     c_left, c_right = st.columns([1, 1])
 
     with c_left:
-        st.markdown("**ðŸ¤– AI Classifier Output (Lead II Equivalent):**")
+        st.markdown("**🤖 AI Classifier Output (Lead II Equivalent):**")
         st.markdown(f"**Primary Pattern:** `{ai_results['predicted_class']}`")
 
         fig_prob = plot_prediction_probabilities(
@@ -1302,12 +1302,12 @@ if signal_data is not None and len(signal_data) > 0 and ai_results is not None:
         counts = ai_results.get("class_counts", {})
         total_beats = max(1, ai_results["beat_count"])
         st.markdown("**Beat-by-Beat Cycle Breakdown:**")
-        st.markdown(f"- ðŸŸ¢ **Normal Beats:** {counts.get('Normal', 0)} ({counts.get('Normal', 0) / total_beats * 100:.1f}%)")
-        st.markdown(f"- ðŸ”´ **Ventricular Ectopy (PVC):** {counts.get('PVC', 0)} ({counts.get('PVC', 0) / total_beats * 100:.1f}%)")
-        st.markdown(f"- ðŸŸ¡ **Other Abnormal/Escape Beats:** {counts.get('Other', 0)} ({counts.get('Other', 0) / total_beats * 100:.1f}%)")
+        st.markdown(f"- 🟢 **Normal Beats:** {counts.get('Normal', 0)} ({counts.get('Normal', 0) / total_beats * 100:.1f}%)")
+        st.markdown(f"- 🔴 **Ventricular Ectopy (PVC):** {counts.get('PVC', 0)} ({counts.get('PVC', 0) / total_beats * 100:.1f}%)")
+        st.markdown(f"- 🟡 **Other Abnormal/Escape Beats:** {counts.get('Other', 0)} ({counts.get('Other', 0) / total_beats * 100:.1f}%)")
 
     with c_right:
-        st.markdown("**ðŸ“¡ Signal Quality Breakdown:**")
+        st.markdown("**📡 Signal Quality Breakdown:**")
         q_ind = ai_results.get("quality_indicators", {})
         q_df = pd.DataFrame(
             [
@@ -1386,7 +1386,7 @@ if reference_annotations is not None and not reference_annotations.empty:
 # ---------------------------------------------------------
 # SECTION: Clinician Review & Physician Sign-Off Portal
 # ---------------------------------------------------------
-st.markdown("### âœï¸ Attending Clinician Review & Diagnostic Sign-Off")
+st.markdown("### ✍️ Attending Clinician Review & Diagnostic Sign-Off")
 st.caption("Fulfilling CDSCO MDR 2017 & IEC 62304 mandatory human-in-the-loop review. Unreviewed AI predictions cannot be used for patient treatment.")
 
 if active_review:
@@ -1407,20 +1407,20 @@ if active_review:
         unsafe_allow_html=True,
     )
 else:
-    st.info("â„¹ï¸ **Pending Review:** This analysis has not yet been signed off by an attending physician. Please review the findings below to seal the diagnostic report.")
+    st.info("ℹ️ **Pending Review:** This analysis has not yet been signed off by an attending physician. Please review the findings below to seal the diagnostic report.")
 
 # Physician Sign-Off Form
 if AUTH_MANAGER.has_permission(current_user, "report:sign_off"):
-    with st.expander("ðŸ©º Physician Diagnostic Sign-Off & Seal Action", expanded=(active_review is None)):
+    with st.expander("🩺 Physician Diagnostic Sign-Off & Seal Action", expanded=(active_review is None)):
         col_ag1, col_ag2 = st.columns([1, 1])
         with col_ag1:
             agreement_choice = st.radio(
                 "Clinical Agreement with AI Findings:",
                 options=["CONFIRMED", "MODIFIED", "REJECTED"],
                 format_func=lambda x: {
-                    "CONFIRMED": "âœ… CONFIRMED â€” Concordant with AI finding",
-                    "MODIFIED": "âš ï¸ MODIFIED â€” Agree with reservations / modified notes",
-                    "REJECTED": "âŒ REJECTED â€” Overrule AI finding (Artifact or Misclassification)",
+                    "CONFIRMED": "✅ CONFIRMED — Concordant with AI finding",
+                    "MODIFIED": "⚠️ MODIFIED — Agree with reservations / modified notes",
+                    "REJECTED": "❌ REJECTED — Overrule AI finding (Artifact or Misclassification)",
                 }[x],
                 index=0 if not active_review else (["CONFIRMED", "MODIFIED", "REJECTED"].index(active_review.get("agreement_status", "CONFIRMED")) if active_review.get("agreement_status") in ["CONFIRMED", "MODIFIED", "REJECTED"] else 0),
             )
@@ -1447,7 +1447,7 @@ if AUTH_MANAGER.has_permission(current_user, "report:sign_off"):
             height=70,
         )
 
-        if st.button("âœï¸ Sign-Off & Cryptographically Seal Clinical Report", type="primary"):
+        if st.button("✍️ Sign-Off & Cryptographically Seal Clinical Report", type="primary"):
             rev_id = f"REV-{secrets.token_hex(4).upper()}"
             analysis_id = f"ANL-{rec_id[4:]}"
 
@@ -1492,11 +1492,11 @@ if AUTH_MANAGER.has_permission(current_user, "report:sign_off"):
                 "clinical_notes": custom_directives,
                 "reviewed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
-            st.success("âœ… Clinical report successfully sealed with physician digital signature!")
+            st.success("✅ Clinical report successfully sealed with physician digital signature!")
             st.rerun()
 else:
     st.info(
-        f"ðŸ”’ **Physician Sign-Off Restricted:** Current role `{current_user.role.value}` cannot sign off clinical reports. "
+        f"🔒 **Physician Sign-Off Restricted:** Current role `{current_user.role.value}` cannot sign off clinical reports. "
         "Select a DOCTOR or CARDIOLOGIST profile in the sidebar to review and seal."
     )
 
@@ -1505,7 +1505,7 @@ st.divider()
 # ---------------------------------------------------------
 # SECTION: Report Export Center (PDF, JSON, TXT)
 # ---------------------------------------------------------
-st.markdown("### ðŸ“¥ Download Comprehensive Research Reports")
+st.markdown("### 📥 Download Comprehensive Research Reports")
 st.markdown("Export publication-grade PDF documents, machine-readable JSON files, or clinical summary text.")
 
 # Prepare waveform snippet for PDF if available
@@ -1528,7 +1528,7 @@ dcol1, dcol2, dcol3 = st.columns(3)
 
 with dcol1:
     st.download_button(
-        label="ðŸ“„ Download Publication PDF Report",
+        label="📄 Download Publication PDF Report",
         data=pdf_bytes,
         file_name=f"ecg_report_{stem_name}.pdf",
         mime="application/pdf",
@@ -1537,7 +1537,7 @@ with dcol1:
 
 with dcol2:
     st.download_button(
-        label="ðŸ“Š Download Machine JSON (.json)",
+        label="📊 Download Machine JSON (.json)",
         data=json_str,
         file_name=f"ecg_data_{stem_name}.json",
         mime="application/json",
@@ -1546,7 +1546,7 @@ with dcol2:
 
 with dcol3:
     st.download_button(
-        label="ðŸ“ Download Summary Text (.txt)",
+        label="📝 Download Summary Text (.txt)",
         data=text_str,
         file_name=f"ecg_summary_{stem_name}.txt",
         mime="text/plain",
@@ -1559,7 +1559,7 @@ st.divider()
 # ---------------------------------------------------------
 # SECTION: Advanced Technical Details & Transparency
 # ---------------------------------------------------------
-with st.expander("ðŸ” Model Architecture & Validation Metrics (CSE / Bioengineering Transparency)"):
+with st.expander("🔍 Model Architecture & Validation Metrics (CSE / Bioengineering Transparency)"):
     mcol_l, mcol_r = st.columns(2)
 
     with mcol_l:
@@ -1603,5 +1603,4 @@ st.divider()
 # SECTION: Cryptographic Audit Trail & Regulatory Compliance
 # ---------------------------------------------------------
 render_audit_trail(expanded=False)
-
 
