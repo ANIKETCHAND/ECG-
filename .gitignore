@@ -45,3 +45,5 @@ data/datasets/**/processed/*
 !data/datasets/**/.gitkeep
 
 .vercel
+reports/MRN-*/
+reports/PAT-*/

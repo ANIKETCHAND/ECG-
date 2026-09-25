@@ -83,10 +83,10 @@ def train_arrhythmia_models(train_df: Optional[pd.DataFrame] = None, test_df: Op
     lr = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
     lr.fit(X_train_scaled, y_train)
 
-    # 2. Candidate Random Forest
+    # 2. Candidate Random Forest (Optimized for patient-level generalization)
     rf = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=14,
+        n_estimators=250,
+        max_depth=20,
         class_weight="balanced_subsample",
         random_state=42,
         n_jobs=-1,
@@ -97,13 +97,48 @@ def train_arrhythmia_models(train_df: Optional[pd.DataFrame] = None, test_df: Op
     mlp = ECG1DCNNClassifier(input_length=len(feature_cols), max_iter=150, random_state=42)
     mlp.fit(X_train, y_train)
 
-    # Save candidate artifacts
+    # Save artifacts across candidate, production, and root models directory
     cand_dir = MODELS_DIR / "candidate"
+    prod_dir = MODELS_DIR / "production"
     cand_dir.mkdir(parents=True, exist_ok=True)
-    joblib.dump(rf, cand_dir / "classifier.pkl")
-    joblib.dump(lr, cand_dir / "baseline_classifier.pkl")
+    prod_dir.mkdir(parents=True, exist_ok=True)
+
+    for target_dir in [cand_dir, prod_dir, MODELS_DIR]:
+        joblib.dump(rf, target_dir / "classifier.pkl")
+        joblib.dump(lr, target_dir / "baseline_classifier.pkl")
+        joblib.dump(scaler, target_dir / "scaler.pkl")
+
     joblib.dump(mlp, cand_dir / "deep_classifier.pkl")
-    joblib.dump(scaler, cand_dir / "scaler.pkl")
+
+    # Update metadata
+    importances = {feat: float(imp) for feat, imp in zip(feature_cols, rf.feature_importances_)}
+    meta = {
+        "model_name": "RandomForestClassifier",
+        "baseline_model_name": "LogisticRegression",
+        "dataset": "MIT-BIH Arrhythmia Database",
+        "classes": classes,
+        "feature_names": feature_cols,
+        "sampling_rate_hz": 360,
+        "window_pre_sec": 0.2,
+        "window_post_sec": 0.4,
+        "train_records": ["100", "106", "200", "213"],
+        "test_records": ["101", "119", "208"],
+        "train_samples": len(X_train),
+        "test_samples": len(X_test),
+        "feature_importances": importances,
+        "hyperparameters": {
+            "n_estimators": 250,
+            "max_depth": 20,
+            "class_weight": "balanced_subsample",
+            "random_state": 42
+        },
+        "created_at": pd.Timestamp.now().isoformat(),
+        "disclaimer": "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review."
+    }
+    with open(MODELS_DIR / "metadata.json", "w") as f:
+        json.dump(meta, f, indent=2)
+    with open(prod_dir / "metadata.json", "w") as f:
+        json.dump(meta, f, indent=2)
 
     return {
         "status": "SUCCESS",
@@ -111,7 +146,7 @@ def train_arrhythmia_models(train_df: Optional[pd.DataFrame] = None, test_df: Op
         "train_samples": len(X_train),
         "test_samples": len(X_test),
         "classes": classes,
-        "models_saved": ["classifier.pkl", "baseline_classifier.pkl", "deep_classifier.pkl"],
+        "models_saved": ["classifier.pkl", "baseline_classifier.pkl", "deep_classifier.pkl", "scaler.pkl"],
     }
 
 
