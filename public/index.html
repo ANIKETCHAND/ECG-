@@ -60,6 +60,7 @@
       top: 0;
       overflow-y: auto;
       z-index: 40;
+      transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .sidebar-brand-bar {
@@ -685,9 +686,338 @@
     .text-red { color: #b91c1c; }
     .text-yellow { color: #b45309; }
     .text-blue { color: #0284c7; }
+
+    /* ── 21st.dev Modern Interactive Design Enhancements ── */
+    body.sidebar-collapsed #sidebar {
+      margin-left: -295px;
+    }
+    #floatingSidebarToggle {
+      position: fixed;
+      top: 14px;
+      left: 12px;
+      z-index: 50;
+      background: var(--accent-dark);
+      color: #ffffff;
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    #floatingSidebarToggle:hover {
+      background: #253329;
+      transform: scale(1.05);
+    }
+    body.sidebar-collapsed #floatingSidebarToggle {
+      display: flex !important;
+    }
+    .sidebar-collapse-btn {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .sidebar-collapse-btn:hover {
+      background: #e2ebe4;
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+    }
+
+    /* Radar Ping Live Telemetry Badge */
+    .live-telemetry-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #dbe8de;
+      border: 1px solid #c0d4c4;
+      color: var(--accent-green);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .pulse-radar-dot {
+      position: relative;
+      display: inline-flex;
+      width: 7px;
+      height: 7px;
+    }
+    .pulse-radar-dot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      animation: radar-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    .pulse-radar-dot::after {
+      content: '';
+      position: relative;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+    }
+    @keyframes radar-ping {
+      75%, 100% {
+        transform: scale(2.6);
+        opacity: 0;
+      }
+    }
+
+    /* Telemetry Controls & Oscilloscope Sweep */
+    .playback-controls-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .bench-control-pill {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2.5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .bench-control-pill:hover {
+      background: #f0f5f1;
+      border-color: var(--border-strong);
+    }
+    .bench-control-pill.active {
+      background: var(--accent-dark);
+      color: #ffffff;
+      border-color: var(--accent-dark);
+    }
+    .sweep-line {
+      position: absolute;
+      top: 35px;
+      bottom: 27px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(184, 64, 44, 0.2) 0%, rgba(184, 64, 44, 1) 50%, rgba(184, 64, 44, 0.2) 100%);
+      box-shadow: 0 0 10px rgba(184, 64, 44, 0.6), 0 0 20px rgba(184, 64, 44, 0.3);
+      pointer-events: none;
+      z-index: 25;
+    }
+    .sweep-line::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 28px;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(184, 64, 44, 0.15) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Time Range Window Selector */
+    .time-window-group {
+      display: inline-flex;
+      background: #e2ebe4;
+      padding: 2px;
+      border-radius: 5px;
+      gap: 2px;
+    }
+    .bench-time-btn {
+      background: transparent;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .bench-time-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .bench-time-btn.active {
+      background: #ffffff;
+      color: var(--accent-dark);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Interactive Beat Inspector Bento Card */
+    .beat-inspector-tooltip {
+      position: absolute;
+      top: 40px;
+      right: 14px;
+      z-index: 35;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      padding: 10px 12px;
+      min-width: 220px;
+      animation: bit-fade 0.15s ease-out;
+    }
+    @keyframes bit-fade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bit-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 4px;
+    }
+    .bit-close-btn:hover { color: var(--text-main); }
+    .bit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      margin-top: 4px;
+    }
+    .bit-metric {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.70rem;
+    }
+    .bit-k { color: var(--text-muted); }
+    .bit-v { font-family: var(--font-mono); font-weight: 700; color: var(--text-main); }
+
+    /* Clickable Beat Filter Legend */
+    .bench-legend-item.clickable {
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+    .bench-legend-item.clickable:hover {
+      background: #f0f5f1;
+    }
+    .bench-legend-item.active-filter {
+      background: #e3ede5;
+      outline: 1.5px solid #1e7256;
+    }
+
+    /* Keyboard Shortcuts Modal */
+    .shortcuts-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(18, 24, 20, 0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .shortcuts-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 440px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.2);
+      overflow: hidden;
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .shortcuts-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: #f7faf7;
+    }
+    .shortcuts-body {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      padding: 3px 0;
+      border-bottom: 1px dashed #edf2ee;
+    }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-desc { color: var(--text-muted); }
+    .shortcut-key kbd {
+      background: #eaefeb;
+      border: 1px solid #c8d6cb;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 0.70rem;
+      font-weight: 700;
+      color: var(--text-main);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 24px;
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast-message {
+      background: #121814;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      padding: 8px 14px;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+      animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Floating Sidebar Toggle Button for Collapsed View -->
+  <button id="floatingSidebarToggle" title="Open Sidebar [ Shortcut: [ ]" onclick="toggleSidebar()">
+    <i class="fa-solid fa-bars"></i>
+  </button>
 
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <!-- SIDEBAR (MODIFIED TO MATCH BENCH UI AESTHETIC)                   -->
@@ -700,6 +1030,9 @@
         <div class="sidebar-brand-title">VITALISCOPE</div>
         <div class="sidebar-brand-sub">Clinical Bench UI</div>
       </div>
+      <button class="sidebar-collapse-btn" title="Collapse Sidebar [ Shortcut: [ ]" onclick="toggleSidebar()">
+        <i class="fa-solid fa-angles-left"></i>
+      </button>
     </div>
 
     <!-- Facility -->
@@ -894,8 +1227,15 @@
           </div>
         </div>
         <div class="bench-top-badges">
+          <span class="live-telemetry-badge" id="telemetryPulsingBadge">
+            <span class="pulse-radar-dot"></span>
+            <span>LIVE TELEMETRY · 360 HZ</span>
+          </span>
           <span class="bench-pill-badge">RESEARCH / EDUCATIONAL USE ONLY</span>
-          <span class="bench-tag-badge">Pipeline v4.2 · MIT-BIH</span>
+          <button type="button" class="bench-tag-badge" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px;" onclick="toggleShortcutsModal()" title="Keyboard Shortcuts (Ctrl+K)">
+            <i class="fa-solid fa-keyboard"></i>
+            <span>Shortcuts <kbd style="background:#e0ebd2; padding:1px 5px; border-radius:3px; font-size:9px; border:1px solid #b8cbbe;">Ctrl+K</kbd></span>
+          </button>
         </div>
       </header>
 
@@ -919,16 +1259,61 @@
       </div>
 
       <!-- 5. Continuous Trace Container (Medical Millimeter Grid Screen) -->
-      <div class="bench-screen-container">
+      <div class="bench-screen-container" id="waveformScreenBox">
         <div class="bench-screen-header">
-          <span class="bench-screen-meta-left">CONTINUOUS TRACE · R-PEAK MARKERS · 0.5 S/DIV</span>
-          <span class="bench-screen-meta-right" id="benchSampleBeatsMeta">1262 samples · 13 beats detected</span>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="bench-screen-meta-left">CONTINUOUS TRACE · LEAD II</span>
+            <div class="playback-controls-group">
+              <button id="btnSweepPlay" type="button" class="bench-control-pill" onclick="toggleSweepPlayback()" title="Toggle Telemetry Sweep (Space)">
+                <i class="fa-solid fa-play"></i> <span>Play Sweep</span>
+              </button>
+              <button id="btnAudioToggle" type="button" class="bench-control-pill" onclick="toggleAudioTone()" title="Toggle QRS Audio Tone (M)">
+                <i class="fa-solid fa-volume-xmark" id="audioIcon"></i> <span id="audioLabel">Muted</span>
+              </button>
+              <button id="btnSpeedToggle" type="button" class="bench-control-pill" onclick="toggleSweepSpeed()" title="Playback Speed">
+                <span id="speedLabel">1x</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="time-window-group">
+              <button type="button" class="bench-time-btn" id="btnWin25" onclick="setTimeWindow(2.5, this)" title="Shortcut: 1">2.5s</button>
+              <button type="button" class="bench-time-btn active" id="btnWin50" onclick="setTimeWindow(5.0, this)" title="Shortcut: 2">5.0s</button>
+              <button type="button" class="bench-time-btn" id="btnWin100" onclick="setTimeWindow(10.0, this)" title="Shortcut: 3">10.0s</button>
+              <button type="button" class="bench-time-btn" id="btnWinFull" onclick="setTimeWindow('full', this)" title="Shortcut: 4">Full</button>
+            </div>
+            <span class="bench-screen-meta-right" id="benchSampleBeatsMeta">1262 samples · 13 beats detected</span>
+          </div>
+        </div>
+
+        <!-- Oscilloscope Scanning Vertical Cursor -->
+        <div id="sweepLine" class="sweep-line hidden"></div>
+
+        <!-- Floating Interactive Beat Inspector Bento Card -->
+        <div id="beatInspectorTooltip" class="beat-inspector-tooltip hidden">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+            <div>
+              <span class="badge badge-green" id="bitBadge" style="font-size:0.65rem;">NORMAL BEAT</span>
+              <div style="font-weight:800; font-size:0.85rem; margin-top:2px;" id="bitTitle">Beat #1</div>
+            </div>
+            <button class="bit-close-btn" onclick="hideBeatInspector()" title="Close Inspector"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="bit-grid">
+            <div class="bit-metric"><span class="bit-k">R-Peak:</span> <span class="bit-v" id="bitAmp">2.42 mV</span></div>
+            <div class="bit-metric"><span class="bit-k">Local RR:</span> <span class="bit-v" id="bitRr">833 ms</span></div>
+            <div class="bit-metric"><span class="bit-k">Inst HR:</span> <span class="bit-v" id="bitHr">72 bpm</span></div>
+            <div class="bit-metric"><span class="bit-k">Time:</span> <span class="bit-v" id="bitTime">0.24 s</span></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" style="width:100%; margin-top:8px; font-size:0.68rem;" onclick="focusBeatInOverlay()">
+            <i class="fa-solid fa-magnifying-glass"></i> Focus in Beat Overlay
+          </button>
         </div>
 
         <div id="chartWaveform" style="width:100%; height:260px;"></div>
 
         <div class="bench-screen-footer">
-          <span class="bench-screen-hint-left">Hover a beat to inspect P-QRS-T morphology window</span>
+          <span class="bench-screen-hint-left">Click any peak marker or hover to inspect morphology &amp; intervals</span>
           <span class="bench-screen-hint-right">Adaptive R-peak detector · threshold 0.42</span>
         </div>
       </div>
@@ -953,28 +1338,31 @@
 
         <!-- Card 2: BEAT CLASSIFICATION -->
         <div class="bench-card">
-          <div class="bench-card-header">BEAT CLASSIFICATION</div>
+          <div class="bench-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>BEAT CLASSIFICATION</span>
+            <span style="font-size:0.62rem; color:var(--text-faint); font-weight:normal; text-transform:none;">Click to filter</span>
+          </div>
           <div class="bench-stacked-bar">
             <div class="bench-bar-seg bench-seg-norm" id="vitaliBarNorm" style="width: 92%;"></div>
             <div class="bench-bar-seg bench-seg-pvc" id="vitaliBarPvc" style="width: 8%;"></div>
             <div class="bench-bar-seg bench-seg-other" id="vitaliBarOther" style="width: 0%;"></div>
           </div>
           <div class="bench-legend-list">
-            <div class="bench-legend-item">
+            <div class="bench-legend-item clickable" id="legendItemNorm" onclick="toggleBeatFilter('NORMAL')" title="Filter: Normal Sinus Beats">
               <div class="bench-legend-left">
                 <span class="bench-dot dot-green"></span>
                 <span>Normal</span>
               </div>
               <span class="bench-legend-count" id="vitaliLegendNorm">11 · 92%</span>
             </div>
-            <div class="bench-legend-item">
+            <div class="bench-legend-item clickable" id="legendItemPvc" onclick="toggleBeatFilter('PVC')" title="Filter: Premature Ventricular Contractions">
               <div class="bench-legend-left">
                 <span class="bench-dot dot-amber"></span>
                 <span>Premature ventricular (PVC)</span>
               </div>
               <span class="bench-legend-count" id="vitaliLegendPvc">1 · 8%</span>
             </div>
-            <div class="bench-legend-item">
+            <div class="bench-legend-item clickable" id="legendItemOther" onclick="toggleBeatFilter('OTHER')" title="Filter: Other / Atypical Beats">
               <div class="bench-legend-left">
                 <span class="bench-dot dot-slate"></span>
                 <span>Other / Atypical</span>
@@ -1254,6 +1642,19 @@
     let currentSignal = [];
     let currentFs = 360.0;
     let currentRPeaks = [];
+    let currentDisplayWindow = 5.0; // 2.5, 5.0, 10.0, or 'full'
+    let activeBeatFilter = null; // null, 'NORMAL', 'PVC', 'OTHER'
+    let isSweeping = false;
+    let sweepAnimId = null;
+    let sweepCurrentTime = 0.0;
+    let sweepSpeed = 1.0;
+    let lastSweepTimestamp = null;
+    let lastPassedPeakIdx = -1;
+    let soundEnabled = false;
+    let audioCtx = null;
+    let selectedBeatIndex = null;
+    let lastBeatSegments = null;
+    let lastMeanBeatProfile = null;
     let currentPatient = {
       name: "raj",
       mrn: "MRN-5F2298",
@@ -1369,13 +1770,13 @@
 
       const timeAxis = currentSignal.map((_, idx) => (idx / currentFs));
       const dur = currentSignal.length / currentFs;
-      const displayWindow = Math.min(6.0, Math.max(2.5, dur));
+      const displayWindow = (currentDisplayWindow === 'full') ? dur : Math.min(dur, currentDisplayWindow || 5.0);
       
       // Update top strip counts
       document.getElementById('benchSampleBeatsMeta').innerText = `${currentSignal.length} samples · ${currentRPeaks.length} beats detected`;
       document.getElementById('vitaliRecordMeta').innerText = `RECORD ${currentPatient.mrn} · LEAD II · ${currentFs} HZ · 25 MM/S`;
 
-      // Terracotta red ECG trace matching screenshot
+      // Terracotta red ECG trace matching benchmark aesthetic
       const traceSignal = {
         x: timeAxis,
         y: currentSignal,
@@ -1389,6 +1790,7 @@
       const peakX = [];
       const peakY = [];
       const peakColors = [];
+      const peakSizes = [];
       const shapes = [];
       const annotations = [];
 
@@ -1401,36 +1803,49 @@
 
         // Classify beat marker (alternate or check PVC)
         const isPvc = (idx === 3 || (lastAnalysisResult && lastAnalysisResult.prediction && lastAnalysisResult.prediction.includes('PVC') && idx % 2 === 1));
-        const color = isPvc ? '#c27827' : '#1e7256';
-        const label = isPvc ? 'PVC' : 'NORMAL';
+        const beatClass = isPvc ? 'PVC' : 'NORMAL';
+        const label = beatClass;
+
+        // Check active beat filter
+        let isFilteredMatch = true;
+        if (activeBeatFilter) {
+          isFilteredMatch = (activeBeatFilter === beatClass);
+        }
+
+        const baseColor = isPvc ? '#c27827' : '#1e7256';
+        const color = isFilteredMatch ? baseColor : 'rgba(120, 140, 130, 0.25)';
+        const size = isFilteredMatch ? (activeBeatFilter ? 8.5 : 6.5) : 4.0;
 
         peakColors.push(color);
+        peakSizes.push(size);
 
-        // Drop line from label down to peak marker
-        shapes.push({
-          type: 'line',
-          x0: px,
-          y0: py,
-          x1: px,
-          y1: py + 0.55,
-          line: { color: color, width: 1.2 }
-        });
+        if (isFilteredMatch) {
+          // Drop line from label down to peak marker
+          shapes.push({
+            type: 'line',
+            x0: px,
+            y0: py,
+            x1: px,
+            y1: py + 0.55,
+            line: { color: color, width: activeBeatFilter ? 1.8 : 1.2 }
+          });
 
-        // Uppercase text label above
-        annotations.push({
-          x: px,
-          y: py + 0.70,
-          text: label,
-          showarrow: false,
-          font: { size: 9, color: color, family: 'ui-monospace, monospace', weight: 'bold' }
-        });
+          // Uppercase text label above
+          annotations.push({
+            x: px,
+            y: py + 0.70,
+            text: label,
+            showarrow: false,
+            font: { size: 9, color: color, family: 'ui-monospace, monospace', weight: 'bold' }
+          });
+        }
       });
 
       const tracePeaks = {
         x: peakX,
         y: peakY,
         mode: 'markers',
-        marker: { color: peakColors, size: 6.5, symbol: 'circle' },
+        marker: { color: peakColors, size: peakSizes, symbol: 'circle' },
         name: 'R-Peaks',
         hoverinfo: 'x+y'
       };
@@ -1461,7 +1876,26 @@
         showlegend: false
       };
 
-      Plotly.react('chartWaveform', [traceSignal, tracePeaks], layout, { responsive: true, displayModeBar: false });
+      Plotly.react('chartWaveform', [traceSignal, tracePeaks], layout, { responsive: true, displayModeBar: false }).then(() => {
+        const chartEl = document.getElementById('chartWaveform');
+        if (chartEl && !chartEl._hasPlotlyListeners) {
+          chartEl._hasPlotlyListeners = true;
+          chartEl.on('plotly_hover', function(data) {
+            if (!data || !data.points || data.points.length === 0) return;
+            const pt = data.points[0];
+            if (pt.curveNumber === 1) { // R-peaks marker trace
+              showBeatInspector(pt.pointIndex, pt.x, pt.y);
+            }
+          });
+          chartEl.on('plotly_click', function(data) {
+            if (!data || !data.points || data.points.length === 0) return;
+            const pt = data.points[0];
+            if (pt.curveNumber === 1) {
+              showBeatInspector(pt.pointIndex, pt.x, pt.y, true);
+            }
+          });
+        }
+      });
     }
 
     // 2. Class Probabilities Horizontal Bar Chart
@@ -1570,6 +2004,18 @@
         showlegend: true
       });
 
+      // Highlight selected/inspected beat if available
+      if (selectedBeatIndex !== null && beatSegments && beatSegments[selectedBeatIndex]) {
+        traces.push({
+          x: tRel.slice(0, beatSegments[selectedBeatIndex].length),
+          y: beatSegments[selectedBeatIndex],
+          mode: 'lines',
+          line: { color: '#b8402c', width: 2.8 },
+          name: `Beat #${selectedBeatIndex + 1} (Inspected)`,
+          showlegend: true
+        });
+      }
+
       const layout = {
         margin: { t: 10, r: 15, b: 30, l: 35 },
         paper_bgcolor: 'rgba(0,0,0,0)',
@@ -1660,6 +2106,7 @@
             currentFs = data.fs || 360.0;
             document.getElementById('sbSamplingRate').value = String(currentFs);
             document.getElementById('dropzoneLabel').innerText = `Loaded: ${sampleType.toUpperCase()} (${data.signal.length} pts)`;
+            showToast(`Loaded ${sampleType.toUpperCase()} benchmark sample`, 'fa-circle-check');
             renderWaveformChart();
             triggerAnalysis();
             return;
@@ -1692,6 +2139,7 @@
         currentRPeaks = data.peaks.length > 0 ? data.peaks : [70, 370, 670, 970];
         renderAllCharts();
       }
+      showToast(`Loaded Demo Record ${recId}`, 'fa-wave-square');
       triggerAnalysis();
     }
 
@@ -1924,6 +2372,8 @@
 
           // 5. Beat Segments & Features
           if (data.beat_segments && data.beat_segments.length > 0) {
+            lastBeatSegments = data.beat_segments;
+            lastMeanBeatProfile = data.mean_beat_profile;
             renderBeatOverlayChart(data.beat_segments, data.mean_beat_profile);
           }
           if (data.beat_features) {
@@ -2142,6 +2592,342 @@
         document.getElementById('portalPlainLanguage').innerText = 'Your heart rhythm test showed normal sinus rhythm. The electrical signals controlling your heart contractions occurred at a regular rate and sequence.';
       }
     }
+
+    // ── 21st.dev Interactive Features & Synthesizers ──
+
+    // 1. Web Audio API QRS Synthesizer
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleAudioTone() {
+      soundEnabled = !soundEnabled;
+      initAudio();
+      const icon = document.getElementById('audioIcon');
+      const label = document.getElementById('audioLabel');
+      const btn = document.getElementById('btnAudioToggle');
+      if (soundEnabled) {
+        if (icon) icon.className = 'fa-solid fa-volume-high';
+        if (label) label.innerText = 'Audio 880Hz';
+        if (btn) btn.classList.add('active');
+        playQrsBeep(false); // test tone
+        showToast('QRS Monitor Audio Enabled', 'fa-volume-high');
+      } else {
+        if (icon) icon.className = 'fa-solid fa-volume-xmark';
+        if (label) label.innerText = 'Muted';
+        if (btn) btn.classList.remove('active');
+        showToast('QRS Monitor Audio Muted', 'fa-volume-xmark');
+      }
+    }
+
+    function playQrsBeep(isPvc = false) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = isPvc ? 440 : 880;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (isPvc ? 0.09 : 0.055));
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (isPvc ? 0.10 : 0.065));
+      } catch (e) {
+        console.warn('Audio tone error', e);
+      }
+    }
+
+    function pulseRadarBeacon() {
+      const badge = document.getElementById('telemetryPulsingBadge');
+      if (!badge) return;
+      badge.style.borderColor = '#1e7256';
+      badge.style.boxShadow = '0 0 8px rgba(30, 114, 86, 0.4)';
+      setTimeout(() => {
+        badge.style.borderColor = '#c0d4c4';
+        badge.style.boxShadow = 'none';
+      }, 160);
+    }
+
+    // 2. Oscilloscope Sweep Playback Engine
+    function toggleSweepPlayback() {
+      isSweeping = !isSweeping;
+      const btn = document.getElementById('btnSweepPlay');
+      const line = document.getElementById('sweepLine');
+
+      if (isSweeping) {
+        initAudio();
+        if (btn) {
+          btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pause Sweep</span>';
+          btn.classList.add('active');
+        }
+        if (line) line.classList.remove('hidden');
+        lastSweepTimestamp = performance.now();
+        lastPassedPeakIdx = -1;
+        sweepAnimLoop(performance.now());
+        showToast('Oscilloscope Sweep Playing', 'fa-play');
+      } else {
+        if (btn) {
+          btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Sweep</span>';
+          btn.classList.remove('active');
+        }
+        if (line) line.classList.add('hidden');
+        if (sweepAnimId) cancelAnimationFrame(sweepAnimId);
+        showToast('Sweep Paused', 'fa-pause');
+      }
+    }
+
+    function toggleSweepSpeed() {
+      sweepSpeed = (sweepSpeed === 1.0) ? 2.0 : (sweepSpeed === 2.0 ? 0.5 : 1.0);
+      const lbl = document.getElementById('speedLabel');
+      if (lbl) lbl.innerText = `${sweepSpeed}x`;
+      showToast(`Playback Speed: ${sweepSpeed}x`, 'fa-forward');
+    }
+
+    function sweepAnimLoop(now) {
+      if (!isSweeping) return;
+      const dt = (now - (lastSweepTimestamp || now)) / 1000;
+      lastSweepTimestamp = now;
+
+      const dur = currentSignal && currentSignal.length > 0 ? (currentSignal.length / currentFs) : 5.0;
+      const maxWindow = (currentDisplayWindow === 'full') ? dur : Math.min(dur, currentDisplayWindow || 5.0);
+
+      sweepCurrentTime += dt * sweepSpeed;
+      if (sweepCurrentTime > maxWindow) {
+        sweepCurrentTime = 0.0;
+        lastPassedPeakIdx = -1;
+      }
+
+      // Update sweep line position
+      const container = document.getElementById('chartWaveform');
+      const line = document.getElementById('sweepLine');
+      if (container && line) {
+        const width = container.clientWidth;
+        const innerLeft = 35;
+        const innerWidth = Math.max(10, width - 50);
+        const posPx = innerLeft + (sweepCurrentTime / maxWindow) * innerWidth;
+        line.style.left = `${posPx}px`;
+      }
+
+      // Check R-peak crossover
+      if (currentRPeaks && currentRPeaks.length > 0) {
+        const currentSample = sweepCurrentTime * currentFs;
+        for (let i = 0; i < currentRPeaks.length; i++) {
+          const peakSample = currentRPeaks[i];
+          if (peakSample <= currentSample && peakSample > (currentSample - (sweepSpeed * currentFs * dt * 1.6))) {
+            if (i !== lastPassedPeakIdx) {
+              lastPassedPeakIdx = i;
+              const isPvc = (i === 3 || (lastAnalysisResult && lastAnalysisResult.prediction && lastAnalysisResult.prediction.includes('PVC') && i % 2 === 1));
+              playQrsBeep(isPvc);
+              pulseRadarBeacon();
+              break;
+            }
+          }
+        }
+      }
+
+      sweepAnimId = requestAnimationFrame(sweepAnimLoop);
+    }
+
+    // 3. Time Window Selector
+    function setTimeWindow(win, btn) {
+      currentDisplayWindow = win;
+      document.querySelectorAll('.bench-time-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderWaveformChart();
+      showToast(`Time Window: ${win === 'full' ? 'Full Recording' : win + 's'}`, 'fa-clock');
+    }
+
+    // 4. Interactive Beat Inspector Tooltip
+    function showBeatInspector(pointIndex, px, py, isClick = false) {
+      if (pointIndex === undefined || pointIndex === null || !currentRPeaks || pointIndex >= currentRPeaks.length) return;
+      selectedBeatIndex = pointIndex;
+
+      const pSample = currentRPeaks[pointIndex];
+      const pTime = (pSample / currentFs).toFixed(2);
+      const pAmp = (currentSignal[pSample] !== undefined ? currentSignal[pSample] : 1.8).toFixed(2);
+
+      const isPvc = (pointIndex === 3 || (lastAnalysisResult && lastAnalysisResult.prediction && lastAnalysisResult.prediction.includes('PVC') && pointIndex % 2 === 1));
+      
+      let rrMs = 833;
+      if (pointIndex > 0) {
+        rrMs = Math.round(((currentRPeaks[pointIndex] - currentRPeaks[pointIndex - 1]) / currentFs) * 1000);
+      } else if (currentRPeaks.length > 1) {
+        rrMs = Math.round(((currentRPeaks[1] - currentRPeaks[0]) / currentFs) * 1000);
+      } else {
+        rrMs = Math.round(60000 / (lastAnalysisResult && lastAnalysisResult.heart_rate_bpm ? lastAnalysisResult.heart_rate_bpm : 72));
+      }
+      const instHr = Math.round(60000 / Math.max(250, rrMs));
+
+      // Fill tooltip
+      document.getElementById('bitTitle').innerText = `Beat #${pointIndex + 1}`;
+      document.getElementById('bitAmp').innerText = `${pAmp} mV`;
+      document.getElementById('bitRr').innerText = `${rrMs} ms`;
+      document.getElementById('bitHr').innerText = `${instHr} bpm`;
+      document.getElementById('bitTime').innerText = `${pTime} s`;
+
+      const badge = document.getElementById('bitBadge');
+      if (badge) {
+        if (isPvc) {
+          badge.className = 'badge badge-yellow';
+          badge.innerText = 'PVC ECTOPY';
+        } else {
+          badge.className = 'badge badge-green';
+          badge.innerText = 'NORMAL SINUS';
+        }
+      }
+
+      const tooltip = document.getElementById('beatInspectorTooltip');
+      if (tooltip) {
+        tooltip.classList.remove('hidden');
+      }
+
+      if (soundEnabled && isClick) {
+        playQrsBeep(isPvc);
+      }
+    }
+
+    function hideBeatInspector() {
+      const tooltip = document.getElementById('beatInspectorTooltip');
+      if (tooltip) tooltip.classList.add('hidden');
+      selectedBeatIndex = null;
+    }
+
+    function focusBeatInOverlay() {
+      if (selectedBeatIndex === null) return;
+      showToast(`Focused Beat #${selectedBeatIndex + 1} in Segmentation Overlay`, 'fa-magnifying-glass');
+      renderBeatOverlayChart(lastBeatSegments, lastMeanBeatProfile);
+      document.getElementById('chartBeatOverlay')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // 5. Beat Filter Highlighting
+    function toggleBeatFilter(type) {
+      if (activeBeatFilter === type) {
+        activeBeatFilter = null;
+        showToast('Beat filter cleared', 'fa-filter-circle-xmark');
+      } else {
+        activeBeatFilter = type;
+        showToast(`Filtering: ${type} Beats`, 'fa-filter');
+      }
+
+      document.querySelectorAll('.bench-legend-item').forEach(el => el.classList.remove('active-filter'));
+      if (activeBeatFilter === 'NORMAL') document.getElementById('legendItemNorm')?.classList.add('active-filter');
+      if (activeBeatFilter === 'PVC') document.getElementById('legendItemPvc')?.classList.add('active-filter');
+      if (activeBeatFilter === 'OTHER') document.getElementById('legendItemOther')?.classList.add('active-filter');
+
+      renderWaveformChart();
+    }
+
+    // 6. Collapsible Sidebar
+    function toggleSidebar() {
+      document.body.classList.toggle('sidebar-collapsed');
+      const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+      showToast(isCollapsed ? 'Sidebar Collapsed (Press [ to expand)' : 'Sidebar Expanded', 'fa-bars-staggered');
+      setTimeout(() => {
+        Plotly.Plots.resize('chartWaveform');
+        Plotly.Plots.resize('chartBeatOverlay');
+        Plotly.Plots.resize('chartProbabilities');
+      }, 300);
+    }
+
+    // 7. Keyboard Shortcuts Modal
+    function toggleShortcutsModal() {
+      const modal = document.getElementById('shortcutsModal');
+      if (modal) modal.classList.toggle('hidden');
+    }
+
+    // 8. Toast Notification System
+    function showToast(msg, icon = 'fa-circle-check') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const t = document.createElement('div');
+      t.className = 'toast-message';
+      t.innerHTML = `<i class="fa-solid ${icon}" style="color:var(--accent-green);"></i> <span>${msg}</span>`;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateY(10px)';
+        t.style.transition = 'all 0.25s ease';
+        setTimeout(() => t.remove(), 260);
+      }, 2400);
+    }
+
+    // 9. Keyboard Shortcuts Listener
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggleSweepPlayback();
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleAudioTone();
+      } else if (e.key === 'n' || e.key === 'N') {
+        loadBenchmarkSample('normal');
+      } else if (e.key === 'p' || e.key === 'P') {
+        loadBenchmarkSample('pvc');
+      } else if (e.key === 'r' || e.key === 'R') {
+        triggerAnalysis();
+      } else if (e.key === 'e' || e.key === 'E') {
+        exportDoctorPdf();
+      } else if (e.key === '[') {
+        toggleSidebar();
+      } else if (e.key === '1') {
+        setTimeWindow(2.5, document.getElementById('btnWin25'));
+      } else if (e.key === '2') {
+        setTimeWindow(5.0, document.getElementById('btnWin50'));
+      } else if (e.key === '3') {
+        setTimeWindow(10.0, document.getElementById('btnWin100'));
+      } else if (e.key === '4') {
+        setTimeWindow('full', document.getElementById('btnWinFull'));
+      } else if (e.key === 'Escape') {
+        document.getElementById('shortcutsModal')?.classList.add('hidden');
+        hideBeatInspector();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleShortcutsModal();
+      } else if (e.key === '?') {
+        toggleShortcutsModal();
+      }
+    });
   </script>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcutsModal" class="shortcuts-backdrop hidden" onclick="if(event.target===this) toggleShortcutsModal()">
+    <div class="shortcuts-card">
+      <div class="shortcuts-header">
+        <div style="font-weight:800; font-size:0.85rem; font-family:var(--font-mono); color:var(--text-main); display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-keyboard" style="color:var(--accent-green);"></i>
+          <span>CLINICAL BENCH SHORTCUTS</span>
+        </div>
+        <button class="bit-close-btn" onclick="toggleShortcutsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="shortcuts-body">
+        <div class="shortcut-row"><span class="shortcut-desc">Play / Pause Telemetry Sweep</span><span class="shortcut-key"><kbd>Space</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Toggle QRS Audio Beep Synthesizer</span><span class="shortcut-key"><kbd>M</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Zoom Window (2.5s, 5.0s, 10.0s, Full)</span><span class="shortcut-key"><kbd>1</kbd> - <kbd>4</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Load Normal Sinus Benchmark</span><span class="shortcut-key"><kbd>N</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Load PVC Ectopy Benchmark</span><span class="shortcut-key"><kbd>P</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Run Analysis Pipeline</span><span class="shortcut-key"><kbd>R</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Export Doctor Clinical PDF</span><span class="shortcut-key"><kbd>E</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Collapse / Expand Sidebar</span><span class="shortcut-key"><kbd>[</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Close Modal or Inspector</span><span class="shortcut-key"><kbd>Esc</kbd></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
 </body>
 </html>
