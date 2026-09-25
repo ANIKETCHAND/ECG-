@@ -1,0 +1,208 @@
+{
+  "calibrator": {
+    "method": "platt",
+    "classes": [
+      "Normal",
+      "Other",
+      "PVC"
+    ],
+    "functions": {
+      "Normal": {
+        "type": "platt",
+        "coef": 1.5540043683347042,
+        "intercept": 4.602249045114535
+      },
+      "Other": {
+        "type": "platt",
+        "coef": 0.020518853429708377,
+        "intercept": -5.911652434300545
+      },
+      "PVC": null
+    },
+    "is_fitted": true,
+    "fitted_at": "2026-09-25T22:01:54.433676"
+  },
+  "conformal": {
+    "alpha": 0.1,
+    "classes": [
+      "Normal",
+      "Other",
+      "PVC"
+    ],
+    "quantiles": {
+      "Normal": 0.1577012824419466,
+      "Other": 0.1577012824419466,
+      "PVC": 0.1577012824419466
+    },
+    "calibration_counts": {
+      "Normal": 1860,
+      "Other": 5,
+      "PVC": 0
+    },
+    "min_class_samples": 10,
+    "pooled_classes": [
+      "Other",
+      "PVC"
+    ],
+    "pooled_quantile": 0.1577012824419466,
+    "is_fitted": true,
+    "target_coverage": 0.9,
+    "coverage_note": "Per-class coverage is individually guaranteed for classes with at least 10 calibration samples. Classes ['Other', 'PVC'] use a pooled quantile and carry the marginal coverage statement only."
+  },
+  "saved_at": "2026-09-25T22:01:54.433690",
+  "deployment_recommended": false,
+  "deployment_recommendation_reason": "ECE worsened on the evaluation partition (0.0766 -> 0.1566); empirical conformal coverage 0.703 is materially below the 0.90 target. This typically means the calibration partition is too small or not exchangeable with the evaluation partition. Artifact retained for inspection; inference serves raw probabilities.",
+  "model_id": "RandomForestClassifier",
+  "classes": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "feature_names": [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "median",
+    "energy",
+    "rms",
+    "mav",
+    "snr",
+    "zero_crossing_rate",
+    "autocorr_first_peak",
+    "r_peak_amplitude",
+    "p_wave_amplitude",
+    "t_wave_amplitude",
+    "peak_to_peak_amplitude",
+    "max_slope",
+    "qrs_width_samples",
+    "total_power",
+    "lf_power",
+    "hf_power",
+    "vhf_power",
+    "dominant_frequency",
+    "max_power",
+    "spectral_entropy",
+    "pre_rr",
+    "post_rr",
+    "local_rr_ratio"
+  ],
+  "method": "platt",
+  "alpha": 0.1,
+  "metrics": {
+    "calibration_records": [
+      "101"
+    ],
+    "evaluation_records": [
+      "119",
+      "208"
+    ],
+    "selected_method": "platt",
+    "method_selection": {
+      "selection_split": "row-level hold-out drawn from the calibration partition only",
+      "selection_ece": {
+        "isotonic": 0.11982838207875801,
+        "platt": 0.11804161940167965
+      },
+      "n_selection_rows": 560
+    },
+    "conformal_pooled_classes": [
+      "Other",
+      "PVC"
+    ],
+    "conformal_class_counts": {
+      "Normal": 1860,
+      "Other": 5,
+      "PVC": 0
+    },
+    "n_calibration_samples": 1865,
+    "n_evaluation_samples": 4942,
+    "ece_before": 0.07663504635494765,
+    "ece_after": 0.15662019589111043,
+    "mce_before": 0.25549896611154527,
+    "mce_after": 0.39199646488267426,
+    "brier_before": 0.04803466254701836,
+    "brier_after": 0.2177023245121963,
+    "target_coverage": 0.9,
+    "empirical_coverage": 0.7031566167543505,
+    "mean_prediction_set_size": 1.0,
+    "abstention_rate": 0.0,
+    "reliability_bins_after": [
+      {
+        "lower": 0.0,
+        "upper": 0.1,
+        "count": 0.0,
+        "mean_confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.1,
+        "upper": 0.2,
+        "count": 0.0,
+        "mean_confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.2,
+        "upper": 0.30000000000000004,
+        "count": 0.0,
+        "mean_confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.30000000000000004,
+        "upper": 0.4,
+        "count": 0.0,
+        "mean_confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.4,
+        "upper": 0.5,
+        "count": 491.0,
+        "mean_confidence": 0.49983835839126695,
+        "accuracy": 0.43380855397148677
+      },
+      {
+        "lower": 0.5,
+        "upper": 0.6000000000000001,
+        "count": 1251.0,
+        "mean_confidence": 0.5222922282719629,
+        "accuracy": 0.13029576338928858
+      },
+      {
+        "lower": 0.6000000000000001,
+        "upper": 0.7000000000000001,
+        "count": 157.0,
+        "mean_confidence": 0.6373722816559698,
+        "accuracy": 0.40764331210191085
+      },
+      {
+        "lower": 0.7000000000000001,
+        "upper": 0.8,
+        "count": 89.0,
+        "mean_confidence": 0.7566248585900691,
+        "accuracy": 0.9325842696629213
+      },
+      {
+        "lower": 0.8,
+        "upper": 0.9,
+        "count": 882.0,
+        "mean_confidence": 0.8659651547033242,
+        "accuracy": 1.0
+      },
+      {
+        "lower": 0.9,
+        "upper": 1.0,
+        "count": 2072.0,
+        "mean_confidence": 0.959815527413904,
+        "accuracy": 0.999034749034749
+      }
+    ],
+    "deployment_recommended": false,
+    "deployment_recommendation_reason": "ECE worsened on the evaluation partition (0.0766 -> 0.1566); empirical conformal coverage 0.703 is materially below the 0.90 target. This typically means the calibration partition is too small or not exchangeable with the evaluation partition. Artifact retained for inspection; inference serves raw probabilities."
+  },
+  "methodology_note": "Calibration and conformal quantiles were fitted on calibration records and evaluated on disjoint record-level evaluation partitions. No evaluation row influenced the fitted artifacts.",
+  "clinical_note": "Probability calibration makes reported probabilities more honest; it does not make the model diagnostic. Conformal abstention flags cases the model cannot separate."
+}

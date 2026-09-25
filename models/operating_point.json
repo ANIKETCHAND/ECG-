@@ -1,0 +1,349 @@
+{
+  "threshold": 0.99,
+  "target_precision": 1.0,
+  "coverage": 0.104598,
+  "reported_beats": 712,
+  "total_beats": 6807,
+  "precision": 1.0,
+  "macro_f1_reported": 1.0,
+  "accuracy_reported": 1.0,
+  "classes_reported": [
+    "Normal",
+    "Other",
+    "PVC"
+  ],
+  "meets_target": true,
+  "guard_rail_ok": true,
+  "guard_rail_reason": null,
+  "selection_bias": "Threshold selected by leave-one-record-out over records ['101', '119', '208'], then measured on the whole partition at that single installed threshold. No record was measured with a threshold chosen using its own beats. Residual optimism remains because a single corpus of a few records cannot separate selection from evaluation perfectly; re-fit on a larger dataset before any clinical use.",
+  "source_dataset": "MIT-BIH Arrhythmia Database",
+  "evaluated_records": [
+    "101",
+    "119",
+    "208"
+  ],
+  "created_at": "2026-09-25T23:02:35.283137",
+  "provenance": {
+    "target_precision": 1.0,
+    "min_coverage": 0.05,
+    "protocol": "leave_one_record_out_threshold_selection",
+    "model_classes": [
+      "Normal",
+      "Other",
+      "PVC"
+    ],
+    "evaluated_beats": 6807,
+    "jackknife": {
+      "folds": [
+        {
+          "held_out_record": "101",
+          "selection_records": [
+            "119",
+            "208"
+          ],
+          "threshold": 0.99,
+          "selection_precision": 1.0
+        },
+        {
+          "held_out_record": "119",
+          "selection_records": [
+            "101",
+            "208"
+          ],
+          "threshold": 0.99,
+          "selection_precision": 1.0
+        },
+        {
+          "held_out_record": "208",
+          "selection_records": [
+            "101",
+            "119"
+          ],
+          "threshold": 0.95,
+          "selection_precision": 1.0
+        }
+      ],
+      "installed_threshold": 0.99,
+      "all_folds_met_target": true,
+      "target_precision": 1.0
+    },
+    "measured_at_installed_threshold": {
+      "threshold": 0.99,
+      "reported_beats": 712,
+      "total_beats": 6807,
+      "coverage": 0.104598,
+      "accuracy_reported": 1.0,
+      "precision_reported": 1.0,
+      "macro_f1_reported": 1.0,
+      "errors_reported": 0,
+      "abstained_beats": 6095
+    },
+    "full_curve": [
+      {
+        "threshold": 0.0,
+        "reported_beats": 6807,
+        "total_beats": 6807,
+        "coverage": 1.0,
+        "accuracy_reported": 0.987366,
+        "precision_reported": 0.987366,
+        "macro_f1_reported": 0.656669,
+        "errors_reported": 86,
+        "abstained_beats": 0
+      },
+      {
+        "threshold": 0.3,
+        "reported_beats": 6807,
+        "total_beats": 6807,
+        "coverage": 1.0,
+        "accuracy_reported": 0.987366,
+        "precision_reported": 0.987366,
+        "macro_f1_reported": 0.656669,
+        "errors_reported": 86,
+        "abstained_beats": 0
+      },
+      {
+        "threshold": 0.4,
+        "reported_beats": 6807,
+        "total_beats": 6807,
+        "coverage": 1.0,
+        "accuracy_reported": 0.987366,
+        "precision_reported": 0.987366,
+        "macro_f1_reported": 0.656669,
+        "errors_reported": 86,
+        "abstained_beats": 0
+      },
+      {
+        "threshold": 0.5,
+        "reported_beats": 6790,
+        "total_beats": 6807,
+        "coverage": 0.997503,
+        "accuracy_reported": 0.987923,
+        "precision_reported": 0.987923,
+        "macro_f1_reported": 0.657052,
+        "errors_reported": 82,
+        "abstained_beats": 17
+      },
+      {
+        "threshold": 0.55,
+        "reported_beats": 6734,
+        "total_beats": 6807,
+        "coverage": 0.989276,
+        "accuracy_reported": 0.989902,
+        "precision_reported": 0.989902,
+        "macro_f1_reported": 0.658712,
+        "errors_reported": 68,
+        "abstained_beats": 73
+      },
+      {
+        "threshold": 0.6,
+        "reported_beats": 6679,
+        "total_beats": 6807,
+        "coverage": 0.981196,
+        "accuracy_reported": 0.992065,
+        "precision_reported": 0.992065,
+        "macro_f1_reported": 0.660481,
+        "errors_reported": 53,
+        "abstained_beats": 128
+      },
+      {
+        "threshold": 0.65,
+        "reported_beats": 6602,
+        "total_beats": 6807,
+        "coverage": 0.969884,
+        "accuracy_reported": 0.993487,
+        "precision_reported": 0.993487,
+        "macro_f1_reported": 0.661655,
+        "errors_reported": 43,
+        "abstained_beats": 205
+      },
+      {
+        "threshold": 0.7,
+        "reported_beats": 6503,
+        "total_beats": 6807,
+        "coverage": 0.95534,
+        "accuracy_reported": 0.994925,
+        "precision_reported": 0.994925,
+        "macro_f1_reported": 0.662633,
+        "errors_reported": 33,
+        "abstained_beats": 304
+      },
+      {
+        "threshold": 0.75,
+        "reported_beats": 6406,
+        "total_beats": 6807,
+        "coverage": 0.94109,
+        "accuracy_reported": 0.996097,
+        "precision_reported": 0.996097,
+        "macro_f1_reported": 0.663618,
+        "errors_reported": 25,
+        "abstained_beats": 401
+      },
+      {
+        "threshold": 0.8,
+        "reported_beats": 6188,
+        "total_beats": 6807,
+        "coverage": 0.909064,
+        "accuracy_reported": 0.99693,
+        "precision_reported": 0.99693,
+        "macro_f1_reported": 0.664362,
+        "errors_reported": 19,
+        "abstained_beats": 619
+      },
+      {
+        "threshold": 0.85,
+        "reported_beats": 5162,
+        "total_beats": 6807,
+        "coverage": 0.758337,
+        "accuracy_reported": 0.997094,
+        "precision_reported": 0.997094,
+        "macro_f1_reported": 0.664733,
+        "errors_reported": 15,
+        "abstained_beats": 1645
+      },
+      {
+        "threshold": 0.9,
+        "reported_beats": 3534,
+        "total_beats": 6807,
+        "coverage": 0.519171,
+        "accuracy_reported": 0.99717,
+        "precision_reported": 0.99717,
+        "macro_f1_reported": 0.665187,
+        "errors_reported": 10,
+        "abstained_beats": 3273
+      },
+      {
+        "threshold": 0.925,
+        "reported_beats": 2876,
+        "total_beats": 6807,
+        "coverage": 0.422506,
+        "accuracy_reported": 0.997914,
+        "precision_reported": 0.997914,
+        "macro_f1_reported": 0.665609,
+        "errors_reported": 6,
+        "abstained_beats": 3931
+      },
+      {
+        "threshold": 0.95,
+        "reported_beats": 2323,
+        "total_beats": 6807,
+        "coverage": 0.341266,
+        "accuracy_reported": 0.998709,
+        "precision_reported": 0.998709,
+        "macro_f1_reported": 0.666083,
+        "errors_reported": 3,
+        "abstained_beats": 4484
+      },
+      {
+        "threshold": 0.96,
+        "reported_beats": 2047,
+        "total_beats": 6807,
+        "coverage": 0.30072,
+        "accuracy_reported": 0.999023,
+        "precision_reported": 0.999023,
+        "macro_f1_reported": 0.666339,
+        "errors_reported": 2,
+        "abstained_beats": 4760
+      },
+      {
+        "threshold": 0.97,
+        "reported_beats": 1661,
+        "total_beats": 6807,
+        "coverage": 0.244014,
+        "accuracy_reported": 0.999398,
+        "precision_reported": 0.999398,
+        "macro_f1_reported": 0.666468,
+        "errors_reported": 1,
+        "abstained_beats": 5146
+      },
+      {
+        "threshold": 0.975,
+        "reported_beats": 1539,
+        "total_beats": 6807,
+        "coverage": 0.226091,
+        "accuracy_reported": 0.99935,
+        "precision_reported": 0.99935,
+        "macro_f1_reported": 0.666447,
+        "errors_reported": 1,
+        "abstained_beats": 5268
+      },
+      {
+        "threshold": 0.98,
+        "reported_beats": 1393,
+        "total_beats": 6807,
+        "coverage": 0.204642,
+        "accuracy_reported": 0.999282,
+        "precision_reported": 0.999282,
+        "macro_f1_reported": 0.666413,
+        "errors_reported": 1,
+        "abstained_beats": 5414
+      },
+      {
+        "threshold": 0.985,
+        "reported_beats": 1093,
+        "total_beats": 6807,
+        "coverage": 0.16057,
+        "accuracy_reported": 0.999085,
+        "precision_reported": 0.999085,
+        "macro_f1_reported": 0.666311,
+        "errors_reported": 1,
+        "abstained_beats": 5714
+      },
+      {
+        "threshold": 0.99,
+        "reported_beats": 712,
+        "total_beats": 6807,
+        "coverage": 0.104598,
+        "accuracy_reported": 1.0,
+        "precision_reported": 1.0,
+        "macro_f1_reported": 1.0,
+        "errors_reported": 0,
+        "abstained_beats": 6095
+      },
+      {
+        "threshold": 0.992,
+        "reported_beats": 703,
+        "total_beats": 6807,
+        "coverage": 0.103276,
+        "accuracy_reported": 1.0,
+        "precision_reported": 1.0,
+        "macro_f1_reported": 1.0,
+        "errors_reported": 0,
+        "abstained_beats": 6104
+      },
+      {
+        "threshold": 0.995,
+        "reported_beats": 369,
+        "total_beats": 6807,
+        "coverage": 0.054209,
+        "accuracy_reported": 1.0,
+        "precision_reported": 1.0,
+        "macro_f1_reported": 1.0,
+        "errors_reported": 0,
+        "abstained_beats": 6438
+      },
+      {
+        "threshold": 0.997,
+        "reported_beats": 162,
+        "total_beats": 6807,
+        "coverage": 0.023799,
+        "accuracy_reported": 1.0,
+        "precision_reported": 1.0,
+        "macro_f1_reported": 1.0,
+        "errors_reported": 0,
+        "abstained_beats": 6645
+      },
+      {
+        "threshold": 0.999,
+        "reported_beats": 162,
+        "total_beats": 6807,
+        "coverage": 0.023799,
+        "accuracy_reported": 1.0,
+        "precision_reported": 1.0,
+        "macro_f1_reported": 1.0,
+        "errors_reported": 0,
+        "abstained_beats": 6645
+      }
+    ],
+    "artifact_source": "E:\\CODE\\AI-ECG-Analyzer\\models\\production\\classifier.pkl"
+  }
+}

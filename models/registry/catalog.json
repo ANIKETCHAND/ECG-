@@ -5,7 +5,13 @@
     "status": "PRODUCTION",
     "artifact_path": "production/classifier.pkl",
     "scaler_path": "production/scaler.pkl",
-    "description": "Baseline Balanced Random Forest for Single-Lead Beat Arrhythmia"
+    "description": "Baseline Balanced Random Forest for Single-Lead Beat Arrhythmia",
+    "provenance": {
+      "data_status": "UNVERIFIED_LEGACY",
+      "task": "beat_arrhythmia",
+      "clinical_claim": "NONE - training data provenance not recorded for this legacy artifact",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-RF-2.0.0-candidate": {
     "model_id": "ECG-RF-2.0.0-candidate",
@@ -13,7 +19,13 @@
     "status": "VALIDATED",
     "artifact_path": "candidate/classifier.pkl",
     "scaler_path": "candidate/scaler.pkl",
-    "description": "Candidate Optimized Random Forest with zero patient leakage validation"
+    "description": "Candidate Optimized Random Forest with zero patient leakage validation",
+    "provenance": {
+      "data_status": "UNVERIFIED_LEGACY",
+      "task": "beat_arrhythmia",
+      "clinical_claim": "NONE - training data provenance not recorded for this legacy artifact",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-MLP-1.0.0-candidate": {
     "model_id": "ECG-MLP-1.0.0-candidate",
@@ -21,7 +33,13 @@
     "status": "EXPERIMENTAL",
     "artifact_path": "candidate/deep_classifier.pkl",
     "scaler_path": "candidate/scaler.pkl",
-    "description": "Candidate Deep Waveform Neural Network"
+    "description": "Candidate Deep Waveform Neural Network",
+    "provenance": {
+      "data_status": "UNVERIFIED_LEGACY",
+      "task": "beat_arrhythmia",
+      "clinical_claim": "NONE - training data provenance not recorded for this legacy artifact",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-LR-1.0.0": {
     "model_id": "ECG-LR-1.0.0",
@@ -29,45 +47,89 @@
     "status": "EXPERIMENTAL",
     "artifact_path": "candidate/baseline_classifier.pkl",
     "scaler_path": "candidate/scaler.pkl",
-    "description": "Linear Logistic Regression Baseline"
+    "description": "Linear Logistic Regression Baseline",
+    "provenance": {
+      "data_status": "UNVERIFIED_LEGACY",
+      "task": "beat_arrhythmia",
+      "clinical_claim": "NONE - training data provenance not recorded for this legacy artifact",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-AF-1.0.0-candidate": {
     "model_id": "ECG-AF-1.0.0-candidate",
     "task": "af_detection",
-    "status": "CANDIDATE",
+    "status": "SYNTHETIC_PLACEHOLDER",
     "artifact_path": "candidate/af_classifier.pkl",
     "scaler_path": "candidate/af_scaler.pkl",
-    "description": "Rhythm Entropy & RR Irregularity Random Forest for Atrial Fibrillation"
+    "description": "Rhythm Entropy & RR Irregularity Random Forest for Atrial Fibrillation",
+    "provenance": {
+      "data_status": "SYNTHETIC_PLACEHOLDER",
+      "task": "af_detection",
+      "generator": "numpy.random",
+      "reason": "Fitted to fabricated numpy.random samples by the pre-guard training fallback.",
+      "clinical_claim": "NONE - placeholder exists solely to exercise application plumbing",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-PTBXL-1.0.0-candidate": {
     "model_id": "ECG-PTBXL-1.0.0-candidate",
     "task": "12lead_diagnosis",
-    "status": "CANDIDATE",
+    "status": "SYNTHETIC_PLACEHOLDER",
     "artifact_path": "candidate/ptbxl_classifier.pkl",
     "scaler_path": "candidate/ptbxl_scaler.pkl",
-    "description": "12-Lead Multi-Label Classifier for Clinical Superclasses (NORM, MI, STTC, CD, HYP)"
+    "description": "12-Lead Multi-Label Classifier for Clinical Superclasses (NORM, MI, STTC, CD, HYP)",
+    "provenance": {
+      "data_status": "SYNTHETIC_PLACEHOLDER",
+      "task": "12lead_diagnosis",
+      "generator": "numpy.random",
+      "reason": "Fitted to fabricated numpy.random samples by the pre-guard training fallback.",
+      "clinical_claim": "NONE - placeholder exists solely to exercise application plumbing",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-ST-1.0.0-candidate": {
     "model_id": "ECG-ST-1.0.0-candidate",
     "task": "st_analysis",
-    "status": "CANDIDATE",
+    "status": "SYNTHETIC_PLACEHOLDER",
     "artifact_path": "candidate/st_classifier.pkl",
     "scaler_path": "candidate/st_scaler.pkl",
-    "description": "ST-Segment & Ischemia Classifier (Normal, ST_Elevation, ST_Depression)"
+    "description": "ST-Segment & Ischemia Classifier (Normal, ST_Elevation, ST_Depression)",
+    "provenance": {
+      "data_status": "SYNTHETIC_PLACEHOLDER",
+      "task": "st_analysis",
+      "generator": "numpy.random",
+      "reason": "Fitted to fabricated numpy.random samples by the pre-guard training fallback.",
+      "clinical_claim": "NONE - placeholder exists solely to exercise application plumbing",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-QUALITY-1.0.0": {
     "model_id": "ECG-QUALITY-1.0.0",
     "task": "quality_gate",
-    "status": "VALIDATED",
+    "status": "SYNTHETIC_PLACEHOLDER",
     "artifact_path": "candidate/quality_classifier.pkl",
     "scaler_path": "candidate/quality_scaler.pkl",
-    "description": "Pre-Inference Diagnostic Quality Classifier (GOOD, ACCEPTABLE, POOR, UNUSABLE)"
+    "description": "Pre-Inference Diagnostic Quality Classifier (GOOD, ACCEPTABLE, POOR, UNUSABLE)",
+    "provenance": {
+      "data_status": "SYNTHETIC_PLACEHOLDER",
+      "task": "quality_gate",
+      "generator": "numpy.random",
+      "reason": "Fitted to fabricated numpy.random samples by the pre-guard training fallback.",
+      "clinical_claim": "NONE - placeholder exists solely to exercise application plumbing",
+      "may_be_promoted_to_production": false
+    }
   },
   "ECG-MULTIMODAL-FUSION-1.0.0": {
     "model_id": "ECG-MULTIMODAL-FUSION-1.0.0",
     "task": "multimodal_arrhythmia_classification",
     "status": "PRODUCTION",
     "artifact_path": "registry/ECG-MULTIMODAL-FUSION-1.0.0/multimodal_fusion.pkl",
-    "description": "Patient-Aware Multimodal ECG Classifier fusing waveform features with validated clinical context."
+    "description": "Patient-Aware Multimodal ECG Classifier fusing waveform features with validated clinical context.",
+    "provenance": {
+      "data_status": "UNVERIFIED_LEGACY",
+      "task": "multimodal_arrhythmia_classification",
+      "clinical_claim": "NONE - training data provenance not recorded for this legacy artifact",
+      "may_be_promoted_to_production": false
+    }
   }
 }

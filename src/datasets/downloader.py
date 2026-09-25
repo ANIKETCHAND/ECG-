@@ -34,6 +34,50 @@ class DatasetDownloader:
         files = list(raw_dir.glob("*.hea")) + list(raw_dir.glob("*.csv")) + list(raw_dir.glob("*.dat"))
         return len(files) > 0
 
+    @staticmethod
+    def resolve_record_list(physionet_slug: str, version: Optional[str] = None) -> List[str]:
+        """Resolve the record list for a PhysioNet database.
+
+        ``wfdb.dl_database`` requires an explicit iterable of record names. The
+        previous call passed ``records=None`` to mean "everything", which does not
+        make wfdb enumerate the database; it fails with
+        ``'NoneType' object is not iterable`` and the download silently reports
+        DOWNLOAD_FAILED. Fetching the database's own ``RECORDS`` manifest is the
+        documented way to ask for the whole set.
+
+        Raises:
+            RuntimeError: when the manifest cannot be retrieved, so the caller
+                reports a genuine failure instead of an empty success.
+        """
+        base = f"https://physionet.org/files/{physionet_slug}"
+        candidates = ([f"{base}/{version}/RECORDS"] if version else []) + [
+            f"{base}/RECORDS",
+            f"{base}/1.0.0/RECORDS",
+        ]
+
+        text: Optional[str] = None
+        errors: List[str] = []
+        for url in candidates:
+            try:
+                with urllib.request.urlopen(url, timeout=30) as response:
+                    text = response.read().decode("utf-8", errors="replace")
+                break
+            except Exception as exc:  # network / HTTP / DNS
+                errors.append(f"{url} -> {exc}")
+
+        if text is None:
+            raise RuntimeError(
+                f"Could not fetch the record manifest for '{physionet_slug}'. Tried: "
+                + "; ".join(errors)
+            )
+
+        records = [line.strip() for line in text.splitlines() if line.strip()]
+        if not records:
+            raise RuntimeError(
+                f"Record manifest for '{physionet_slug}' was empty (tried {', '.join(candidates)})."
+            )
+        return records
+
     def download_dataset(
         self,
         dataset_id: str,
@@ -65,11 +109,13 @@ class DatasetDownloader:
         # 1. PhysioNet WFDB Database
         if entry.physionet_slug:
             try:
-                # If specific records requested, download them; else download entire or core set
+                records = records_subset or self.resolve_record_list(
+                    entry.physionet_slug, getattr(entry, "version", None)
+                )
                 wfdb.dl_database(
                     db_dir=entry.physionet_slug,
                     dl_dir=str(raw_dir),
-                    records=records_subset,
+                    records=records,
                     keep_subdirs=False,
                     overwrite=force_redownload,
                 )
@@ -84,7 +130,9 @@ class DatasetDownloader:
                     "version": entry.version,
                     "raw_dir": str(raw_dir),
                 }
-                with open(target_dir / "metadata" / "manifest.json", "w", encoding="utf-8") as f:
+                metadata_dir = target_dir / "metadata"
+                metadata_dir.mkdir(parents=True, exist_ok=True)
+                with open(metadata_dir / "manifest.json", "w", encoding="utf-8") as f:
                     json.dump(manifest, f, indent=2)
 
                 return {

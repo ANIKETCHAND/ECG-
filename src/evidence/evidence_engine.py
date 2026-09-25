@@ -13,6 +13,7 @@ import numpy as np
 
 from src.evidence.beat_evidence import BeatEvidence, analyze_beats_for_evidence
 from src.evidence.feature_evidence import compute_feature_attribution_for_beat
+from src.evidence.shap_evidence import attribute_beats_with_shap, summarise_attributions
 from src.evidence.waveform_evidence import WaveformSnippet, extract_waveform_snippet
 
 
@@ -31,6 +32,9 @@ class EvidenceReport:
     feature_attributions: Dict[int, List[Dict[str, Any]]]  # beat_number -> attributions
     waveform_snippets: List[WaveformSnippet]
     clinician_verification_checklist: List[str]
+    #: Model-based (SHAP) or baseline-deviation attribution, including which
+    #: method actually produced the numbers.
+    attribution_evidence: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
@@ -51,6 +55,8 @@ def generate_ai_evidence(
     overall_classification: str,
     analysis_id: str = "EVD-UNKNOWN",
     lead_name: str = "II",
+    model: Optional[Any] = None,
+    scaled_features: Optional[np.ndarray] = None,
 ) -> EvidenceReport:
     """Generate comprehensive, clinician-verifiable AI evidence for an ECG analysis.
 
@@ -142,6 +148,22 @@ def generate_ai_evidence(
         "Confirm QRS morphology (broadening, concordance, polarity) on 12-lead ECG before intervention.",
     ]
 
+    # 6. Model-based attribution for the beats the model actually flagged as
+    # aberrant. Falls back to baseline-deviation attribution (clearly labelled)
+    # when SHAP or a tree explainer is unavailable.
+    attribution_evidence: Dict[str, Any] = {}
+    if model is not None and aberrant_numbers:
+        explanation_input = scaled_features if scaled_features is not None else features
+        attribution_evidence = attribute_beats_with_shap(
+            model=model,
+            X=explanation_input,
+            feature_names=feature_names,
+            classes=classes,
+            beat_numbers=aberrant_numbers,
+            baseline_X=feature_rows_for_baseline(features, normal_indices),
+        )
+        attribution_evidence["summary_lines"] = summarise_attributions(attribution_evidence)
+
     return EvidenceReport(
         analysis_id=analysis_id,
         lead_name=lead_name,
@@ -156,4 +178,15 @@ def generate_ai_evidence(
         feature_attributions=feature_attributions,
         waveform_snippets=snippets,
         clinician_verification_checklist=checklist,
+        attribution_evidence=attribution_evidence,
     )
+
+
+def feature_rows_for_baseline(features: np.ndarray, normal_indices: List[int]) -> np.ndarray:
+    """Baseline feature population used by the non-SHAP attribution fallback."""
+    features = np.asarray(features, dtype=float)
+    if features.ndim != 2 or features.size == 0:
+        return np.empty((0, 0))
+    if normal_indices:
+        return features[normal_indices]
+    return features

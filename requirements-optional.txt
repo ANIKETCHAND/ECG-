@@ -1,0 +1,39 @@
+# Optional capability packages for ECG Guardian.
+#
+# The platform runs without all of these; each one unlocks a specific feature and
+# the code reports honestly when the capability is unavailable rather than
+# degrading silently.
+#
+#   pip install -r requirements-optional.txt
+#
+# Feature -> package mapping:
+#
+#   Real 1-D CNN over raw waveforms (src/ml/models/deep_1d_cnn.py: ECGConv1DClassifier,
+#   training/train_waveform_cnn.py)
+#       torch
+#
+#   Shapley per-beat model attribution (src/evidence/shap_evidence.py).
+#   Without it, attribution falls back to labelled baseline deviation.
+#   Note: shap can lag the newest Python releases. Install it in a separate
+#   environment if it has no wheel for your interpreter.
+#       shap
+#
+#   OCR of scanned ECG reports (src/ecg_input/ocr.py). Requires the Tesseract
+#   engine to be installed and on PATH in addition to the Python binding.
+#       pytesseract
+#
+#   Rasterising image-only PDFs so OCR can read them (src/ecg_input/ocr.py).
+#       pypdfium2
+
+# --- optional: deep learning -------------------------------------------------
+# torch>=2.1
+
+# --- optional: explainability ------------------------------------------------
+shap>=0.44
+
+# --- optional: scanned-report OCR --------------------------------------------
+pytesseract>=0.3.10
+pypdfium2>=4.20
+
+# --- optional: extra dICOM tooling -------------------------------------------
+# pydicom is already a core requirement in requirements.txt

@@ -549,6 +549,14 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
             f"  Rhythm Regularity CV : {evd.get('rhythm_regularity_cv', 'N/A')}%",
         ])
 
+        attribution = evd.get("attribution_evidence") or {}
+        if attribution:
+            lines.append(f"  Attribution Method   : {attribution.get('method', 'N/A')}")
+            if attribution.get("reason"):
+                lines.append(f"  Attribution Note     : {attribution['reason']}")
+            for line in (attribution.get("summary_lines") or [])[2:]:
+                lines.append(f"  {line}")
+
     if report.get("machine_comparison"):
         cmp = report["machine_comparison"]
         lines.extend([

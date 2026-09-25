@@ -55,10 +55,26 @@ def test_inference_engine_synthetic_clean_ecg():
     assert res.analysis_id.startswith("ANL-")
     assert res.model_id == ACTIVE_MODEL_ID
     assert res.record_id == "REC-TEST-INFER"
-    assert any(c in res.prediction for c in ("Normal", "PVC", "Other", "INDETERMINATE"))
+    # This signal is a synthetic sine with spikes, not a real ECG. Either the
+    # model is confident enough to name a rhythm, or the abstention gate refuses
+    # to guess. Both are legitimate outcomes; inventing a rhythm is not.
+    assert any(
+        c in res.prediction
+        for c in ("Normal", "PVC", "Other", "INDETERMINATE", "INSUFFICIENT_CONFIDENCE")
+    ), res.prediction
     assert "Normal" in res.model_probabilities
     assert "PVC" in res.model_probabilities
     assert res.processing_time_ms >= 0.0
+
+    # Selective-reporting bookkeeping must always add up, whether or not a gate
+    # is installed.
+    if res.beat_predictions:
+        assert res.reported_beats_count + res.abstained_beats_count == len(res.beat_predictions)
+        assert len(res.raw_beat_predictions) == len(res.beat_predictions)
+        assert len(res.beat_confidences) == len(res.beat_predictions)
+        assert all(
+            lab in {"Normal", "Other", "PVC", "INDETERMINATE"} for lab in res.beat_predictions
+        )
 
 
 def test_inference_engine_unsupported_lead():

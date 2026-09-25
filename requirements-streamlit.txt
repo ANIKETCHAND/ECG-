@@ -14,3 +14,4 @@ pillow>=9.0
 fastapi>=0.100.0
 uvicorn>=0.22.0
 supabase>=2.0.0
+pydicom>=2.4

@@ -169,6 +169,27 @@ class ECGAnalysisResult:
     patient_id: Optional[str] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     data_hash: str = ""
+    # Calibration & conformal abstention (see src/ml/calibration.py). Empty/False
+    # values mean "not calibrated", which is reported as such rather than
+    # implying the raw probabilities are trustworthy.
+    calibrated_probabilities: Dict[str, float] = field(default_factory=dict)
+    calibration_applied: bool = False
+    prediction_set: List[str] = field(default_factory=list)
+    abstain: bool = False
+    abstain_reason: Optional[str] = None
+    # Selective prediction / abstention gate (see src/ml/selective.py).
+    # ``beat_predictions`` holds what the system is willing to *report*; beats the
+    # gate withheld appear as ``INDETERMINATE``. The ungated model opinion is kept
+    # alongside it in ``raw_beat_predictions`` so nothing is hidden from the
+    # reviewing clinician.
+    selective_gate_applied: bool = False
+    selective_gate_threshold: Optional[float] = None
+    beat_confidences: List[float] = field(default_factory=list)
+    raw_beat_predictions: List[str] = field(default_factory=list)
+    reported_beats_count: int = 0
+    abstained_beats_count: int = 0
+    reported_coverage: float = 0.0
+    selective_gate: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert analysis output to JSON-serializable dictionary."""

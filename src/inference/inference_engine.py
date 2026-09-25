@@ -323,9 +323,32 @@ def run_ecg_inference(
         x_scaled = scaler.transform(feats_ordered.values if hasattr(feats_ordered, "values") else feats_ordered)
 
         # Beat-level predictions and probabilities
-        beat_preds = clf.predict(x_scaled)
         beat_probs = clf.predict_proba(x_scaled)
         classes = list(clf.classes_)
+
+        # --- Selective prediction gate -------------------------------------
+        # The headline question for a clinical gate is "how often is a reported
+        # beat label actually right?", not "how many beats did it label?". An
+        # operating point fitted on held-out records (training/fit_operating_point.py)
+        # lets us decline the beats we are not sure about instead of guessing.
+        # When no reportable operating point is installed we report ungated and
+        # say so explicitly, rather than inventing a threshold.
+        try:
+            from ml.selective import apply_gate, default_operating_point_path, load_operating_point, ungated
+        except ImportError:  # pragma: no cover - import path variants
+            from src.ml.selective import apply_gate, default_operating_point_path, load_operating_point, ungated
+
+        operating_point = load_operating_point(
+            default_operating_point_path(models_dir) if models_dir is not None else None
+        )
+        if operating_point is not None and operating_point.reportable:
+            gate = apply_gate(beat_probs, classes, operating_point.threshold)
+        else:
+            gate = ungated(beat_probs, classes)
+
+        beat_preds = np.array(gate["reported_labels"], dtype=object)
+        reported_labels = list(gate["reported_labels"])
+        raw_labels = list(gate["raw_labels"])
 
         # Calculate overall window-level probabilities
         mean_probs = np.mean(beat_probs, axis=0)
@@ -334,21 +357,44 @@ def run_ecg_inference(
             for cls_name, prob_val in zip(classes, mean_probs)
         }
 
+        # Calibration + conformal abstention. When no calibration artifact has
+        # been fitted, the raw probabilities are reported as uncalibrated instead
+        # of being presented as if they were true probabilities.
+        try:
+            from ml.calibration import apply_calibration
+        except ImportError:  # pragma: no cover - import path variants
+            from src.ml.calibration import apply_calibration
+
+        calibration = apply_calibration(mean_probs, classes)
+        calibrated_dict = {
+            cls_name: round(float(calibration["calibrated_probabilities"][0][idx]), 4)
+            for idx, cls_name in enumerate(classes)
+        }
+        abstain = bool(calibration.get("abstain", False))
+        abstain_reason = calibration.get("abstain_reason")
+        prediction_set = list(calibration.get("prediction_set") or [])
+
         # Window-level classification logic
         # If any significant PVC cluster is present (>= 15% of beats or >= 2 beats), flag Ventricular Ectopy
-        pvc_idx = classes.index("PVC") if "PVC" in classes else -1
         pvc_beats = int(np.sum(beat_preds == "PVC"))
         other_beats = int(np.sum(beat_preds == "Other"))
         norm_beats = int(np.sum(beat_preds == "Normal"))
+        indeterminate_beats = int(np.sum(beat_preds == "INDETERMINATE"))
+        reported_total = int(gate["reported_beats"])
 
-        if pvc_beats > 0 and (pvc_beats >= 2 or (pvc_beats / len(beat_preds)) >= 0.15):
-            window_pred = f"Ventricular Ectopy ({pvc_beats} PVC beats detected)"
-        elif other_beats > (len(beat_preds) * 0.3):
+        # Everything below is computed over *reported* beats only. Abstained beats
+        # must never contribute to a rhythm statement presented as an AI finding.
+        supressed_regions = indeterminate_beats >= 0.5 * len(beat_preds)
+        if reported_total == 0 or supressed_regions:
+            window_pred = "INSUFFICIENT_CONFIDENCE_CLINICIAN_REVIEW_REQUIRED"
+        elif pvc_beats > 0 and (pvc_beats >= 2 or (pvc_beats / reported_total) >= 0.15):
+            window_pred = f"Ventricular Ectopy ({pvc_beats} confidently reported PVC beats)"
+        elif other_beats > (reported_total * 0.3):
             window_pred = "Other Abnormal Rhythm Pattern (Unvalidated Class)"
-        elif norm_beats >= (len(beat_preds) * 0.7):
+        elif norm_beats >= (reported_total * 0.7):
             window_pred = "Normal Sinus Rhythm"
         else:
-            # Majority vote fallback
+            # Majority vote fallback over reported beats only
             maj_class = classes[int(np.argmax(mean_probs))]
             window_pred = f"{maj_class} Rhythm"
 
@@ -357,14 +403,77 @@ def run_ecg_inference(
             "Class 'Other' has unvalidated sensitivity. Only Normal vs PVC distinction is clinically reliable.",
             "Model probability reflects statistical algorithm likelihood, not clinical diagnostic certainty.",
         ]
+        if gate["gate_applied"]:
+            limitations.append(
+                "Beats labelled 'INDETERMINATE' were deliberately withheld by the abstention gate and "
+                "must be read by the clinician from the waveform itself; no model opinion is offered for them."
+            )
+            limitations.append(
+                "Reported-beat accuracy is measured on a small multi-record corpus and is not a claim "
+                "about whole-recording or patient-level diagnostic accuracy."
+            )
+        else:
+            limitations.append(
+                "No abstention gate is installed, so low-confidence beats are reported as if they were "
+                "model findings."
+            )
 
         warnings_out = list(quality_gate.warnings)
         if other_beats > 0:
             warnings_out.append(
                 f"Detected {other_beats} beats classified as 'Other'. Note that class 'Other' has unvalidated test sensitivity."
             )
+        if not calibration.get("calibration_applied", False):
+            warnings_out.append(
+                "Probabilities are uncalibrated model scores. Run training/fit_calibration.py to enable "
+                "calibrated probabilities and conformal abstention."
+            )
+        if abstain and abstain_reason:
+            warnings_out.append(f"Clinician review advised: {abstain_reason}")
+
+        gate_applied = bool(gate["gate_applied"])
+        if gate_applied:
+            warnings_out.append(
+                f"Selective reporting active: {indeterminate_beats} of {len(beat_preds)} beats "
+                f"({100.0 * indeterminate_beats / len(beat_preds):.1f}%) fell below the measured "
+                f"confidence threshold of {operating_point.threshold:.3f} and were withheld rather "
+                f"than guessed. Reported-beat accuracy at this threshold is "
+                f"{operating_point.precision * 100:.2f}% on {operating_point.reported_beats} "
+                f"held-out beats ({operating_point.coverage * 100:.1f}% coverage)."
+            )
+        else:
+            warnings_out.append(
+                "No reportable abstention operating point is installed, so every beat label is "
+                "reported ungated. Treat them as unvetted model opinions. Run "
+                "training/fit_operating_point.py after retraining."
+            )
+        if supressed_regions:
+            warnings_out.append(
+                "Fewer than half of detected beats could be reported with confidence; no rhythm "
+                "statement is issued for this recording."
+            )
+            abstain = True
+            abstain_reason = (
+                abstain_reason
+                or "Insufficient confidently reported beats to support a rhythm statement."
+            )
 
         elapsed = (time.perf_counter() - start_time) * 1000.0
+
+        gate_summary = {
+            "applied": gate_applied,
+            "threshold": gate["threshold"],
+            "reported_beats": reported_total,
+            "abstained_beats": int(gate["abstained_beats"]),
+            "coverage": float(gate["coverage"]),
+            "reported_class_counts": gate["reported_class_counts"],
+            "operating_point_source": (
+                operating_point.to_dict() if gate_applied and operating_point is not None else None
+            ),
+            "measured_reported_precision": (
+                operating_point.precision if gate_applied and operating_point is not None else None
+            ),
+        }
 
         return ECGAnalysisResult(
             analysis_id=analysis_id,
@@ -384,11 +493,24 @@ def run_ecg_inference(
             detected_beats_count=len(beats),
             detected_r_peaks=peaks.tolist(),
             rr_intervals_ms=rr_ms_list,
-            beat_predictions=beat_preds.tolist(),
+            beat_predictions=reported_labels,
             warnings=warnings_out,
             limitations=limitations,
             processing_time_ms=round(elapsed, 2),
             data_hash=recording.data_hash,
+            calibrated_probabilities=calibrated_dict,
+            calibration_applied=bool(calibration.get("calibration_applied", False)),
+            prediction_set=prediction_set,
+            abstain=abstain,
+            abstain_reason=abstain_reason,
+            selective_gate_applied=gate_applied,
+            selective_gate_threshold=gate["threshold"],
+            beat_confidences=gate["confidence"],
+            raw_beat_predictions=raw_labels,
+            reported_beats_count=reported_total,
+            abstained_beats_count=int(gate["abstained_beats"]),
+            reported_coverage=float(gate["coverage"]),
+            selective_gate=gate_summary,
         )
 
     except Exception as exc:

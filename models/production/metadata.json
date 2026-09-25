@@ -90,5 +90,27 @@
     "random_state": 42
   },
   "created_at": "2026-09-25T19:58:59.793200",
-  "disclaimer": "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review."
+  "disclaimer": "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review.",
+  "metrics": {
+    "source": "E:\\CODE\\AI-ECG-Analyzer\\models\\production\\metrics.json",
+    "held_out_records": [
+      "101",
+      "119",
+      "208"
+    ],
+    "accuracy": 0.987366,
+    "macro_f1": 0.656669,
+    "weighted_f1": 0.986846,
+    "cohen_kappa": 0.968074,
+    "classes_without_conclusive_support": [
+      "Other"
+    ],
+    "measured_at": "2026-09-25T23:00:47.957643"
+  },
+  "provenance": {
+    "data_status": "REAL_DATASET",
+    "artifact_source": "E:\\CODE\\AI-ECG-Analyzer\\models\\production\\classifier.pkl",
+    "metrics_computed_by": "training/generate_model_card.py",
+    "no_numbers_are_hardcoded": "Every value in this artifact is produced by sklearn on the held-out partition at generation time. Nothing here is transcribed by hand."
+  }
 }

@@ -14,3 +14,9 @@ pillow>=9.0
 fastapi>=0.100.0
 uvicorn>=0.22.0
 supabase>=2.0.0
+# DICOM ECG waveform ingestion (src/ecg_input/dicom_loader.py)
+pydicom>=2.4
+# Optional capabilities; see requirements-optional.txt for the feature mapping.
+shap>=0.44
+pytesseract>=0.3.10
+pypdfium2>=4.20

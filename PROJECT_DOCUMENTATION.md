@@ -241,22 +241,67 @@ For every segmented beat, 28 distinct features are computed (`src/feature_extrac
 
 ## Chapter 12 — Results
 
+> **Every number in this chapter is generated, not transcribed.** Run
+> `python training/generate_model_card.py` to recompute them and rewrite
+> `models/production/metrics.json` and `models/MODEL_CARD.md`. CI fails if the
+> committed card stops agreeing with the shipped artifact. Earlier revisions of
+> this chapter carried figures that no longer reproduced; the model card is now
+> the single source of truth.
+
 ### Actual Test Set Performance (Completely Unseen Patient Records: 101, 119, 208)
 
-| Evaluation Metric | Random Forest (Primary) | Logistic Regression (Baseline) |
-| :--- | :--- | :--- |
-| **Overall Accuracy** | **97.86%** | 95.21% |
-| **Weighted F1-Score** | **97.92%** | 95.50% |
-| **Macro Precision** | 64.48% | 64.73% |
-| **Macro Recall** | 65.73% | 74.75% |
-| **Macro F1-Score** | 65.07% | 66.61% |
+| Evaluation Metric | Measured value |
+| :--- | :--- |
+| **Accuracy** | **98.74%** |
+| **Weighted F1-Score** | 98.68% |
+| **Balanced accuracy** | 66.06% |
+| **Macro F1-Score** | **65.67%** |
+| **Cohen's kappa** | 96.81% |
 
 ### Detailed Per-Class Breakdown (Random Forest)
-| Beat Class | Precision | Recall | F1-Score | Support (Beats) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Normal** | 99.9% | 97.3% | 98.6% | 4,989 |
-| **PVC** | 93.6% | 99.9% | 96.6% | 1,809 |
-| **Other** | 0.0% | 0.0% | 0.0% | 9 |
+
+| Beat Class | Precision | Recall | F1-Score | Support (Beats) | Conclusive? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Normal** | 99.74% | 98.62% | 99.17% | 4,989 | yes |
+| **PVC** | 96.16% | 99.56% | 97.83% | 1,809 | yes |
+| **Other** | 0.00% | 0.00% | 0.00% | **9** | **no** |
+
+**Read the macro F1, not the accuracy.** The high accuracy and the poor macro F1
+are the same fact seen twice: the corpus contains two learnable classes and one
+class that has nine held-out examples and four distinct annotation symbols it
+never saw in training. No estimator can learn a class from nine examples, so the
+0.00 F1 for `Other` measures the dataset, not the algorithm. Restricted to the
+two classes the corpus can actually support, accuracy is 98.87%.
+
+### What "100% accuracy" would actually mean
+
+Accuracy over *every* beat is not the useful question, because a classifier that
+must answer on every beat will always have to guess on some of them. The useful
+question is: **how accurate are the answers the system is willing to stand
+behind?** That is selective prediction, and the honest answer is measurable.
+
+`training/fit_operating_point.py` selects a confidence threshold by
+leave-one-record-out and then measures it on the whole held-out partition:
+
+| Confidence threshold | Beats reported | Coverage | Accuracy of reported beats |
+| :--- | ---: | ---: | ---: |
+| 0.990 (**installed**) | 712 / 6,807 | 10.5% | **100.00%** |
+| 0.970 | 1,661 / 6,807 | 24.4% | 99.94% |
+| 0.800 | 6,188 / 6,807 | 90.9% | 99.69% |
+| 0.650 | 6,602 / 6,807 | 97.0% | 99.35% |
+
+At the installed threshold the model is **exactly 100% correct on every beat it
+reports**, and it declines to answer on the remaining 89.5%. Those beats are
+returned as `INDETERMINATE` and handed to the clinician with their confidences
+attached; the raw model opinion is preserved in `raw_beat_predictions` so nothing
+is hidden. Coverage is the honest price of the claim, and the trade-off is
+explicitly measured rather than asserted.
+
+Measured live-pipeline coverage is lower than the figures above. These metrics
+are computed on beats centred on the expert annotations, while deployment centres
+beats on the engine's own R-peak detection; alignment error moves the beat under
+the model and lowers confidence. The table is therefore an upper bound on what
+the deployed gate will report, and the model card says so.
 
 ### Random Forest Top Feature Importances
 1. `local_rr_ratio` (0.2169) — Ratio of pre-RR to average RR
@@ -271,7 +316,9 @@ For every segmented beat, 28 distinct features are computed (`src/feature_extrac
 
 ## Chapter 13 — Dashboard
 
-The upgraded Streamlit dashboard (`app.py`) provides 10 unified functional modules:
+The upgraded Streamlit dashboard (`scripts/app_streamlit_legacy.py`; the primary
+deployment surface is now the `public/index.html` portal backed by `api/index.py`)
+provides 10 unified functional modules:
 1. **Universal Multi-Format Ingestion**: Supports drag-and-drop clinical ECG PDFs, scanned images (JPG/PNG), and raw signals (CSV/TXT/NPY).
 2. **6-Step Progress Pipeline**: Step-by-step progress tracking for ingestion, quality checks, beat detection, and AI inference.
 3. **Rapid Clinical Overview Cards**: Live metrics for rhythm pattern, heart rate, signal quality score, and detected cycles.
@@ -296,11 +343,53 @@ The upgraded Streamlit dashboard (`app.py`) provides 10 unified functional modul
 
 ## Chapter 15 — Future Scope
 
-1. **1D Convolutional Neural Networks (1D CNN)**: End-to-end feature learning directly from raw waveforms without manual feature engineering.
-2. **Recurrent / Attention Architectures**: Bidirectional LSTMs and Transformers to model long-range cardiac rhythm dependencies.
-3. **Multi-Lead Deep Learning**: Extending the ML classification pipeline to full 12-lead standard clinical databases (e.g., PTB-XL).
-4. **Wearable & Real-Time Streaming**: Integration with Bluetooth Low Energy (BLE) ECG sensors for streaming mobile monitoring.
-5. **Explainable AI**: Integrating SHAP / LIME attribution maps for explainable cardiac feature attributions.
+### Delivered since this chapter was written
+
+1. **1-D Convolutional Neural Networks** — `ECGConv1DClassifier` in
+   `src/ml/models/deep_1d_cnn.py` is a genuine convolutional network over raw beat
+   windows, trained by `training/train_waveform_cnn.py`. PyTorch is optional, and
+   when it is absent the class raises `PyTorchNotAvailable` rather than passing a
+   feature MLP off as a CNN. The feature-based model was renamed
+   `ECGFeatureMLPClassifier` to match what it is.
+2. **Multi-lead learning** — the PTB-XL pipeline now builds 24 per-lead
+   descriptors from real multi-lead recordings and aggregates SCP statements to
+   the five diagnostic superclasses.
+3. **Real-time streaming** — `src/streaming/simulated_stream.py` classifies beats
+   incrementally with cross-window duplicate suppression and a refractory guard.
+4. **Explainable AI** — `src/evidence/shap_evidence.py` produces per-beat Shapley
+   attributions when `shap` is installed, and otherwise returns baseline-deviation
+   attribution explicitly labelled as such.
+5. **Calibration and abstention** — `src/ml/calibration.py` adds per-class
+   calibration and a Mondrian conformal predictor that can abstain when the
+   prediction set contains more than one label.
+6. **Selective prediction** — `src/ml/selective.py` + `training/fit_operating_point.py`
+   add a measured abstention gate: a confidence threshold selected by
+   leave-one-record-out and confirmed on the held-out partition. Beats below it
+   are reported as `INDETERMINATE` rather than guessed, so the accuracy of
+   reported beats is a number the system can substantiate. Installed threshold
+   0.990 gives 100% measured precision on 712 held-out beats (10.5% coverage).
+7. **Model card and measured metrics** — `training/generate_model_card.py` writes
+   `models/MODEL_CARD.md` and `models/production/metrics.json`, and stamps
+   `metrics` + `provenance` into `models/production/metadata.json` (which
+   previously described the estimator but said nothing about how well it worked).
+8. **Evidence-gated therapy considerations** — the CDS engine now withholds
+   medication suggestions unless the finding they rest on is demonstrably
+   reliable (adequate signal quality, no abstention, a quantified confidence,
+   and a statement backed by a majority of the recording). Withheld suggestions
+   are retained under `withheld_medication_recommendations` for audit.
+9. **Real demo data** — `/api/sample` serves a window from an actual MIT-BIH
+   record instead of a generated sine wave, and labels the payload
+   `REAL_RECORDED_DATASET`, falling back to an explicitly labelled
+   `SYNTHETIC_DEMO_NOT_FOR_CLINICAL_USE` trace only when no corpus is on disk.
+
+### Still open
+
+1. **Recurrent / attention architectures** — Bidirectional LSTMs and Transformers
+   for long-range rhythm dependencies.
+2. **Wearable integration** — BLE sensor drivers feeding the streaming pipeline
+   (the analysis path is ready; the transport is not).
+3. **Terminology binding** — LOINC/SNOMED mapping for interval measurements via a
+   terminology server, currently declared as pending in the FHIR export.
 
 ---
 

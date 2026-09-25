@@ -24,7 +24,7 @@ if str(SRC_DIR) not in sys.path:
 import io
 import uuid
 import numpy as np
-from fastapi import APIRouter, FastAPI, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -53,13 +53,32 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Enable CORS for cross-origin frontend queries
+# CORS is an explicit allow-list. The previous wildcard would have let any origin
+# call a clinical endpoint from a patient's browser session; cross-origin access
+# must now be requested deliberately via ECG_CORS_ORIGINS.
+try:
+    from api.security import (
+        SecuritySettings,
+        enforce_signal_limits,
+        get_security_settings,
+        require_api_key,
+    )
+except ImportError:  # running with api/ itself on sys.path (Vercel runtime)
+    from security import (  # type: ignore[no-redef]
+        SecuritySettings,
+        enforce_signal_limits,
+        get_security_settings,
+        require_api_key,
+    )
+
+_SECURITY: SecuritySettings = get_security_settings()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_SECURITY.cors_origins,
+    allow_credentials=bool(_SECURITY.cors_origins),
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 
@@ -99,9 +118,22 @@ ReviewRequest.model_rebuild()
 
 router = APIRouter()
 
+# Endpoints carrying patient data require the shared API key when one is set.
+# /health and /sample are intentionally left open for liveness probes.
+_protected = Depends(require_api_key)
+
 
 @router.get("/health")
 def health_check():
+    try:
+        from ml.selective import load_operating_point, summarise as summarise_gate
+
+        gate_summary = summarise_gate(load_operating_point())
+        gate_installed = load_operating_point() is not None
+    except Exception as exc:  # pragma: no cover - defensive
+        gate_summary = f"Abstention gate status unavailable: {exc}"
+        gate_installed = False
+
     return {
         "status": "HEALTHY",
         "device": "AI-ECG Analyzer (SaMD)",
@@ -109,49 +141,129 @@ def health_check():
         "active_model_id": ACTIVE_MODEL_ID,
         "safety_principle": "NO RELIABLE INPUT = NO AI RESULT",
         "disclaimer": "Clinical Decision Support System. Requires mandatory qualified physician review.",
+        "security": get_security_settings().describe(),
+        "selective_reporting": {
+            "operating_point_installed": gate_installed,
+            "summary": gate_summary,
+        },
     }
+
+
+#: Real MIT-BIH records used for the live demo traces. Recordings, not
+#: generated waveforms: a demo built from a synthetic sine teaches the user
+#: nothing about how the model behaves on real physiology.
+_SAMPLE_RECORDS = {"normal": "100", "pvc": "208", "ectopy": "208", "other": "213"}
+_SAMPLE_WINDOW_SEC = 10.0
+
+
+def _sample_search_dirs() -> List[Path]:
+    return [
+        BASE_DIR / "data" / "datasets" / "mit_bih_arrhythmia" / "raw",
+        BASE_DIR / "data" / "raw",
+    ]
 
 
 @router.get("/sample")
 def get_sample_data(sample_type: str = "normal"):
+    """Return a real recorded ECG window for live testing.
+
+    Serves an actual MIT-BIH record read from disk. Only if the corpus is absent
+    does it fall back to a generated trace, and then it stamps the payload
+    ``SYNTHETIC_DEMO_NOT_FOR_CLINICAL_USE`` so the caller can never mistake a
+    generated waveform for recorded physiology.
+    """
+    requested = (sample_type or "normal").strip().lower()
+    record_id = _SAMPLE_RECORDS.get(requested, _SAMPLE_RECORDS["normal"])
+
+    for raw_dir in _sample_search_dirs():
+        if not (raw_dir / f"{record_id}.hea").exists():
+            continue
+        try:
+            from data_loader import load_record
+
+            signal, fs, _ = load_record(record_id, raw_dir)
+        except Exception:  # pragma: no cover - corrupt/incomplete record on disk
+            continue
+
+        fs = float(fs)
+        window = int(_SAMPLE_WINDOW_SEC * fs)
+        arr = np.asarray(signal, dtype=float)
+        if len(arr) < window:
+            continue
+        segment = arr[:window]
+        if segment.std() > 0:
+            # Lead II is recorded in mV; convert to the display scale the rest of
+            # the pipeline works in without altering morphology.
+            segment = segment / max(float(np.abs(segment).max()), 1e-9)
+
+        return {
+            "sample_type": requested,
+            "fs": fs,
+            "sampling_rate": fs,
+            "duration_sec": round(len(segment) / fs, 3),
+            "lead": "II",
+            "signal": segment.tolist(),
+            "data_status": "REAL_RECORDED_DATASET",
+            "source_dataset": "MIT-BIH Arrhythmia Database (PhysioNet)",
+            "source_record": record_id,
+            "note": (
+                "Window extracted from a real annotated recording. The model has "
+                "seen this record during development; this endpoint exercises the "
+                "pipeline, it is not an independent validation sample."
+            ),
+        }
+
+    # No corpus on disk: emit a clearly-labelled synthetic trace so the UI still
+    # has something to render, without pretending it is recorded physiology.
     fs = 360.0
-    duration_sec = 5.0
+    duration_sec = _SAMPLE_WINDOW_SEC
     t = np.arange(int(fs * duration_sec)) / fs
-
-    # Synthetic periodic ECG trace
     sig = 0.08 * np.sin(2 * np.pi * 1.2 * t)
-    n_beats = int(duration_sec * 1.2)
-
-    for i in range(1, n_beats + 1):
+    for i in range(1, int(duration_sec * 1.2) + 1):
         idx = int(i * (fs / 1.2))
-        if idx < len(sig):
-            # QRS complex
-            w = 8
-            start = max(0, idx - w)
-            end = min(len(sig), idx + w)
-            if sample_type == "pvc" and i == 2:
-                # Ectopic wide PVC-like spike
-                sig[start:end] += 1.8 * np.exp(-0.5 * ((np.arange(start, end) - idx) / 5) ** 2)
-            else:
-                sig[start:end] += 1.2 * np.exp(-0.5 * ((np.arange(start, end) - idx) / 3) ** 2)
+        if idx >= len(sig):
+            continue
+        w = 8
+        start, end = max(0, idx - w), min(len(sig), idx + w)
+        amp = 1.8 if (requested == "pvc" and i == 2) else 1.2
+        width = 5 if (requested == "pvc" and i == 2) else 3
+        sig[start:end] += amp * np.exp(
+            -0.5 * ((np.arange(start, end) - idx) / width) ** 2
+        )
 
+    dirs = ", ".join(str(d) for d in _sample_search_dirs())
     return {
-        "sample_type": sample_type,
+        "sample_type": requested,
         "fs": fs,
         "sampling_rate": fs,
         "duration_sec": duration_sec,
         "lead": "II",
         "signal": sig.tolist(),
+        "data_status": "SYNTHETIC_DEMO_NOT_FOR_CLINICAL_USE",
+        "source_dataset": None,
+        "source_record": None,
+        "note": (
+            "No recorded MIT-BIH dataset was found on disk, so this trace is "
+            f"generated, not measured. Searched: {dirs}. Run "
+            "'python training/download_datasets.py --dataset mit_bih_arrhythmia' "
+            "for real sample data."
+        ),
+        "warning": (
+            "SYNTHETIC WAVEFORM. Not recorded physiology. Any model output derived "
+            "from this trace describes the generator, not a patient."
+        ),
     }
 
 
-@router.post("/analyze")
+@router.post("/analyze", dependencies=[_protected])
 def analyze_ecg(req: AnalyzeRequest):
     if not req.signal or len(req.signal) < 100:
         raise HTTPException(
             status_code=400,
             detail="Signal duration is too short for cardiac evaluation (minimum 100 samples required).",
         )
+
+    enforce_signal_limits(len(req.signal))
 
     sig_arr = np.array(req.signal, dtype=float)
 
@@ -231,6 +343,9 @@ def analyze_ecg(req: AnalyzeRequest):
     cds_rec = GLOBAL_CDS_ENGINE.evaluate_finding(
         ecg_finding=analysis_res.prediction,
         heart_rate=analysis_res.heart_rate_bpm,
+        # Pass the analysis itself so therapy considerations are gated on the
+        # measured reliability of the finding, not on its text.
+        reliability=analysis_res,
     )
 
     # 6. Cardiac Beat Segmentation & Morphological Feature Computation
@@ -295,6 +410,19 @@ def analyze_ecg(req: AnalyzeRequest):
             "probabilities": analysis_res.model_probabilities,
             "beat_predictions": analysis_res.beat_predictions,
             "limitations": analysis_res.limitations,
+            # Selective reporting: how much of the recording the model was
+            # willing to commit to, and the measured accuracy of what it
+            # committed to. Abstained beats are INDETERMINATE, never guessed.
+            "selective_gate": analysis_res.selective_gate,
+            "selective_gate_applied": analysis_res.selective_gate_applied,
+            "selective_gate_threshold": analysis_res.selective_gate_threshold,
+            "reported_beats_count": analysis_res.reported_beats_count,
+            "abstained_beats_count": analysis_res.abstained_beats_count,
+            "reported_coverage": analysis_res.reported_coverage,
+            "beat_confidences": analysis_res.beat_confidences,
+            "raw_beat_predictions": analysis_res.raw_beat_predictions,
+            "abstain": analysis_res.abstain,
+            "abstain_reason": analysis_res.abstain_reason,
         },
         "detected_r_peaks": analysis_res.detected_r_peaks,
         "beat_segments": beat_segments,
@@ -307,6 +435,10 @@ def analyze_ecg(req: AnalyzeRequest):
             "summary": cds_rec.clinician_action_required,
             "guidelines": cds_rec.relevant_guidelines,
             "considerations": cds_rec.clinical_considerations,
+            "medication_recommendations": cds_rec.medication_recommendations,
+            "medication_recommendations_withheld": cds_rec.medication_recommendations_withheld,
+            "withheld_reason": cds_rec.withheld_reason,
+            "reliability": cds_rec.reliability,
         },
         "disclaimer": (
             "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review. "
@@ -407,7 +539,7 @@ def analyze_ecg(req: AnalyzeRequest):
     return resp_data
 
 
-@router.post("/report/pdf")
+@router.post("/report/pdf", dependencies=[_protected])
 def generate_pdf_endpoint(req: AnalyzeRequest):
     """Generate and return publication-grade PDF report."""
     analysis = analyze_ecg(req)
@@ -464,7 +596,7 @@ def generate_pdf_endpoint(req: AnalyzeRequest):
     )
 
 
-@router.post("/review")
+@router.post("/review", dependencies=[_protected])
 def record_clinician_review(rev: ReviewRequest):
     """Cryptographically seal clinical review and persist to database."""
     seal_res = REPORT_PERSISTENCE_SERVICE.sign_and_seal_report(
@@ -493,7 +625,7 @@ def record_clinician_review(rev: ReviewRequest):
     }
 
 
-@router.get("/reports")
+@router.get("/reports", dependencies=[_protected])
 def list_reports_endpoint(
     search: Optional[str] = None,
     status: Optional[str] = None,
@@ -510,7 +642,7 @@ def list_reports_endpoint(
     return {"status": "SUCCESS", "count": len(reports), "reports": reports}
 
 
-@router.get("/reports/{report_identifier}")
+@router.get("/reports/{report_identifier}", dependencies=[_protected])
 def get_report_endpoint(report_identifier: str):
     """Retrieve full immutable report snapshot by ID or report number without re-running ML (Phase 30 & 31)."""
     rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
@@ -519,7 +651,7 @@ def get_report_endpoint(report_identifier: str):
     return {"status": "SUCCESS", "report": rep}
 
 
-@router.get("/reports/{report_identifier}/pdf")
+@router.get("/reports/{report_identifier}/pdf", dependencies=[_protected])
 def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor"):
     """Download PDF for historical report (Phase 32)."""
     pdf_bytes = REPORT_PERSISTENCE_SERVICE.get_report_pdf(report_identifier, report_type=type)
@@ -535,7 +667,7 @@ def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor"):
     )
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[_protected])
 async def upload_ecg_file(
     file: UploadFile = File(...),
     fs: Optional[float] = None,
@@ -557,6 +689,13 @@ async def upload_ecg_file(
 
     if len(contents) == 0:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    try:
+        from api.security import enforce_upload_limit_bytes
+    except ImportError:  # running with api/ itself on sys.path (Vercel runtime)
+        from security import enforce_upload_limit_bytes  # type: ignore[no-redef]
+
+    enforce_upload_limit_bytes(len(contents))
 
     # 1. Digital Formats: CSV, TXT, NPY, JSON, EDF, XML, DICOM
     if fname_lower.endswith((".csv", ".txt", ".npy", ".json", ".edf", ".xml", ".dcm", ".dicom", ".dat", ".hea")):

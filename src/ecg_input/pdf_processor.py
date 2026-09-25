@@ -23,6 +23,8 @@ try:
 except ImportError:
     from .measurement_extractor import extract_report_measurements
 
+__all__ = ["process_pdf_report", "ECG_REPORT_KEYWORDS"]
+
 
 
 ECG_REPORT_KEYWORDS = [
@@ -101,13 +103,29 @@ def process_pdf_report(
             pass
 
     combined_text = "\n".join(all_text)
+    ocr_status = "NOT_ATTEMPTED"
+    ocr_reason: Optional[str] = None
+
+    # Scanned PDFs carry no selectable text. Fall back to OCR rather than
+    # reporting an empty document, which would otherwise look like "no ECG here".
+    if not combined_text.strip():
+        try:
+            from src.ecg_input.ocr import ocr_pdf_report
+        except ImportError:
+            from .ocr import ocr_pdf_report
+
+        ocr_result = ocr_pdf_report(file_or_path)
+        ocr_status = ocr_result.get("status", "PROCESSING_FAILED")
+        ocr_reason = ocr_result.get("reason")
+        if ocr_result.get("text"):
+            combined_text = ocr_result["text"]
 
     # Check if document appears to be an ECG report
     text_lower = combined_text.lower()
     keyword_matches = sum(1 for kw in ECG_REPORT_KEYWORDS if kw in text_lower)
     is_ecg = keyword_matches >= 2 or len(extracted_images) > 0
 
-    # Extract clinical measurements from selectable text
+    # Extract clinical measurements from selectable text (or recovered OCR text)
     measurements = extract_report_measurements(combined_text)
 
     if not is_ecg:
@@ -119,6 +137,12 @@ def process_pdf_report(
     else:
         status_msg = "PDF detected as ECG, but text extraction was limited."
 
+    if ocr_status not in ("NOT_ATTEMPTED", "SUCCESS") and not combined_text.strip():
+        status_msg = (
+            "PDF has no selectable text layer. "
+            f"Scanned-report OCR could not be used: {ocr_reason or ocr_status}"
+        )
+
     return {
         "is_ecg": is_ecg,
         "text": combined_text,
@@ -127,4 +151,7 @@ def process_pdf_report(
         "has_embedded_images": len(extracted_images) > 0,
         "page_count": page_count,
         "status_message": status_msg,
+        "ocr_status": ocr_status,
+        "ocr_reason": ocr_reason,
+        "text_source": "ocr" if ocr_status == "SUCCESS" and combined_text.strip() else "pdf_text_layer",
     }

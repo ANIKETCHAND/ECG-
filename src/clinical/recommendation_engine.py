@@ -11,9 +11,92 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from src.database.db_manager import PatientRecord
+
+
+@dataclass
+class FindingReliability:
+    """Whether the ECG finding being acted on is trustworthy enough to act on.
+
+    A therapy consideration attached to an unreliable reading is worse than no
+    consideration at all: it launders a bad measurement into a clinical decision.
+    This object carries the measured facts that decide the question, so the
+    decision is auditable rather than a judgement call buried in code.
+    """
+
+    reliable: bool = False
+    reasons: List[str] = field(default_factory=list)
+    signal_quality: str = "UNKNOWN"
+    selective_gate_applied: bool = False
+    reported_coverage: Optional[float] = None
+    abstained: bool = False
+    evidence: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_analysis_result(
+        cls, analysis: Any, min_reported_coverage: float = 0.50
+    ) -> "FindingReliability":
+        """Derive reliability from an :class:`ECGAnalysisResult`.
+
+        ``analysis`` may be an object or an already-serialised dict.
+        """
+        get = (
+            (lambda key, default=None: analysis.get(key, default))
+            if isinstance(analysis, dict)
+            else (lambda key, default=None: getattr(analysis, key, default))
+        )
+        quality = str(get("signal_quality", "UNKNOWN") or "UNKNOWN").upper()
+        abstained = bool(get("abstain", False))
+        gate_applied = bool(get("selective_gate_applied", False))
+        coverage_raw = get("reported_coverage", None)
+        coverage = None if coverage_raw is None else float(coverage_raw)
+        prediction = str(get("prediction", "") or "")
+
+        reasons: List[str] = []
+        if quality not in {"GOOD", "ACCEPTABLE"}:
+            reasons.append(
+                f"Signal quality is {quality}; the waveform itself is not reliable enough "
+                "to justify a therapy consideration."
+            )
+        if abstained:
+            reasons.append(
+                "The analysis declined to commit to a rhythm statement "
+                f"({get('abstain_reason') or 'abstention raised by the inference engine'})."
+            )
+        if prediction.startswith(("NO_RESULT", "AI_SUPPRESSED", "INSUFFICIENT_CONFIDENCE", "PIPELINE_EXECUTION_FAILURE", "UNSUPPORTED_LEAD")):
+            reasons.append(f"No usable AI finding was produced (prediction={prediction!r}).")
+        if not gate_applied:
+            reasons.append(
+                "No measured abstention operating point is installed, so the model's "
+                "confidence in this finding is unquantified."
+            )
+        elif coverage is not None and coverage < min_reported_coverage:
+            reasons.append(
+                f"Only {coverage:.0%} of detected beats could be reported with confidence "
+                f"(minimum {min_reported_coverage:.0%}). The rhythm conclusion rests on a "
+                "minority of the recording."
+            )
+
+        return cls(
+            reliable=not reasons,
+            reasons=reasons,
+            signal_quality=quality,
+            selective_gate_applied=gate_applied,
+            reported_coverage=coverage,
+            abstained=abstained,
+            evidence={
+                "prediction": prediction,
+                "min_reported_coverage": min_reported_coverage,
+                "abstain_reason": get("abstain_reason", None),
+                "quality_score": get("quality_score", None),
+                "selective_gate": get("selective_gate", None),
+            },
+        )
 
 
 @dataclass
@@ -30,6 +113,13 @@ class ClinicalRecommendation:
     medication_recommendations: List[Dict[str, str]] = field(default_factory=list)
     patient_context: Dict[str, Any] = field(default_factory=dict)
     missing_information: List[str] = field(default_factory=list)
+    # Evidence gate: when the reading behind a recommendation is not reliable, the
+    # therapy suggestions are withheld rather than presented. They are retained in
+    # ``withheld_medication_recommendations`` for audit, never deleted silently.
+    medication_recommendations_withheld: bool = False
+    withheld_medication_recommendations: List[Dict[str, str]] = field(default_factory=list)
+    withheld_reason: Optional[str] = None
+    reliability: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -44,8 +134,30 @@ class ClinicalDecisionSupportEngine:
         heart_rate: Optional[float] = None,
         patient: Optional[Any] = None,
         machine_finding: Optional[str] = None,
+        reliability: Optional[Union["FindingReliability", Dict[str, Any], Any]] = None,
     ) -> ClinicalRecommendation:
+        """Build traceable clinical considerations for an ECG finding.
+
+        Args:
+            reliability: The reliability of the finding being acted on. Pass a
+                :class:`FindingReliability`, a raw ``ECGAnalysisResult``, or a
+                dict of its fields. When the finding is unreliable, therapy
+                considerations are withheld instead of presented. ``None`` means
+                "not supplied" and is treated as unverified.
+        """
         finding_upper = ecg_finding.upper()
+
+        resolved_reliability: Optional[FindingReliability] = None
+        if reliability is not None:
+            if isinstance(reliability, FindingReliability):
+                resolved_reliability = reliability
+            elif isinstance(reliability, dict) and "signal_quality" in reliability:
+                resolved_reliability = FindingReliability(**{
+                    k: v for k, v in reliability.items()
+                    if k in FindingReliability.__dataclass_fields__
+                })
+            else:
+                resolved_reliability = FindingReliability.from_analysis_result(reliability)
 
         # ── Compute Patient Context & Missing Info (Phase 17) ──
         p_ctx: Dict[str, Any] = {}
@@ -287,9 +399,62 @@ class ClinicalDecisionSupportEngine:
                 ],
             )
 
+        # ── Evidence gate: no reliable finding -> no therapy suggestion ────────
+        # A drug consideration derived from an unreliable read is worse than no
+        # consideration, because it carries the authority of an AI finding. The
+        # suggestions are moved aside, never deleted, so an auditor can see both
+        # what was proposed and why it was held back.
+        if resolved_reliability is None:
+            rec.reliability = FindingReliability(
+                reliable=False,
+                reasons=[
+                    "No reliability information was supplied with this finding, so it "
+                    "cannot be verified as trustworthy enough to act on."
+                ],
+            ).to_dict()
+            _withhold_medications(
+                rec,
+                "Reliability of the underlying ECG finding was not supplied. Therapy "
+                "considerations are withheld until the source analysis is attached.",
+            )
+        else:
+            rec.reliability = resolved_reliability.to_dict()
+            if not resolved_reliability.reliable:
+                _withhold_medications(rec, " ".join(resolved_reliability.reasons))
+
         rec.patient_context = p_ctx
         rec.missing_information = missing
         return rec
+
+
+def _withhold_medications(rec: ClinicalRecommendation, reason: str) -> None:
+    """Move therapy suggestions aside when the underlying finding is unreliable."""
+    if not rec.medication_recommendations and not rec.withheld_medication_recommendations:
+        return
+    if rec.medication_recommendations:
+        rec.withheld_medication_recommendations.extend(rec.medication_recommendations)
+        rec.medication_recommendations = []
+    rec.medication_recommendations_withheld = True
+    rec.withheld_reason = reason
+    rec.urgency = _escalate_urgency(rec.urgency)
+    rec.clinical_considerations.append(
+        "Medication considerations were withheld: the ECG finding supporting them was "
+        f"not reliable enough to act on. {reason}"
+    )
+    rec.clinician_action_required = (
+        "Repeat acquisition or manual over-read required before any therapy decision is "
+        "considered. " + rec.clinician_action_required
+    )
+
+
+def _escalate_urgency(urgency: str) -> str:
+    """Raise the review urgency to at least PROMPT REVIEW."""
+    order = ["ROUTINE REVIEW", "PROMPT REVIEW", "URGENT CLINICIAN REVIEW"]
+    try:
+        idx = order.index(urgency)
+    except ValueError:
+        return urgency
+    return order[max(idx, 1)]
 
 
 GLOBAL_CDS_ENGINE = ClinicalDecisionSupportEngine()

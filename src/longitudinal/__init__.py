@@ -10,6 +10,11 @@ from src.longitudinal.ecg_comparison import (
     compare_serial_ecgs,
 )
 from src.longitudinal.ecg_history import PatientECGHistoryStore
+from src.longitudinal.medication_qtc_link import (
+    MedicationQTcAssociation,
+    MedicationQTcReport,
+    assess_qtc_medication_association,
+)
 from src.longitudinal.trend_analysis import (
     LongitudinalTrendReport,
     calculate_serial_trends,
@@ -22,4 +27,7 @@ __all__ = [
     "LongitudinalTrendReport",
     "calculate_serial_trends",
     "PatientECGHistoryStore",
+    "MedicationQTcAssociation",
+    "MedicationQTcReport",
+    "assess_qtc_medication_association",
 ]

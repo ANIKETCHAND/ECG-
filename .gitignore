@@ -44,6 +44,9 @@ data/datasets/**/raw/*
 data/datasets/**/processed/*
 !data/datasets/**/.gitkeep
 
+# Generated download manifest (write-only provenance; embeds a machine-local absolute path)
+data/datasets/**/metadata/*.json
+
 .vercel
 reports/MRN-*/
 reports/PAT-*/

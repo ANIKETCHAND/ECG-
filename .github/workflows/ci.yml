@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # opencv-python-headless avoids needing system GL libraries on runners
+          pip install -r requirements.txt
+          pip install -r requirements-streamlit.txt
+          pip install pytest
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+  integrity:
+    name: Training data integrity guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Assert training refuses to fabricate datasets
+        run: |
+          # These must NOT produce a model artifact. A non-zero exit is expected
+          # and is the whole point: no reliable input means no model.
+          for script in train_af train_ptbxl train_st; do
+            echo "--- $script (expect refusal) ---"
+            if python "training/${script}.py" > refusal.log 2>&1; then
+              # Exit 0 is only acceptable when the script reports a non-training status.
+              if grep -qE "\"status\": \"SUCCESS\"" refusal.log; then
+                echo "::error::$script reported SUCCESS without a dataset"
+                cat refusal.log
+                exit 1
+              fi
+            fi
+            cat refusal.log | tail -5
+          done
+
+      - name: Assert the downloader can enumerate a PhysioNet database
+        run: |
+          # Regression guard: records=None used to reach wfdb.dl_database, which
+          # silently turned every full-database download into DOWNLOAD_FAILED and
+          # capped how much real data the models could ever be trained on.
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("src")))
+          from datasets.downloader import DatasetDownloader
+
+          records = DatasetDownloader.resolve_record_list("mitdb", "1.0.0")
+          assert len(records) == 48, f"expected 48 MIT-BIH records, got {len(records)}"
+          print(f"Resolved {len(records)} MIT-BIH records from the PhysioNet manifest.")
+          PY
+
+      - name: Assert selective-prediction artifacts carry their evidence
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("src")))
+          from ml.selective import load_operating_point, summarise
+
+          op = load_operating_point()
+          if op is None:
+              print("No operating point installed; inference reports predictions ungated.")
+              raise SystemExit(0)
+
+          # A gate must never claim more precision than its own recorded evidence.
+          assert op.provenance.get("protocol"), "operating point has no stated protocol"
+          if op.reportable:
+              assert op.precision >= op.target_precision - 1e-12
+              assert 0.0 < op.coverage <= 1.0
+          else:
+              assert op.guard_rail_reason
+          print(summarise(op))
+          PY
+
+      - name: Assert the model card matches the shipped artifact
+        run: |
+          python - <<'PY'
+          # Regenerate the measured metrics and require the committed card to
+          # agree. A model card that disagrees with the artifact it describes is
+          # worse than no card at all.
+          import json, subprocess, sys
+          from pathlib import Path
+
+          metrics = Path("models/production/metrics.json")
+          if not metrics.exists():
+              print("No metrics.json in this checkout; skipping comparison.")
+              raise SystemExit(0)
+
+          before = json.loads(metrics.read_text(encoding="utf-8"))["primary_metrics"]
+          subprocess.run(
+              [sys.executable, "training/generate_model_card.py"],
+              check=True,
+              env={**__import__("os").environ, "PYTHONPATH": "src"},
+              stdout=subprocess.DEVNULL,
+          )
+          after = json.loads(metrics.read_text(encoding="utf-8"))["primary_metrics"]
+          for key in ("accuracy", "macro_f1", "weighted_f1", "cohen_kappa"):
+              assert before[key] == after[key], f"model card drifted on {key}: {before[key]} != {after[key]}"
+          print("Model card reproduces the shipped artifact's metrics exactly.")
+          PY
+
+      - name: Assert placeholder artifacts cannot be loaded as production
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("src")))
+          from ml.models.registry import GLOBAL_MODEL_REGISTRY, ModelLifecycleStatus
+
+          placeholders = [
+              m for m in GLOBAL_MODEL_REGISTRY.list_models()
+              if m["status"] == ModelLifecycleStatus.SYNTHETIC_PLACEHOLDER.value
+          ]
+          print(f"Placeholder entries: {[m['model_id'] for m in placeholders]}")
+
+          for entry in placeholders:
+              model_id = entry["model_id"]
+              assert GLOBAL_MODEL_REGISTRY.is_placeholder(model_id), model_id
+              try:
+                  GLOBAL_MODEL_REGISTRY.load_model(model_id)
+              except RuntimeError as exc:
+                  print(f"OK refused: {model_id} -> {str(exc)[:80]}")
+              else:
+                  raise SystemExit(f"FATAL: placeholder {model_id} was loadable")
+
+          production = GLOBAL_MODEL_REGISTRY.list_models(status=ModelLifecycleStatus.PRODUCTION)
+          assert all(
+              not GLOBAL_MODEL_REGISTRY.is_placeholder(m["model_id"]) for m in production
+          ), "A placeholder model is registered as PRODUCTION"
+          print("Production entries are all real-data artifacts.")
+          PY
