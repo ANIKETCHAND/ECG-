@@ -3,58 +3,113 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VITALISCOPE — ECG Abnormality Detection · Bench UI</title>
+  <title>VITALISCOPE — Clinical AI ECG Telemetry & Diagnostic Platform</title>
+  
+  <!-- Modern Typography: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
   <style>
-    /* ── Reset & Typography ── */
+    /* ── Reset & Modern Design Tokens ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
-      --bg-bench: #eaefeb;
+      --bg-bench: #f4f6f5;
       --bg-surface: #ffffff;
-      --bg-sidebar: #f3f6f3;
-      --border-subtle: #d0dad2;
-      --border-strong: #b2c2b6;
-      --text-main: #121814;
-      --text-muted: #56645a;
-      --text-faint: #7a8a7f;
+      --bg-sidebar: #ffffff;
+      --border-subtle: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --border-card: #e5ede7;
+      
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-faint: #64748b;
+      
       --accent-trace: #b8402c;
-      --accent-green: #1e7256;
-      --accent-amber: #c27827;
-      --accent-dark: #121814;
-      --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "Fira Code", "Courier New", monospace;
-      --font-condensed: "Barlow Condensed", "Arial Narrow", "Franklin Gothic Medium", Impact, sans-serif;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --accent-green: #059669;
+      --accent-green-bg: #ecfdf5;
+      --accent-green-border: #a7f3d0;
+      --accent-amber: #d97706;
+      --accent-amber-bg: #fffbeb;
+      --accent-amber-border: #fde68a;
+      --accent-red: #dc2626;
+      --accent-red-bg: #fef2f2;
+      --accent-blue: #0284c7;
+      --accent-blue-bg: #f0f9ff;
+      --accent-dark: #0f172a;
+      --accent-dark-hover: #1e293b;
+      
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, "SF Mono", monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
     }
 
     body {
       background-color: var(--bg-bench);
       color: var(--text-main);
       font-family: var(--font-sans);
-      font-size: 13.5px;
+      font-size: 14px;
       line-height: 1.5;
       display: flex;
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Custom Scrollbar ── */
+    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg-bench); }
-    ::-webkit-scrollbar-thumb { background: #bcc8be; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #9fae9f; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-    /* ── Sidebar (Bench Style) ── */
+    /* ── Collapsible Floating Toggle ── */
+    #floatingSidebarToggle {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 60;
+      background: var(--accent-dark);
+      color: #ffffff;
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-sm);
+      width: 36px;
+      height: 36px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    #floatingSidebarToggle:hover {
+      background: var(--accent-dark-hover);
+      transform: scale(1.05);
+    }
+    body.sidebar-collapsed #floatingSidebarToggle {
+      display: flex !important;
+    }
+
+    /* ── Sidebar ── */
     #sidebar {
-      width: 295px;
-      min-width: 295px;
+      width: 300px;
+      min-width: 300px;
       background: var(--bg-sidebar);
       border-right: 1px solid var(--border-subtle);
-      padding: 16px 14px;
+      padding: 18px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       height: 100vh;
       position: sticky;
       top: 0;
@@ -62,53 +117,74 @@
       z-index: 40;
       transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    body.sidebar-collapsed #sidebar {
+      margin-left: -300px;
+    }
 
     .sidebar-brand-bar {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding-bottom: 12px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border-subtle);
     }
     .bench-logo-square {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       background: var(--accent-dark);
       color: #ffffff;
       font-family: var(--font-mono);
       font-weight: 800;
-      font-size: 15px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       flex-shrink: 0;
     }
     .sidebar-brand-title {
-      font-size: 1.05rem;
+      font-size: 1.15rem;
       font-weight: 800;
       color: var(--text-main);
       line-height: 1.1;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
     .sidebar-brand-sub {
-      font-size: 0.65rem;
-      color: var(--text-muted);
+      font-size: 0.72rem;
+      color: var(--text-faint);
       font-family: var(--font-mono);
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-top: 1px;
     }
+    .sidebar-collapse-btn {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-faint);
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .sidebar-collapse-btn:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
 
     .section-label {
-      font-size: 0.68rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--text-faint);
       font-family: var(--font-mono);
       text-transform: uppercase;
       letter-spacing: 0.08em;
       margin-top: 4px;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
 
     /* Form Controls */
@@ -117,38 +193,39 @@
       background: #ffffff;
       border: 1px solid var(--border-subtle);
       color: var(--text-main);
-      border-radius: 5px;
-      padding: 6px 9px;
-      font-size: 0.8rem;
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      font-size: 0.85rem;
       font-family: inherit;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     select:focus, input:focus, textarea:focus {
       border-color: var(--accent-green);
-      box-shadow: 0 0 0 2px rgba(30, 114, 86, 0.15);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
     }
 
     /* Radio Group */
     .radio-group {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
     }
     .radio-label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
+      gap: 9px;
+      font-size: 0.85rem;
+      font-weight: 500;
       color: var(--text-main);
       cursor: pointer;
       user-select: none;
-      padding: 3px 0;
+      padding: 4px 0;
     }
     .radio-label input[type="radio"] {
       appearance: none;
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border: 1.5px solid var(--border-strong);
       border-radius: 50%;
       background: #ffffff;
@@ -162,35 +239,35 @@
     .radio-label input[type="radio"]:checked::after {
       content: "";
       position: absolute;
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       background: var(--accent-green);
       border-radius: 50%;
-      top: 2px;
-      left: 2px;
+      top: 2.5px;
+      left: 2.5px;
     }
 
     /* Patient Card in Sidebar */
     .sidebar-patient-card {
-      background: #e3ede5;
-      border: 1px solid #b7ccbb;
-      border-radius: 6px;
-      padding: 9px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
       margin: 4px 0;
     }
-    .sidebar-patient-name { font-size: 0.85rem; font-weight: 700; color: #165640; }
-    .sidebar-patient-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
-    .sidebar-patient-mrn { color: #165640; font-family: var(--font-mono); font-weight: 700; }
+    .sidebar-patient-name { font-size: 0.92rem; font-weight: 700; color: var(--text-main); }
+    .sidebar-patient-meta { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .sidebar-patient-mrn { color: var(--accent-green); font-family: var(--font-mono); font-weight: 700; }
 
     /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 5px;
-      font-size: 0.78rem;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
@@ -203,8 +280,9 @@
       color: #ffffff;
     }
     .btn-primary:hover {
-      background: #253329;
-      border-color: #253329;
+      background: var(--accent-dark-hover);
+      border-color: var(--accent-dark-hover);
+      box-shadow: var(--shadow-sm);
     }
     .btn-outline {
       background: #ffffff;
@@ -212,34 +290,34 @@
       color: var(--text-main);
     }
     .btn-outline:hover {
-      background: #f0f4f0;
+      background: #f8fafc;
       border-color: var(--border-strong);
     }
-    .btn-sm { padding: 4px 8px; font-size: 0.72rem; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
 
-    /* File dropzone in sidebar */
+    /* File dropzone */
     .file-dropzone {
       border: 1.5px dashed var(--border-strong);
-      border-radius: 6px;
-      padding: 10px 8px;
+      border-radius: var(--radius-md);
+      padding: 14px 10px;
       text-align: center;
-      background: #ffffff;
+      background: #fafbfc;
       cursor: pointer;
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
       transition: all 0.15s;
     }
     .file-dropzone:hover {
       border-color: var(--accent-green);
-      background: #f7faf7;
+      background: var(--accent-green-bg);
       color: var(--text-main);
     }
 
     /* ── Main Workspace ── */
     #main-content {
       flex: 1;
-      padding: 18px 28px;
-      max-width: 1440px;
+      padding: 20px 32px;
+      max-width: 1480px;
       overflow-y: auto;
     }
 
@@ -248,9 +326,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 12px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .bench-brand {
       display: flex;
@@ -265,497 +343,37 @@
       line-height: 1.1;
     }
     .bench-subtitle {
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       font-family: var(--font-mono);
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
+      color: var(--text-faint);
+      letter-spacing: 0.02em;
     }
     .bench-top-badges {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-    .bench-pill-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: #dbe8de;
-      border: 1px solid #c0d4c4;
-      color: var(--accent-green);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-    .bench-tag-badge {
-      display: inline-block;
-      padding: 3px 9px;
-      border-radius: 4px;
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.04em;
-    }
-
-    /* Record Metadata Strip */
-    .bench-meta-strip {
-      font-family: var(--font-mono);
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-      font-weight: 600;
-    }
-
-    /* Giant Title */
-    .bench-giant-headline {
-      font-family: var(--font-condensed);
-      font-size: 2.75rem;
-      font-weight: 900;
-      color: var(--text-main);
-      text-transform: uppercase;
-      letter-spacing: -0.01em;
-      line-height: 1.05;
-      margin-bottom: 12px;
-    }
-
-    /* Ingest Toolbar */
-    .bench-ingest-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .bench-ingest-label {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.08em;
-      margin-right: 4px;
-    }
-    .bench-pill-btn {
-      background: #ffffff;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 5px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .bench-pill-btn:hover {
-      background: #f2f7f3;
-      border-color: var(--border-strong);
-    }
-    .bench-pill-dark {
-      background: var(--accent-dark);
-      border-color: var(--accent-dark);
-      color: #ffffff;
-      border-radius: 999px;
-      padding: 5px 14px;
-    }
-    .bench-pill-dark:hover {
-      background: #253329;
-      border-color: #253329;
-    }
-
-    /* ── Continuous Trace Box (ECG Paper Grid) ── */
-    .bench-screen-container {
-      border: 1px solid var(--border-strong);
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 16px;
-      background-color: #ebf2ec;
-      background-image:
-        linear-gradient(to right, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
-        linear-gradient(to right, rgba(160, 185, 168, 0.15) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(160, 185, 168, 0.15) 1px, transparent 1px);
-      background-size: 25px 25px, 25px 25px, 5px 5px, 5px 5px;
-      position: relative;
-    }
-    .bench-screen-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 14px;
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border-bottom: 1px solid rgba(160, 185, 168, 0.3);
-    }
-    .bench-screen-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 14px;
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      border-top: 1px solid rgba(160, 185, 168, 0.3);
-    }
-
-    /* ── Three Cards Row (Below Waveform) ── */
-    .bench-cards-row {
-      display: grid;
-      grid-template-columns: 1fr 1.35fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .bench-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 12px 14px;
-    }
-    .bench-card-header {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .bench-metric-line {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 4px;
-    }
-    .bench-metric-key {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-    .bench-metric-val {
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-    .bench-progress-bar {
-      height: 4px;
-      background: #e2ebe4;
-      border-radius: 2px;
-      margin: 4px 0 10px 0;
-      overflow: hidden;
-    }
-    .bench-progress-fill {
-      height: 100%;
-      background: var(--accent-green);
-      border-radius: 2px;
-      transition: width 0.3s;
-    }
-
-    /* Stacked Proportion Bar */
-    .bench-stacked-bar {
-      height: 7px;
-      background: #e2ebe4;
-      border-radius: 3px;
-      display: flex;
-      overflow: hidden;
-      gap: 2px;
-      margin: 6px 0 10px 0;
-    }
-    .bench-bar-seg { height: 100%; transition: width 0.3s; }
-    .bench-seg-norm { background: var(--accent-green); }
-    .bench-seg-pvc { background: var(--accent-amber); }
-    .bench-seg-other { background: #475569; }
-
-    /* Legend List */
-    .bench-legend-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .bench-legend-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.76rem;
-    }
-    .bench-legend-left {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .bench-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .dot-green { background: var(--accent-green); }
-    .dot-amber { background: var(--accent-amber); }
-    .dot-slate { background: #475569; }
-    .bench-legend-count {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      font-size: 0.74rem;
-      color: var(--text-main);
-    }
-
-    /* Measurements Grid */
-    .bench-measurements-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    /* ── Lower Workspace Panels (Tabs & Clinical Tools) ── */
-    .section-title {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin: 16px 0 8px 0;
-    }
-
-    .grid-2col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .panel-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 12px 14px;
-    }
-    .panel-card-title {
-      font-family: var(--font-mono);
-      font-size: 0.74rem;
-      font-weight: 700;
-      color: var(--text-main);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    /* Tables */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.76rem;
-    }
-    .data-table th, .data-table td {
-      padding: 6px 8px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .data-table th {
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    .data-table td { color: var(--text-main); }
-    .data-table td.val-col { font-family: var(--font-mono); font-weight: 600; }
-
-    /* Accordion / Details */
-    details {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-    details summary {
-      padding: 9px 12px;
-      cursor: pointer;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text-main);
-      user-select: none;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fafbfa;
-    }
-    details summary::-webkit-details-marker { display: none; }
-    details summary:hover { background: #f2f7f3; }
-    details[open] summary { border-bottom: 1px solid var(--border-subtle); }
-    .details-body { padding: 10px 12px; font-size: 0.76rem; color: var(--text-muted); }
-
-    /* Alerts */
-    .alert-box {
-      border-radius: 6px;
-      padding: 9px 12px;
-      font-size: 0.76rem;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .alert-danger { background: #fdf2f2; border: 1px solid #f8b4b4; color: #9b1c1c; }
-    .alert-info { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-    .alert-warn { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; }
-
-    /* Export Row */
-    .export-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .btn-export {
-      flex: 1;
-      min-width: 135px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      border-radius: 5px;
-      padding: 8px 10px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.15s;
-    }
-    .btn-export:hover { background: #f2f7f3; border-color: var(--border-strong); }
-
-    /* Status & Provenance Strip */
-    .patient-strip {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-      font-size: 0.76rem;
-    }
-    .patient-strip-name { font-weight: 700; color: var(--text-main); }
-    .patient-strip-mrn {
-      background: #e3ede5;
-      color: #165640;
-      font-family: var(--font-mono);
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-    .patient-strip-meta { color: var(--text-muted); }
-
-    /* Criteria Subtext */
-    .criteria-footer {
-      font-size: 0.7rem;
-      color: var(--text-faint);
-      margin-top: 4px;
-      margin-bottom: 14px;
-      line-height: 1.4;
-    }
-    .criteria-footer strong { color: var(--text-muted); }
-
-    /* Badges */
-    .badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 10px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-    }
-    .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-    .badge-yellow { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
-    .badge-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    .badge-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
-    .badge-gray { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-
-    /* Utilities */
-    .hidden { display: none !important; }
-    .text-green { color: var(--accent-green); }
-    .text-red { color: #b91c1c; }
-    .text-yellow { color: #b45309; }
-    .text-blue { color: #0284c7; }
-
-    /* ── 21st.dev Modern Interactive Design Enhancements ── */
-    body.sidebar-collapsed #sidebar {
-      margin-left: -295px;
-    }
-    #floatingSidebarToggle {
-      position: fixed;
-      top: 14px;
-      left: 12px;
-      z-index: 50;
-      background: var(--accent-dark);
-      color: #ffffff;
-      border: 1px solid var(--border-strong);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-      border-radius: 6px;
-      width: 32px;
-      height: 32px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    #floatingSidebarToggle:hover {
-      background: #253329;
-      transform: scale(1.05);
-    }
-    body.sidebar-collapsed #floatingSidebarToggle {
-      display: flex !important;
-    }
-    .sidebar-collapse-btn {
-      margin-left: auto;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      width: 26px;
-      height: 26px;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-    .sidebar-collapse-btn:hover {
-      background: #e2ebe4;
-      color: var(--text-main);
-      border-color: var(--border-subtle);
-    }
-
+    
     /* Radar Ping Live Telemetry Badge */
     .live-telemetry-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: #dbe8de;
-      border: 1px solid #c0d4c4;
+      gap: 7px;
+      background: var(--accent-green-bg);
+      border: 1px solid var(--accent-green-border);
       color: var(--accent-green);
-      padding: 3px 10px;
+      padding: 4px 12px;
       border-radius: 999px;
       font-family: var(--font-mono);
-      font-size: 0.68rem;
+      font-size: 0.74rem;
       font-weight: 700;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
     .pulse-radar-dot {
       position: relative;
       display: inline-flex;
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
     }
     .pulse-radar-dot::before {
       content: '';
@@ -768,8 +386,8 @@
     .pulse-radar-dot::after {
       content: '';
       position: relative;
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background-color: var(--accent-green);
     }
@@ -780,21 +398,298 @@
       }
     }
 
-    /* Telemetry Controls & Oscilloscope Sweep */
-    .playback-controls-group {
+    .bench-pill-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .bench-tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .bench-tag-badge:hover {
+      background: #f8fafc;
+      border-color: var(--border-strong);
+      color: var(--text-main);
+    }
+
+    /* ── Clean Diagnostic Hero Banner ── */
+    .clinical-hero-banner {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      box-shadow: var(--shadow-sm);
+      flex-wrap: wrap;
+    }
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hero-pill-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .status-lead-tag {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .status-patient-tag {
+      font-size: 0.78rem;
+      color: var(--text-muted);
       display: inline-flex;
       align-items: center;
       gap: 5px;
+    }
+    .clinical-hero-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+    .clinical-hero-desc {
+      font-size: 0.84rem;
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .hero-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-hero-pill {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      font-size: 0.80rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-hero-pill:hover {
+      background: #f8fafc;
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    .btn-hero-pill.pill-green {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green-border);
+      color: var(--accent-green);
+    }
+    .btn-hero-pill.pill-amber {
+      background: var(--accent-amber-bg);
+      border-color: var(--accent-amber-border);
+      color: var(--accent-amber);
+    }
+    .hero-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-green { background: var(--accent-green); }
+    .dot-amber { background: var(--accent-amber); }
+    .dot-slate { background: #64748b; }
+
+    /* ── 4-Tile Interactive Clinical Vitals Bento Bar ── */
+    .clinical-vitals-bento {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 1024px) {
+      .clinical-vitals-bento { grid-template-columns: repeat(2, 1fr); }
+    }
+    .vital-tile {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.15s ease;
+    }
+    .vital-tile:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-strong);
+    }
+    .vital-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .vital-label {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .vital-icon-subtle {
+      color: var(--text-faint);
+      font-size: 0.85rem;
+    }
+    
+    /* Beating Heart Icon Animation */
+    .heart-pulse-icon {
+      color: var(--accent-red);
+      font-size: 0.95rem;
+      animation: heart-beat 0.85s infinite ease-in-out;
+      display: inline-block;
+    }
+    @keyframes heart-beat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.24); }
+      28% { transform: scale(1.04); }
+      42% { transform: scale(1.28); }
+      60% { transform: scale(1); }
+    }
+
+    .vital-metric-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 2px 0 6px 0;
+    }
+    .vital-val-huge {
+      font-family: var(--font-sans);
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+    .vital-val-big {
+      font-family: var(--font-sans);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+    .vital-slash {
+      font-size: 1.1rem;
+      color: var(--text-faint);
+      font-weight: 400;
+    }
+    .vital-subtext {
+      font-size: 0.74rem;
+      color: var(--text-faint);
+    }
+
+    /* Progress bar */
+    .bench-progress-bar {
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      margin: 6px 0;
+      overflow: hidden;
+    }
+    .bench-progress-fill {
+      height: 100%;
+      background: var(--accent-green);
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    /* ── Continuous Trace Container (Medical Millimeter Grid Screen) ── */
+    .bench-screen-container {
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 16px;
+      background-color: #ebf2ec;
+      background-image:
+        linear-gradient(to right, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
+        linear-gradient(to right, rgba(160, 185, 168, 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(160, 185, 168, 0.15) 1px, transparent 1px);
+      background-size: 25px 25px, 25px 25px, 5px 5px, 5px 5px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+    }
+    .bench-screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 14px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(160, 185, 168, 0.35);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .bench-screen-meta-left {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 0.05em;
+    }
+    .bench-screen-meta-right {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    
+    /* Playback controls */
+    .playback-controls-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .bench-control-pill {
       background: #ffffff;
       border: 1px solid var(--border-subtle);
       color: var(--text-main);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 700;
-      padding: 2.5px 8px;
-      border-radius: 4px;
+      font-family: var(--font-sans);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -802,7 +697,7 @@
       transition: all 0.15s ease;
     }
     .bench-control-pill:hover {
-      background: #f0f5f1;
+      background: #f1f5f9;
       border-color: var(--border-strong);
     }
     .bench-control-pill.active {
@@ -810,10 +705,42 @@
       color: #ffffff;
       border-color: var(--accent-dark);
     }
+
+    /* Time Range Window Selector */
+    .time-window-group {
+      display: inline-flex;
+      background: #e2e8f0;
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      gap: 2px;
+    }
+    .bench-time-btn {
+      background: transparent;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .bench-time-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .bench-time-btn.active {
+      background: #ffffff;
+      color: var(--accent-dark);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Sweep line */
     .sweep-line {
       position: absolute;
-      top: 35px;
-      bottom: 27px;
+      top: 42px;
+      bottom: 6px;
       width: 2px;
       background: linear-gradient(180deg, rgba(184, 64, 44, 0.2) 0%, rgba(184, 64, 44, 1) 50%, rgba(184, 64, 44, 0.2) 100%);
       box-shadow: 0 0 10px rgba(184, 64, 44, 0.6), 0 0 20px rgba(184, 64, 44, 0.3);
@@ -831,50 +758,20 @@
       pointer-events: none;
     }
 
-    /* Time Range Window Selector */
-    .time-window-group {
-      display: inline-flex;
-      background: #e2ebe4;
-      padding: 2px;
-      border-radius: 5px;
-      gap: 2px;
-    }
-    .bench-time-btn {
-      background: transparent;
-      border: none;
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      padding: 2px 7px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .bench-time-btn:hover {
-      color: var(--text-main);
-      background: rgba(255, 255, 255, 0.6);
-    }
-    .bench-time-btn.active {
-      background: #ffffff;
-      color: var(--accent-dark);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    /* Interactive Beat Inspector Bento Card */
+    /* Beat Inspector Tooltip */
     .beat-inspector-tooltip {
       position: absolute;
-      top: 40px;
-      right: 14px;
+      top: 48px;
+      right: 16px;
       z-index: 35;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      padding: 10px 12px;
-      min-width: 220px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 12px 14px;
+      min-width: 230px;
       animation: bit-fade 0.15s ease-out;
     }
     @keyframes bit-fade {
@@ -886,44 +783,314 @@
       border: none;
       color: var(--text-faint);
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       padding: 2px 4px;
     }
     .bit-close-btn:hover { color: var(--text-main); }
     .bit-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 4px 8px;
-      margin-top: 4px;
+      gap: 5px 10px;
+      margin-top: 6px;
     }
     .bit-metric {
       display: flex;
       justify-content: space-between;
-      font-size: 0.70rem;
+      font-size: 0.74rem;
     }
     .bit-k { color: var(--text-muted); }
     .bit-v { font-family: var(--font-mono); font-weight: 700; color: var(--text-main); }
 
-    /* Clickable Beat Filter Legend */
-    .bench-legend-item.clickable {
-      cursor: pointer;
-      padding: 4px 6px;
+    /* ── Interactive Beat Breakdown Strip ── */
+    .bench-breakdown-strip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .breakdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .breakdown-title {
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .breakdown-hint {
+      font-size: 0.74rem;
+      color: var(--text-faint);
+    }
+    .bench-stacked-bar {
+      height: 8px;
+      background: #e2e8f0;
       border-radius: 4px;
+      display: flex;
+      overflow: hidden;
+      gap: 2px;
+    }
+    .bench-bar-seg { height: 100%; transition: width 0.3s; }
+    .bench-seg-norm { background: var(--accent-green); }
+    .bench-seg-pvc { background: var(--accent-amber); }
+    .bench-seg-other { background: #64748b; }
+
+    .breakdown-pills-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bench-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 0.80rem;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
       transition: all 0.15s ease;
     }
-    .bench-legend-item.clickable:hover {
-      background: #f0f5f1;
+    .bench-legend-item:hover {
+      background: #f1f5f9;
+      border-color: var(--border-strong);
     }
     .bench-legend-item.active-filter {
-      background: #e3ede5;
-      outline: 1.5px solid #1e7256;
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green);
+      font-weight: 700;
+      color: var(--accent-green);
     }
+    .bench-legend-count {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.78rem;
+      margin-left: 4px;
+    }
+
+    /* ── Progressive Disclosure Clinical Tabs ── */
+    .clinical-tabs-container {
+      margin-bottom: 16px;
+    }
+    .clinical-tabs-nav {
+      display: flex;
+      gap: 6px;
+      border-bottom: 2px solid var(--border-subtle);
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 10px 16px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      color: var(--accent-dark);
+      border-bottom-color: var(--accent-green);
+      font-weight: 700;
+    }
+    .tab-content {
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tab-grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .tab-grid-2col { grid-template-columns: 1fr; }
+    }
+
+    .panel-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .panel-card-title {
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* Clean Data Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    .data-table th, .data-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .data-table th {
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .data-table td { color: var(--text-main); }
+    .data-table td.val-col { font-family: var(--font-mono); font-weight: 700; color: var(--text-main); }
+    .data-table td.ref-col { font-size: 0.76rem; color: var(--text-faint); }
+
+    /* CDS Boxes */
+    .cds-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+    .cds-box-title {
+      font-size: 0.80rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cds-clean-list {
+      padding-left: 18px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Export Grid */
+    .export-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-export-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s ease;
+    }
+    .btn-export-card:hover {
+      background: #f8fafc;
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    .btn-export-card i { font-size: 1.25rem; }
+    .btn-export-card strong { font-size: 0.84rem; display: block; color: var(--text-main); }
+    .btn-export-card .sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
+
+    /* Clean Patient Bottom Strip */
+    .patient-context-strip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      margin-top: 14px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pat-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pat-chip-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-faint);
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .pat-bullet { color: var(--border-strong); }
+    .pat-mrn-chip {
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .dual-storage-tag {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-green { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); }
+    .badge-yellow { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+    .badge-red { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid #fecaca; }
+    .badge-blue { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid #bae6fd; }
 
     /* Keyboard Shortcuts Modal */
     .shortcuts-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(18, 24, 20, 0.45);
+      background: rgba(15, 23, 42, 0.5);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       z-index: 1000;
@@ -934,10 +1101,10 @@
     .shortcuts-card {
       background: #ffffff;
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
+      border-radius: var(--radius-lg);
       width: 90%;
-      max-width: 440px;
-      box-shadow: 0 20px 45px rgba(0,0,0,0.2);
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
       overflow: hidden;
       animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -949,43 +1116,43 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--border-subtle);
-      background: #f7faf7;
+      background: #fafbfc;
     }
     .shortcuts-body {
-      padding: 12px 16px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 9px;
     }
     .shortcut-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.76rem;
-      padding: 3px 0;
-      border-bottom: 1px dashed #edf2ee;
+      font-size: 0.82rem;
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--border-subtle);
     }
     .shortcut-row:last-child { border-bottom: none; }
     .shortcut-desc { color: var(--text-muted); }
     .shortcut-key kbd {
-      background: #eaefeb;
-      border: 1px solid #c8d6cb;
+      background: #f1f5f9;
+      border: 1px solid var(--border-strong);
       border-radius: 4px;
-      padding: 2px 6px;
+      padding: 2px 7px;
       font-family: var(--font-mono);
-      font-size: 0.70rem;
+      font-size: 0.74rem;
       font-weight: 700;
       color: var(--text-main);
-      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.06);
     }
 
     /* Toast Notification */
     .toast-container {
       position: fixed;
-      bottom: 20px;
-      right: 24px;
+      bottom: 24px;
+      right: 28px;
       z-index: 1100;
       display: flex;
       flex-direction: column;
@@ -993,16 +1160,16 @@
       pointer-events: none;
     }
     .toast-message {
-      background: #121814;
+      background: var(--accent-dark);
       color: #ffffff;
-      font-family: var(--font-mono);
-      font-size: 0.74rem;
-      padding: 8px 14px;
-      border-radius: 6px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       pointer-events: auto;
       animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -1010,6 +1177,13 @@
       from { transform: translateY(12px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
+
+    /* Utilities */
+    .hidden { display: none !important; }
+    .text-green { color: var(--accent-green); }
+    .text-red { color: var(--accent-red); }
+    .text-yellow { color: var(--accent-amber); }
+    .text-blue { color: var(--accent-blue); }
   </style>
 </head>
 <body>
@@ -1020,7 +1194,7 @@
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- SIDEBAR (MODIFIED TO MATCH BENCH UI AESTHETIC)                   -->
+  <!-- SIDEBAR                                                         -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <aside id="sidebar">
     <!-- Brand -->
@@ -1028,7 +1202,7 @@
       <div class="bench-logo-square">V</div>
       <div>
         <div class="sidebar-brand-title">VITALISCOPE</div>
-        <div class="sidebar-brand-sub">Clinical Bench UI</div>
+        <div class="sidebar-brand-sub">Clinical Decision Platform</div>
       </div>
       <button class="sidebar-collapse-btn" title="Collapse Sidebar [ Shortcut: [ ]" onclick="toggleSidebar()">
         <i class="fa-solid fa-angles-left"></i>
@@ -1037,7 +1211,7 @@
 
     <!-- Facility -->
     <div>
-      <div class="section-label">Facility</div>
+      <div class="section-label">Hospital Facility</div>
       <select id="selFacility">
         <option value="HOSP-APEX" selected>Apex Heart & Vascular Hospital</option>
         <option value="HOSP-CITY">City General Medical Center</option>
@@ -1047,7 +1221,7 @@
 
     <!-- Clinician -->
     <div>
-      <div class="section-label">Clinician</div>
+      <div class="section-label">Attending Clinician</div>
       <select id="selClinician">
         <option value="dr_roy" selected>Dr. Ananya Roy, MD DM (Cardiology)</option>
         <option value="dr_chand">Dr. Aniket Chand, MD (Cardiology)</option>
@@ -1059,24 +1233,24 @@
 
     <!-- Workspace View Switcher -->
     <div>
-      <div class="section-label">Workspace</div>
+      <div class="section-label">Workspace View</div>
       <div class="radio-group" id="rgWorkspace">
         <label class="radio-label">
           <input type="radio" name="workspace" value="clinical" checked onchange="switchWorkspace('clinical')" />
-          <span>⚡ Clinical Bench</span>
+          <span>⚡ Clinical Telemetry Bench</span>
         </label>
         <label class="radio-label">
           <input type="radio" name="workspace" value="history" onchange="switchWorkspace('history')" />
-          <span>📜 History & Archive</span>
+          <span>📜 Audit Archive & History</span>
         </label>
         <label class="radio-label">
           <input type="radio" name="workspace" value="portal" onchange="switchWorkspace('portal')" />
-          <span>🧑‍⚕️ Patient Portal</span>
+          <span>🧑‍⚕️ Patient Summary Portal</span>
         </label>
       </div>
     </div>
 
-    <!-- Active Registered Patient Box (Mint Card) -->
+    <!-- Active Registered Patient Box -->
     <div>
       <div class="section-label">Patient Record</div>
       <div id="sidebarPatientRegistered" class="sidebar-patient-card">
@@ -1087,28 +1261,28 @@
         </div>
       </div>
       <button id="btnChangePatient" class="btn btn-outline btn-sm" style="width:100%; margin-top:4px;" onclick="showPatientForm()">
-        <i class="fa-solid fa-user-pen"></i> Edit Patient Registration
+        <i class="fa-solid fa-user-pen"></i> Edit Patient Details
       </button>
 
       <!-- Patient Registration Form (Collapsible) -->
-      <div id="sidebarPatientForm" class="hidden" style="background:#ffffff; border:1px solid var(--border-subtle); border-radius:6px; padding:10px; margin-top:8px;">
-        <div style="font-size:0.75rem; font-weight:700; color:var(--text-main); margin-bottom:6px; font-family:var(--font-mono);">PATIENT REGISTRATION</div>
+      <div id="sidebarPatientForm" class="hidden" style="background:#ffffff; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:10px; margin-top:8px;">
+        <div style="font-size:0.80rem; font-weight:700; color:var(--text-main); margin-bottom:6px; font-family:var(--font-mono);">PATIENT REGISTRATION</div>
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div>
-            <label style="font-size:0.68rem; color:var(--text-muted);">MRN</label>
+            <label style="font-size:0.72rem; color:var(--text-muted);">MRN</label>
             <input type="text" id="regMrn" value="MRN-5F2298" />
           </div>
           <div>
-            <label style="font-size:0.68rem; color:var(--text-muted);">Full Name *</label>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Full Name *</label>
             <input type="text" id="regName" value="raj" />
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
             <div>
-              <label style="font-size:0.68rem; color:var(--text-muted);">Age</label>
+              <label style="font-size:0.72rem; color:var(--text-muted);">Age</label>
               <input type="number" id="regAge" value="15" />
             </div>
             <div>
-              <label style="font-size:0.68rem; color:var(--text-muted);">Sex</label>
+              <label style="font-size:0.72rem; color:var(--text-muted);">Sex</label>
               <select id="regSex">
                 <option value="F" selected>F</option>
                 <option value="M">M</option>
@@ -1118,7 +1292,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
             <div>
-              <label style="font-size:0.68rem; color:var(--text-muted);">Blood</label>
+              <label style="font-size:0.72rem; color:var(--text-muted);">Blood</label>
               <select id="regBlood">
                 <option value="A+" selected>A+</option>
                 <option value="B+">B+</option>
@@ -1131,7 +1305,7 @@
               </select>
             </div>
             <div>
-              <label style="font-size:0.68rem; color:var(--text-muted);">Smoking</label>
+              <label style="font-size:0.72rem; color:var(--text-muted);">Smoking</label>
               <select id="regSmoke">
                 <option value="Non-Smoker" selected>Non-Smoker</option>
                 <option value="Former">Former</option>
@@ -1140,18 +1314,18 @@
             </div>
           </div>
           <div>
-            <label style="font-size:0.68rem; color:var(--text-muted);">Allergies</label>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Allergies</label>
             <input type="text" id="regAllergies" value="None" />
           </div>
           <div>
-            <label style="font-size:0.68rem; color:var(--text-muted);">Conditions</label>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Conditions</label>
             <input type="text" id="regConds" value="None" />
           </div>
           <div>
-            <label style="font-size:0.68rem; color:var(--text-muted);">Medications</label>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Medications</label>
             <input type="text" id="regMeds" value="None" />
           </div>
-          <button class="btn btn-primary btn-sm" style="margin-top:4px;" onclick="savePatientRegistration()">Save Patient & Continue →</button>
+          <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="savePatientRegistration()">Save &amp; Continue →</button>
         </div>
       </div>
     </div>
@@ -1160,14 +1334,14 @@
     <div id="uploadInputBox">
       <div class="section-label">Acquisition File</div>
       <div class="file-dropzone" onclick="document.getElementById('fileInput').click()">
-        <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.1rem; margin-bottom:3px; display:block; color:var(--accent-green);"></i>
-        <span id="dropzoneLabel">Browse or drop ECG file</span>
-        <div style="font-size:0.65rem; color:var(--text-faint); margin-top:2px;">Supports CSV, PDF, JPG, PNG, NPY, EDF</div>
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem; margin-bottom:4px; display:block; color:var(--accent-green);"></i>
+        <span id="dropzoneLabel" style="font-weight:600;">Browse or drop ECG file</span>
+        <div style="font-size:0.72rem; color:var(--text-faint); margin-top:3px;">CSV, PDF, JPG, PNG, NPY, EDF</div>
       </div>
       <input type="file" id="fileInput" accept=".csv,.json,.txt,.npy,.jpg,.jpeg,.png,.pdf,.edf,.xml,.dcm" class="hidden" onchange="handleFileUpload(event)" />
 
-      <div style="margin-top:8px;">
-        <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase;">Sampling Rate (Hz)</label>
+      <div style="margin-top:10px;">
+        <label style="font-size:0.72rem; color:var(--text-faint); font-family:var(--font-mono); text-transform:uppercase;">Sampling Rate (Hz)</label>
         <select id="sbSamplingRate">
           <option value="250">250 Hz</option>
           <option value="360" selected>360 Hz (Standard MIT-BIH)</option>
@@ -1177,16 +1351,16 @@
       </div>
 
       <!-- Quick Benchmark Sample Buttons -->
-      <div style="margin-top:10px;">
+      <div style="margin-top:12px;">
         <div class="section-label">Quick Benchmarks</div>
         <div style="display:flex; gap:6px;">
-          <button type="button" class="btn btn-outline btn-sm" style="flex:1; font-size:0.68rem; padding:4px;" onclick="loadBenchmarkSample('normal')">
+          <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:5px 2px;" onclick="loadBenchmarkSample('normal')">
             🟢 Normal
           </button>
-          <button type="button" class="btn btn-outline btn-sm" style="flex:1; font-size:0.68rem; padding:4px;" onclick="loadBenchmarkSample('pvc')">
-            🔴 PVC
+          <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:5px 2px;" onclick="loadBenchmarkSample('pvc')">
+            🟠 PVC
           </button>
-          <button type="button" class="btn btn-outline btn-sm" style="flex:1; font-size:0.68rem; padding:4px;" onclick="loadBenchmarkSample('noisy')">
+          <button type="button" class="btn btn-outline btn-sm" style="flex:1; padding:5px 2px;" onclick="loadBenchmarkSample('noisy')">
             ⚠️ Noisy
           </button>
         </div>
@@ -1205,60 +1379,131 @@
     </div>
 
     <!-- Run Analysis Button -->
-    <button class="btn btn-primary" id="btnRunAnalysis" style="width:100%; margin-top:8px; padding:7px 10px; font-family:var(--font-mono);" onclick="triggerAnalysis()">
+    <button class="btn btn-primary" id="btnRunAnalysis" style="width:100%; margin-top:8px; padding:9px 12px; font-family:var(--font-mono); font-size:0.88rem;" onclick="triggerAnalysis()">
       <i class="fa-solid fa-play"></i> RUN ANALYSIS
     </button>
   </aside>
 
   <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- MAIN BENCH WORKSPACE                                            -->
+  <!-- MAIN WORKSPACE                                                  -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <main id="main-content">
 
     <!-- CLINICAL BENCH VIEW -->
     <div id="viewClinicalWorkspace">
-      <!-- 1. Top Bar Matching User Design -->
+      <!-- 1. Top Bar -->
       <header class="bench-topbar">
         <div class="bench-brand">
           <div class="bench-logo-square">V</div>
           <div>
             <div class="bench-title">VITALISCOPE</div>
-            <div class="bench-subtitle">ECG Abnormality Detection · Bench UI</div>
+            <div class="bench-subtitle">Clinical ECG Abnormality Detection Bench</div>
           </div>
         </div>
         <div class="bench-top-badges">
           <span class="live-telemetry-badge" id="telemetryPulsingBadge">
             <span class="pulse-radar-dot"></span>
-            <span>LIVE TELEMETRY · 360 HZ</span>
+            <span id="telemetryStatusText">LIVE TELEMETRY · 360 HZ</span>
           </span>
-          <span class="bench-pill-badge">RESEARCH / EDUCATIONAL USE ONLY</span>
-          <button type="button" class="bench-tag-badge" style="cursor:pointer; display:inline-flex; align-items:center; gap:5px;" onclick="toggleShortcutsModal()" title="Keyboard Shortcuts (Ctrl+K)">
+          <span class="bench-pill-badge">RESEARCH / EDUCATIONAL</span>
+          <button type="button" class="bench-tag-badge" onclick="toggleShortcutsModal()" title="Keyboard Shortcuts (Ctrl+K)">
             <i class="fa-solid fa-keyboard"></i>
-            <span>Shortcuts <kbd style="background:#e0ebd2; padding:1px 5px; border-radius:3px; font-size:9px; border:1px solid #b8cbbe;">Ctrl+K</kbd></span>
+            <span>Shortcuts <kbd style="background:#f1f5f9; padding:1px 5px; border-radius:3px; font-size:10px; border:1px solid #cbd5e1;">Ctrl+K</kbd></span>
           </button>
         </div>
       </header>
 
-      <!-- 2. Record Metadata Strip -->
-      <div class="bench-meta-strip" id="vitaliRecordMeta">
-        RECORD 0042 · LEAD II · 25 MM/S
+      <!-- 2. Clean Diagnostic Hero Banner -->
+      <div class="clinical-hero-banner">
+        <div class="hero-left">
+          <div class="hero-pill-row">
+            <span class="status-lead-tag" id="vitaliRecordMeta">RECORD MRN-5F2298 · LEAD II · 360 HZ</span>
+            <span class="status-patient-tag">
+              <i class="fa-solid fa-user-circle text-green"></i>
+              <strong id="cardAiPattern">raj</strong> (15y / F)
+            </span>
+          </div>
+          <h1 class="clinical-hero-title" id="vitaliMainHeadline">
+            Sinus Rhythm with Scattered Ectopy
+          </h1>
+          <div class="clinical-hero-desc" id="cdsSummary">
+            Routine clinician confirmation and archival
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <button type="button" class="btn-hero-pill" onclick="openFilePicker('.csv,.txt,.npy,.json,.pdf,.png,.jpg')">
+            <i class="fa-solid fa-cloud-arrow-up text-green"></i> Upload File
+          </button>
+          <button type="button" class="btn-hero-pill pill-green" onclick="loadBenchmarkSample('normal')">
+            <span class="hero-dot dot-green"></span> Normal Sinus
+          </button>
+          <button type="button" class="btn-hero-pill pill-amber" onclick="loadBenchmarkSample('pvc')">
+            <span class="hero-dot dot-amber"></span> PVC Ectopy
+          </button>
+          <button type="button" class="btn-hero-pill" onclick="cycleDemoRecord()">
+            <i class="fa-solid fa-shuffle"></i> Demo Record
+          </button>
+        </div>
       </div>
 
-      <!-- 3. Giant Condensed Diagnostic Title -->
-      <h1 class="bench-giant-headline" id="vitaliMainHeadline">
-        SINUS RHYTHM WITH SCATTERED ECTOPY
-      </h1>
+      <!-- 3. 4-Tile Interactive Clinical Vitals Bento Bar -->
+      <div class="clinical-vitals-bento">
+        <!-- Tile 1: Heart Rate -->
+        <div class="vital-tile">
+          <div class="vital-header">
+            <span class="vital-label">HEART RATE</span>
+            <div class="heart-pulse-icon" id="heartPulseAnim"><i class="fa-solid fa-heart-pulse"></i></div>
+          </div>
+          <div class="vital-metric-row">
+            <span class="vital-val-huge" id="vitaliMeasHr">72 bpm</span>
+          </div>
+          <div class="vital-subtext">Physiological resting rate 60–100</div>
+        </div>
 
-      <!-- 4. Ingest Strip (Pill buttons matching design) -->
-      <div class="bench-ingest-bar">
-        <span class="bench-ingest-label">INGEST</span>
-        <button type="button" class="bench-pill-btn" onclick="openFilePicker('.pdf')">PDF REPORT</button>
-        <button type="button" class="bench-pill-btn" onclick="openFilePicker('.jpg,.jpeg,.png,.tiff,.bmp')">SCANNED IMAGE</button>
-        <button type="button" class="bench-pill-btn" onclick="openFilePicker('.csv,.txt,.npy,.json,.edf,.xml,.dcm')">CSV / NPY SIGNAL</button>
-        <button type="button" class="bench-pill-btn bench-pill-dark" onclick="cycleDemoRecord()">Load demo record</button>
+        <!-- Tile 2: Conduction Intervals -->
+        <div class="vital-tile">
+          <div class="vital-header">
+            <span class="vital-label">PR &amp; QRS INTERVAL</span>
+            <i class="fa-solid fa-wave-square vital-icon-subtle"></i>
+          </div>
+          <div class="vital-metric-row">
+            <span class="vital-val-big" id="vitaliMeasPr">160 ms</span>
+            <span class="vital-slash">/</span>
+            <span class="vital-val-big" id="vitaliMeasQrs">88 ms</span>
+          </div>
+          <div class="vital-subtext">PR norm: 120–200 · QRS: &lt;100 ms</div>
+        </div>
+
+        <!-- Tile 3: Repolarization QT/QTc -->
+        <div class="vital-tile">
+          <div class="vital-header">
+            <span class="vital-label">QT / QTc (BAZETT)</span>
+            <i class="fa-solid fa-arrows-left-right vital-icon-subtle"></i>
+          </div>
+          <div class="vital-metric-row">
+            <span class="vital-val-big" id="vitaliMeasQt">392 / 418 ms</span>
+          </div>
+          <div class="vital-subtext">Ventricular repolarization timing</div>
+        </div>
+
+        <!-- Tile 4: Signal Quality & Noise Gate -->
+        <div class="vital-tile">
+          <div class="vital-header">
+            <span class="vital-label">SIGNAL QUALITY (SNR)</span>
+            <span class="badge badge-green" id="sqSnrStatus">✓ Good</span>
+          </div>
+          <div class="vital-metric-row">
+            <span class="vital-val-big" id="vitaliSnrVal">23.4 dB</span>
+          </div>
+          <div class="bench-progress-bar">
+            <div class="bench-progress-fill" id="vitaliSnrBar" style="width: 82%;"></div>
+          </div>
+          <div class="vital-subtext" id="vitaliDriftVal">0.11 mV baseline drift</div>
+        </div>
       </div>
 
-      <!-- 5. Continuous Trace Container (Medical Millimeter Grid Screen) -->
+      <!-- 4. Continuous Trace Container (Medical Millimeter Grid Screen) -->
       <div class="bench-screen-container" id="waveformScreenBox">
         <div class="bench-screen-header">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -1294,8 +1539,8 @@
         <div id="beatInspectorTooltip" class="beat-inspector-tooltip hidden">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
             <div>
-              <span class="badge badge-green" id="bitBadge" style="font-size:0.65rem;">NORMAL BEAT</span>
-              <div style="font-weight:800; font-size:0.85rem; margin-top:2px;" id="bitTitle">Beat #1</div>
+              <span class="badge badge-green" id="bitBadge" style="font-size:0.72rem;">NORMAL BEAT</span>
+              <div style="font-weight:800; font-size:0.92rem; margin-top:2px;" id="bitTitle">Beat #1</div>
             </div>
             <button class="bit-close-btn" onclick="hideBeatInspector()" title="Close Inspector"><i class="fa-solid fa-xmark"></i></button>
           </div>
@@ -1305,289 +1550,240 @@
             <div class="bit-metric"><span class="bit-k">Inst HR:</span> <span class="bit-v" id="bitHr">72 bpm</span></div>
             <div class="bit-metric"><span class="bit-k">Time:</span> <span class="bit-v" id="bitTime">0.24 s</span></div>
           </div>
-          <button type="button" class="btn btn-outline btn-sm" style="width:100%; margin-top:8px; font-size:0.68rem;" onclick="focusBeatInOverlay()">
-            <i class="fa-solid fa-magnifying-glass"></i> Focus in Beat Overlay
+          <button type="button" class="btn btn-outline btn-sm" style="width:100%; margin-top:8px;" onclick="focusBeatInOverlay()">
+            <i class="fa-solid fa-magnifying-glass text-green"></i> Focus in Overlay
           </button>
         </div>
 
         <div id="chartWaveform" style="width:100%; height:260px;"></div>
+      </div>
 
-        <div class="bench-screen-footer">
-          <span class="bench-screen-hint-left">Click any peak marker or hover to inspect morphology &amp; intervals</span>
-          <span class="bench-screen-hint-right">Adaptive R-peak detector · threshold 0.42</span>
+      <!-- 5. Interactive Beat Breakdown & Filter Bar -->
+      <div class="bench-breakdown-strip">
+        <div class="breakdown-header">
+          <span class="breakdown-title">BEAT CLASSIFICATION BREAKDOWN</span>
+          <span class="breakdown-hint"><i class="fa-solid fa-arrow-pointer"></i> Click any category to filter beats on trace</span>
+        </div>
+        <div class="bench-stacked-bar">
+          <div class="bench-bar-seg bench-seg-norm" id="vitaliBarNorm" style="width: 92%;"></div>
+          <div class="bench-bar-seg bench-seg-pvc" id="vitaliBarPvc" style="width: 8%;"></div>
+          <div class="bench-bar-seg bench-seg-other" id="vitaliBarOther" style="width: 0%;"></div>
+        </div>
+        <div class="breakdown-pills-row">
+          <div class="bench-legend-item" id="legendItemNorm" onclick="toggleBeatFilter('NORMAL')" title="Filter: Normal Sinus Beats">
+            <span class="hero-dot dot-green"></span>
+            <span>Normal Sinus</span>
+            <span class="bench-legend-count" id="vitaliLegendNorm">11 · 92%</span>
+          </div>
+          <div class="bench-legend-item" id="legendItemPvc" onclick="toggleBeatFilter('PVC')" title="Filter: Premature Ventricular Contractions">
+            <span class="hero-dot dot-amber"></span>
+            <span>Premature Ventricular (PVC)</span>
+            <span class="bench-legend-count" id="vitaliLegendPvc">1 · 8%</span>
+          </div>
+          <div class="bench-legend-item" id="legendItemOther" onclick="toggleBeatFilter('OTHER')" title="Filter: Other / Atypical Beats">
+            <span class="hero-dot dot-slate"></span>
+            <span>Other / Atypical</span>
+            <span class="bench-legend-count" id="vitaliLegendOther">0 · 0%</span>
+          </div>
         </div>
       </div>
 
-      <!-- 6. Three Clean Clinical Cards Directly Below Waveform -->
-      <div class="bench-cards-row">
-        <!-- Card 1: SIGNAL QUALITY -->
-        <div class="bench-card">
-          <div class="bench-card-header">SIGNAL QUALITY</div>
-          <div class="bench-metric-line">
-            <span class="bench-metric-key">SNR</span>
-            <span class="bench-metric-val" id="vitaliSnrVal">23.4 dB</span>
-          </div>
-          <div class="bench-progress-bar">
-            <div class="bench-progress-fill" id="vitaliSnrBar" style="width: 82%;"></div>
-          </div>
-          <div class="bench-metric-line">
-            <span class="bench-metric-key">Baseline drift</span>
-            <span class="bench-metric-val" id="vitaliDriftVal">0.11 mV</span>
-          </div>
+      <!-- 6. Progressive Disclosure Clinical Tabs -->
+      <div class="clinical-tabs-container">
+        <div class="clinical-tabs-nav">
+          <button type="button" class="tab-btn active" id="tabBtnMorpho" onclick="switchClinicalTab('morpho')">
+            <i class="fa-solid fa-chart-area"></i> Beat Overlay &amp; Morphology
+          </button>
+          <button type="button" class="tab-btn" id="tabBtnAi" onclick="switchClinicalTab('ai')">
+            <i class="fa-solid fa-chart-bar"></i> AI Probabilities &amp; Noise Gate
+          </button>
+          <button type="button" class="tab-btn" id="tabBtnCds" onclick="switchClinicalTab('cds')">
+            <i class="fa-solid fa-stethoscope"></i> Clinical Decision Support
+          </button>
+          <button type="button" class="tab-btn" id="tabBtnAttest" onclick="switchClinicalTab('attest')">
+            <i class="fa-solid fa-file-signature"></i> Doctor Attestation &amp; Exports
+          </button>
         </div>
 
-        <!-- Card 2: BEAT CLASSIFICATION -->
-        <div class="bench-card">
-          <div class="bench-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>BEAT CLASSIFICATION</span>
-            <span style="font-size:0.62rem; color:var(--text-faint); font-weight:normal; text-transform:none;">Click to filter</span>
-          </div>
-          <div class="bench-stacked-bar">
-            <div class="bench-bar-seg bench-seg-norm" id="vitaliBarNorm" style="width: 92%;"></div>
-            <div class="bench-bar-seg bench-seg-pvc" id="vitaliBarPvc" style="width: 8%;"></div>
-            <div class="bench-bar-seg bench-seg-other" id="vitaliBarOther" style="width: 0%;"></div>
-          </div>
-          <div class="bench-legend-list">
-            <div class="bench-legend-item clickable" id="legendItemNorm" onclick="toggleBeatFilter('NORMAL')" title="Filter: Normal Sinus Beats">
-              <div class="bench-legend-left">
-                <span class="bench-dot dot-green"></span>
-                <span>Normal</span>
-              </div>
-              <span class="bench-legend-count" id="vitaliLegendNorm">11 · 92%</span>
+        <!-- Tab 1: Beat Overlay & Morphology -->
+        <div id="tabContentMorpho" class="tab-content">
+          <div class="tab-grid-2col">
+            <div class="panel-card">
+              <div class="panel-card-title" id="lblOverlayTitle">Heartbeat Segments Overlay</div>
+              <div id="chartBeatOverlay" style="width:100%; height:230px;"></div>
             </div>
-            <div class="bench-legend-item clickable" id="legendItemPvc" onclick="toggleBeatFilter('PVC')" title="Filter: Premature Ventricular Contractions">
-              <div class="bench-legend-left">
-                <span class="bench-dot dot-amber"></span>
-                <span>Premature ventricular (PVC)</span>
-              </div>
-              <span class="bench-legend-count" id="vitaliLegendPvc">1 · 8%</span>
-            </div>
-            <div class="bench-legend-item clickable" id="legendItemOther" onclick="toggleBeatFilter('OTHER')" title="Filter: Other / Atypical Beats">
-              <div class="bench-legend-left">
-                <span class="bench-dot dot-slate"></span>
-                <span>Other / Atypical</span>
-              </div>
-              <span class="bench-legend-count" id="vitaliLegendOther">0 · 0%</span>
+            <div class="panel-card">
+              <div class="panel-card-title">Morphometric Feature Set</div>
+              <table class="data-table">
+                <thead><tr><th>Feature Parameter</th><th>Value</th><th>Unit / Reference</th></tr></thead>
+                <tbody>
+                  <tr><td>R-Peak Amplitude</td><td class="val-col" id="featRPeak">2.421 mV</td><td class="ref-col">&gt;0.5 mV</td></tr>
+                  <tr><td>QRS Width</td><td class="val-col" id="featQrs">0.088 s</td><td class="ref-col">&lt;0.12 s</td></tr>
+                  <tr><td>Peak-to-Peak Amplitude</td><td class="val-col" id="featPkPk">3.160 mV</td><td class="ref-col">Normal range</td></tr>
+                  <tr><td>Signal Energy</td><td class="val-col" id="featEnergy">198.42</td><td class="ref-col">Integral power</td></tr>
+                  <tr><td>Spectral Entropy</td><td class="val-col" id="featEntropy">3.455</td><td class="ref-col">Complexity index</td></tr>
+                  <tr><td>Dominant Frequency</td><td class="val-col" id="featDomFreq">10.37 Hz</td><td class="ref-col">QRS spectral peak</td></tr>
+                  <tr><td>Local RR Interval Ratio</td><td class="val-col" id="featLocalRr">1.000</td><td class="ref-col">Regular cadence</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- Card 3: CLINICAL MEASUREMENTS -->
-        <div class="bench-card">
-          <div class="bench-card-header">CLINICAL MEASUREMENTS</div>
-          <div class="bench-measurements-grid">
-            <div class="bench-metric-line">
-              <span class="bench-metric-key">HR</span>
-              <span class="bench-metric-val" id="vitaliMeasHr">72 bpm</span>
+        <!-- Tab 2: Model Probabilities & Quality Gate -->
+        <div id="tabContentAi" class="tab-content hidden">
+          <div class="tab-grid-2col">
+            <div class="panel-card">
+              <div class="panel-card-title">AI Multi-Class Confidence</div>
+              <div id="chartProbabilities" style="width:100%; height:180px;"></div>
             </div>
-            <div class="bench-metric-line">
-              <span class="bench-metric-key">PR</span>
-              <span class="bench-metric-val" id="vitaliMeasPr">160 ms</span>
+            <div class="panel-card">
+              <div class="panel-card-title">Signal Quality &amp; Interference Gate</div>
+              <table class="data-table">
+                <thead><tr><th>Indicator</th><th>Measured Value</th><th>Acceptance Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Signal-to-Noise (SNR)</td><td class="val-col" id="sqSnrVal">23.4 dB</td><td id="sqSnrStatus" class="text-green">✓ Acceptable (&gt;15 dB)</td></tr>
+                  <tr><td>Baseline Wander</td><td class="val-col" id="sqDriftVal">False</td><td id="sqDriftStatus" class="text-green">✓ Clean</td></tr>
+                  <tr><td>Powerline Hum (50/60Hz)</td><td class="val-col" id="sqPowerlineVal">False</td><td id="sqPowerlineStatus" class="text-green">✓ Filtered</td></tr>
+                  <tr><td>Electrode Motion Artifact</td><td class="val-col" id="sqMotionVal">False</td><td id="sqMotionStatus" class="text-green">✓ Minimal</td></tr>
+                </tbody>
+              </table>
             </div>
-            <div class="bench-metric-line">
-              <span class="bench-metric-key">QRS</span>
-              <span class="bench-metric-val" id="vitaliMeasQrs">88 ms</span>
+          </div>
+        </div>
+
+        <!-- Tab 3: Clinical Decision Support -->
+        <div id="tabContentCds" class="tab-content hidden">
+          <div class="panel-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:1.15rem; font-weight:700; color:var(--text-main);" id="cdsFinding">Normal Sinus Rhythm</div>
+              <span class="badge badge-green" id="cdsUrgency" style="font-size:0.76rem; padding:4px 10px;">ROUTINE REVIEW</span>
             </div>
-            <div class="bench-metric-line">
-              <span class="bench-metric-key">QT/QTc</span>
-              <span class="bench-metric-val" id="vitaliMeasQt">392 / 418 ms</span>
+            <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:14px;">
+              Guideline Evidence: AHA/ACC Recommendations for Standardization and Interpretation of the ECG
+            </div>
+            <div class="tab-grid-2col">
+              <div class="cds-box">
+                <div class="cds-box-title"><i class="fa-solid fa-clipboard-check text-green"></i> Clinical Considerations</div>
+                <ul id="cdsConsiderationsList" class="cds-clean-list">
+                  <li>Normal Sinus Rhythm with regular P waves and physiological PR intervals.</li>
+                  <li>Resting ECG does not exclude paroxysmal dysrhythmias if patient experiences syncope.</li>
+                </ul>
+              </div>
+              <div class="cds-box">
+                <div class="cds-box-title"><i class="fa-solid fa-user-doctor text-blue"></i> Recommended Next Actions</div>
+                <ul id="cdsAssessmentsList" class="cds-clean-list">
+                  <li>Correlate with current symptoms (chest pain, palpitation, dyspnea).</li>
+                  <li>Compare with previous archival records if available.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Attestation & Document Exports -->
+        <div id="tabContentAttest" class="tab-content hidden">
+          <div class="tab-grid-2col">
+            <div class="panel-card">
+              <div class="panel-card-title">Physician Sign-Off &amp; Attestation</div>
+              <div id="lblSignStatus" style="font-size:0.82rem; color:var(--accent-amber); margin-bottom:10px;">
+                ⏳ Pending physician review — analysis not yet sealed.
+              </div>
+              <div style="display:flex; gap:16px; margin-bottom:12px;">
+                <label class="radio-label"><input type="radio" name="sign_agreement" value="confirmed" checked /> <span>✓ Confirmed</span></label>
+                <label class="radio-label"><input type="radio" name="sign_agreement" value="modified" /> <span>⚠️ Modified</span></label>
+                <label class="radio-label"><input type="radio" name="sign_agreement" value="rejected" /> <span>✗ Rejected</span></label>
+              </div>
+              <div style="margin-bottom:8px;">
+                <label style="font-size:0.74rem; color:var(--text-faint); display:block; margin-bottom:4px; font-family:var(--font-mono);">CLINICAL FINDING</label>
+                <textarea id="txtFinding" rows="2">Normal Sinus Rhythm. No acute ischemic ST-T changes.</textarea>
+              </div>
+              <div style="margin-bottom:12px;">
+                <label style="font-size:0.74rem; color:var(--text-faint); display:block; margin-bottom:4px; font-family:var(--font-mono);">DIRECTIVES</label>
+                <textarea id="txtDirectives" rows="2">Routine outpatient follow-up. Repeat ECG if symptomatic.</textarea>
+              </div>
+              <button class="btn btn-primary" id="btnSignSeal" onclick="submitSignSeal()">
+                ✍️ Sign &amp; Seal Report
+              </button>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-card-title">Export Clinical Documents</div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+                Download verified reports and raw telemetry data:
+              </div>
+              <div class="export-grid">
+                <button type="button" class="btn-export-card" onclick="exportDoctorPdf()">
+                  <i class="fa-solid fa-file-pdf" style="color:var(--accent-red);"></i>
+                  <div>
+                    <strong>Physician Report</strong>
+                    <div class="sub">Clinical PDF with morphometrics</div>
+                  </div>
+                </button>
+                <button type="button" class="btn-export-card" onclick="exportPatientPdf()">
+                  <i class="fa-solid fa-file-lines" style="color:var(--accent-green);"></i>
+                  <div>
+                    <strong>Patient Summary</strong>
+                    <div class="sub">Plain-language patient PDF</div>
+                  </div>
+                </button>
+                <button type="button" class="btn-export-card" onclick="exportJson()">
+                  <i class="fa-solid fa-code" style="color:var(--accent-blue);"></i>
+                  <div>
+                    <strong>JSON Dataset</strong>
+                    <div class="sub">Interoperable JSON snapshot</div>
+                  </div>
+                </button>
+                <button type="button" class="btn-export-card" onclick="exportTxt()">
+                  <i class="fa-solid fa-file-lines" style="color:var(--text-muted);"></i>
+                  <div>
+                    <strong>ASCII Summary</strong>
+                    <div class="sub">Plain text transcript</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 7. Active Patient Context & Dual Storage Verification Banner -->
-      <div class="patient-strip">
-        <span class="patient-strip-name" id="mainPatName">👤 raj</span>
-        <span class="patient-strip-mrn" id="mainPatMrn">MRN: 5F2298</span>
-        <span class="patient-strip-meta" id="mainPatAgeSex">15y / F</span>
-        <span class="patient-strip-meta" id="mainPatBlood">Blood: A+</span>
-        <span class="patient-strip-meta" id="mainPatAllergies">Allergies: None</span>
-        <span class="patient-strip-meta" id="mainPatMeds">Meds: None</span>
-        <span style="margin-left:auto; font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-green);">
-          ✓ Dual Storage Verified · <span id="topReportId">ECG-2026-15CA39</span>
-        </span>
-      </div>
-
-      <!-- 8. Beat Segmentation & Morphometrics -->
-      <div class="section-title">Beat Segmentation & Morphometrics</div>
-      <div class="grid-2col">
-        <!-- Overlay Plot -->
-        <div class="panel-card">
-          <div class="panel-card-title" id="lblOverlayTitle">Heartbeat Segments Overlay</div>
-          <div id="chartBeatOverlay" style="width:100%; height:230px;"></div>
+      <div class="patient-context-strip">
+        <div class="pat-left">
+          <span class="pat-chip-label">PATIENT RECORD</span>
+          <strong id="mainPatName">👤 raj</strong>
+          <span class="pat-bullet">·</span>
+          <span class="pat-mrn-chip" id="mainPatMrn">MRN: 5F2298</span>
+          <span class="pat-bullet">·</span>
+          <span id="mainPatAgeSex">15y / F</span>
+          <span class="pat-bullet">·</span>
+          <span id="mainPatBlood">Blood: A+</span>
+          <span class="pat-bullet">·</span>
+          <span id="mainPatAllergies">Allergies: None</span>
+          <span class="pat-bullet">·</span>
+          <span id="mainPatMeds">Meds: None</span>
         </div>
-
-        <!-- Beat Feature Table -->
-        <div class="panel-card">
-          <table class="data-table">
-            <thead><tr><th>Feature</th><th>Value</th></tr></thead>
-            <tbody>
-              <tr><td>R-Peak Amplitude</td><td class="val-col" id="featRPeak">2.421 mV</td></tr>
-              <tr><td>QRS Width</td><td class="val-col" id="featQrs">0.088 s</td></tr>
-              <tr><td>Peak-to-Peak</td><td class="val-col" id="featPkPk">3.160 mV</td></tr>
-              <tr><td>Signal Energy</td><td class="val-col" id="featEnergy">198.42</td></tr>
-              <tr><td>Spectral Entropy</td><td class="val-col" id="featEntropy">3.455</td></tr>
-              <tr><td>Dominant Frequency</td><td class="val-col" id="featDomFreq">10.37 Hz</td></tr>
-              <tr><td>Local RR Ratio</td><td class="val-col" id="featLocalRr">1.000</td></tr>
-            </tbody>
-          </table>
-          <div class="criteria-footer" style="margin-top:6px; margin-bottom:0;">
-            <strong>Criteria used:</strong> Mean · Std · Min · Max · Range · Median · Energy · Rms
-          </div>
+        <div class="pat-right">
+          <span class="dual-storage-tag">
+            <i class="fa-solid fa-circle-check text-green"></i> Dual Storage Verified · <span id="topReportId">ECG-2026-15CA39</span>
+          </span>
         </div>
-      </div>
-
-      <!-- 9. AI Class Probabilities -->
-      <div class="section-title">Model Probabilities & Signal Quality Indicators</div>
-      <div class="grid-2col">
-        <div class="panel-card">
-          <div class="panel-card-title">Model Class Probabilities</div>
-          <div id="chartProbabilities" style="width:100%; height:160px;"></div>
-        </div>
-
-        <div class="panel-card">
-          <table class="data-table">
-            <thead>
-              <tr><th>Indicator</th><th>Value</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>SNR</td><td class="val-col" id="sqSnrVal">23.4 dB</td><td id="sqSnrStatus" class="text-green">✓ Good</td></tr>
-              <tr><td>Baseline Drift</td><td class="val-col" id="sqDriftVal">False</td><td id="sqDriftStatus" class="text-green">✓ Clean</td></tr>
-              <tr><td>Powerline (50Hz)</td><td class="val-col" id="sqPowerlineVal">False</td><td id="sqPowerlineStatus" class="text-green">✓ Suppressed</td></tr>
-              <tr><td>Motion Artifacts</td><td class="val-col" id="sqMotionVal">False</td><td id="sqMotionStatus" class="text-green">✓ Minimal</td></tr>
-            </tbody>
-          </table>
-          <div class="criteria-footer" style="margin-top:6px; margin-bottom:0;">
-            <strong>Gatekeeper:</strong> Pan-Tompkins gradient & frequency spectrum gatekeeper
-          </div>
-        </div>
-      </div>
-
-      <!-- 10. Clinical Decision Support -->
-      <div class="section-title">Clinical Decision Support</div>
-      <div class="panel-card" style="margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);" id="cdsFinding">Normal Sinus Rhythm</div>
-          <span class="badge badge-green" id="cdsUrgency">ROUTINE REVIEW</span>
-        </div>
-        <div style="font-size:0.74rem; color:var(--text-muted);">
-          Guideline: AHA/ACC Recommendations for Standardization and Interpretation of the ECG · 2026-02-01
-        </div>
-        <div style="font-size:0.76rem; color:var(--accent-green); font-weight:700; margin-top:4px;" id="cdsSummary">
-          Routine clinician confirmation and archival
-        </div>
-
-        <div class="grid-2col" style="margin-top:12px; margin-bottom:6px;">
-          <div>
-            <div style="font-size:0.75rem; font-weight:700; color:var(--text-main); margin-bottom:4px; font-family:var(--font-mono);">CONSIDERATIONS</div>
-            <ul id="cdsConsiderationsList" style="padding-left:16px; font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:3px;">
-              <li>Normal Sinus Rhythm with regular P waves and physiological PR intervals.</li>
-              <li>Normal resting ECG does not exclude paroxysmal dysrhythmias or transient ischemia if patient is symptomatic.</li>
-            </ul>
-          </div>
-          <div>
-            <div style="font-size:0.75rem; font-weight:700; color:var(--text-main); margin-bottom:4px; font-family:var(--font-mono);">NEXT ASSESSMENTS</div>
-            <ul id="cdsAssessmentsList" style="padding-left:16px; font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:3px;">
-              <li>Correlate with current patient symptoms (chest pain, dyspnea, syncope).</li>
-              <li>Compare with prior ECGs for subtle repolarization, axis, or voltage changes.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- 11. Physician Sign-off & Sealing -->
-      <div class="section-title">Physician Sign-Off & Attestation</div>
-      <div style="font-size:0.75rem; color:var(--accent-amber); margin-bottom:6px;" id="lblSignStatus">
-        ⏳ Pending physician review — analysis not yet sealed.
-      </div>
-
-      <div class="panel-card" style="margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-          <div>
-            <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; font-family:var(--font-mono);">AGREEMENT STATUS</div>
-            <div style="display:flex; gap:14px;">
-              <label class="radio-label">
-                <input type="radio" name="sign_agreement" value="confirmed" checked />
-                <span>✓ Confirmed</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="sign_agreement" value="modified" />
-                <span>⚠️ Modified</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="sign_agreement" value="rejected" />
-                <span>✗ Rejected</span>
-              </label>
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:0.82rem; font-weight:700; color:var(--text-main);">Dr. Ananya Roy, MD DM (Cardiology)</div>
-            <div style="margin-top:2px;">
-              <span class="badge badge-green">CARDIOLOGIST</span>
-              <span class="badge badge-blue">MCI-CARD-4421</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-bottom:8px;">
-          <label style="font-size:0.7rem; color:var(--text-muted); display:block; margin-bottom:3px; font-family:var(--font-mono);">CLINICAL FINDING</label>
-          <textarea id="txtFinding" rows="2">Normal Sinus Rhythm. No acute ischemic ST-T changes.</textarea>
-        </div>
-
-        <div style="margin-bottom:10px;">
-          <label style="font-size:0.7rem; color:var(--text-muted); display:block; margin-bottom:3px; font-family:var(--font-mono);">DIRECTIVES</label>
-          <textarea id="txtDirectives" rows="2">Routine outpatient follow-up. Repeat ECG if symptomatic.</textarea>
-        </div>
-
-        <button class="btn btn-primary" id="btnSignSeal" onclick="submitSignSeal()">
-          ✍️ Sign & Seal Report
-        </button>
-      </div>
-
-      <!-- 12. Clinical Document Exports -->
-      <div class="section-title">Clinical Document Exports</div>
-      <div class="export-row">
-        <button class="btn-export" onclick="exportDoctorPdf()">
-          <i class="fa-solid fa-file-pdf" style="color:#b91c1c;"></i> Doctor Report (PDF)
-        </button>
-        <button class="btn-export" onclick="exportPatientPdf()">
-          <i class="fa-solid fa-user-doctor" style="color:var(--accent-amber);"></i> Patient Summary (PDF)
-        </button>
-        <button class="btn-export" onclick="exportJson()">
-          <i class="fa-solid fa-chart-pie" style="color:var(--accent-green);"></i> Data (JSON)
-        </button>
-        <button class="btn-export" onclick="exportTxt()">
-          <i class="fa-solid fa-file-lines" style="color:var(--text-muted);"></i> Summary (TXT)
-        </button>
-      </div>
-
-      <!-- Compatibility hooks for older element queries -->
-      <div class="hidden">
-        <span id="cardAiPattern">Normal</span>
-        <span id="cardAiPatternSub">Normal</span>
-        <span id="cardHeartRate">72 BPM</span>
-        <span id="cardHeartRateSub">Normal</span>
-        <span id="cardSignalQuality">GOOD</span>
-        <span id="cardSignalQualitySub">0.95</span>
-        <span id="cardBeatsDetected">13 cycles</span>
-        <span id="cardMeanRr">833 ms</span>
-        <span id="lblBeatCounts"></span>
-        <span id="waveformDurationTitle">ECG • 2.5s</span>
-        <input type="checkbox" id="chkOverlayRaw" />
       </div>
     </div>
 
     <!-- ECG HISTORY VIEW -->
     <div id="viewHistory" class="hidden">
-      <div class="bench-meta-strip">DATABASE ARCHIVE · AUDIT TRAIL</div>
-      <h2 style="font-family:var(--font-condensed); font-size:2rem; font-weight:800; margin-bottom:14px; text-transform:uppercase;">
-        ECG REPORT ARCHIVE & VERIFIED AUDIT LOG
-      </h2>
+      <div class="clinical-hero-banner" style="margin-bottom:16px;">
+        <div>
+          <div class="status-lead-tag">DATABASE ARCHIVE · AUDIT TRAIL</div>
+          <h2 style="font-size:1.5rem; font-weight:800; margin-top:2px;">Verified ECG Report Archive</h2>
+        </div>
+        <button class="btn btn-primary" onclick="switchWorkspace('clinical')">← Return to Bench</button>
+      </div>
       <div class="panel-card" style="margin-bottom:14px;">
         <table class="data-table" id="tblArchive">
           <thead>
-            <tr><th>Report ID</th><th>Patient</th><th>MRN</th><th>Finding</th><th>Date</th><th>Action</th></tr>
+            <tr><th>Report ID</th><th>Patient</th><th>MRN</th><th>Primary Finding</th><th>Date &amp; Time</th><th>Action</th></tr>
           </thead>
           <tbody id="tblArchiveBody">
             <tr>
@@ -1607,26 +1803,27 @@
 
     <!-- PATIENT PORTAL VIEW -->
     <div id="viewPortal" class="hidden">
-      <div class="bench-meta-strip">PATIENT SUMMARY PORTAL</div>
-      <h2 style="font-family:var(--font-condensed); font-size:2rem; font-weight:800; margin-bottom:14px; text-transform:uppercase;">
-        PATIENT HEALTH PORTAL & SUMMARY
-      </h2>
+      <div class="clinical-hero-banner" style="margin-bottom:16px;">
+        <div>
+          <div class="status-lead-tag">PATIENT HEALTH SUMMARY</div>
+          <h2 style="font-size:1.5rem; font-weight:800; margin-top:2px;" id="portalPatientName">raj</h2>
+          <div style="font-size:0.84rem; color:var(--text-muted);" id="portalPatientMeta">MRN: 5F2298 · 15y / Female</div>
+        </div>
+        <button class="btn btn-primary" onclick="switchWorkspace('clinical')">← Return to Bench</button>
+      </div>
       <div class="panel-card" style="margin-bottom:14px;">
-        <div style="font-size:1.1rem; font-weight:700; color:var(--text-main);" id="portalPatientName">raj</div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;" id="portalPatientMeta">MRN: 5F2298 · 15y / Female</div>
-        
-        <div class="alert-box alert-info">
-          <div>
-            <strong>Understanding Your Result:</strong>
-            <div id="portalPlainLanguage">Your heart rhythm test showed normal sinus rhythm. The electrical signals controlling your heart contractions occurred at a regular rate and sequence.</div>
+        <div style="background:var(--accent-green-bg); border:1px solid var(--accent-green-border); border-radius:var(--radius-sm); padding:16px; margin-bottom:14px;">
+          <strong style="color:var(--accent-green); font-size:0.95rem; display:block; margin-bottom:4px;">
+            <i class="fa-solid fa-circle-info"></i> Understanding Your Heart Rhythm Result:
+          </strong>
+          <div id="portalPlainLanguage" style="font-size:0.88rem; color:var(--text-main);">
+            Your heart rhythm test showed normal sinus rhythm. The electrical signals controlling your heart contractions occurred at a regular rate and sequence.
           </div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:12px;">
-          <button class="btn btn-primary" onclick="exportPatientPdf()">
-            <i class="fa-solid fa-file-pdf"></i> Download Patient Summary (PDF)
-          </button>
-        </div>
+        <button class="btn btn-primary" onclick="exportPatientPdf()">
+          <i class="fa-solid fa-file-pdf"></i> Download Patient Summary (PDF)
+        </button>
       </div>
     </div>
   </main>
@@ -1689,7 +1886,7 @@
       loadDemoRecord(rec);
     }
 
-    // Generate Synthetic ECG Waveform (Lead II) matching screenshot
+    // Generate Synthetic ECG Waveform (Lead II)
     function generateSyntheticECG(durationSec = 2.5, fs = 360.0, hr = 83, hasPvc = false) {
       const numSamples = Math.round(durationSec * fs);
       const signal = [];
@@ -1708,7 +1905,6 @@
         const beatTime = beatPhase * rrIntervalSec;
 
         if (isThisPvc) {
-          // Broad inverted PVC morphology
           if (beatTime > 0.12 && beatTime < 0.28) {
             const p = (beatTime - 0.12) / 0.16;
             val += 2.8 * Math.sin(Math.PI * p);
@@ -1717,7 +1913,6 @@
             val -= 1.4 * Math.sin(Math.PI * (beatTime - 0.28) / 0.10);
           }
         } else {
-          // Normal morphology
           if (beatTime > 0.05 && beatTime < 0.15) {
             val += 0.25 * Math.sin(Math.PI * (beatTime - 0.05) / 0.1);
           }
@@ -1748,7 +1943,7 @@
       currentFs = 360.0;
       currentRPeaks = data.peaks.length > 0 ? data.peaks : [78, 355, 632, 909, 1186];
       renderAllCharts();
-      updateVitaliscopeHeadline('SINUS RHYTHM WITH SCATTERED ECTOPY');
+      updateVitaliscopeHeadline('Sinus Rhythm with Scattered Ectopy');
     }
 
     function renderAllCharts() {
@@ -1761,7 +1956,7 @@
       const el = document.getElementById('vitaliMainHeadline');
       if (el) el.innerText = title;
       const elCompat = document.getElementById('cardAiPattern');
-      if (elCompat) elCompat.innerText = title;
+      if (elCompat) elCompat.innerText = currentPatient.name;
     }
 
     // 1. Waveform Plotly Chart with Millimeter Grid & Peak Markers
@@ -1776,7 +1971,7 @@
       document.getElementById('benchSampleBeatsMeta').innerText = `${currentSignal.length} samples · ${currentRPeaks.length} beats detected`;
       document.getElementById('vitaliRecordMeta').innerText = `RECORD ${currentPatient.mrn} · LEAD II · ${currentFs} HZ · 25 MM/S`;
 
-      // Terracotta red ECG trace matching benchmark aesthetic
+      // Terracotta red ECG trace
       const traceSignal = {
         x: timeAxis,
         y: currentSignal,
@@ -1801,18 +1996,16 @@
         peakX.push(px);
         peakY.push(py);
 
-        // Classify beat marker (alternate or check PVC)
         const isPvc = (idx === 3 || (lastAnalysisResult && lastAnalysisResult.prediction && lastAnalysisResult.prediction.includes('PVC') && idx % 2 === 1));
         const beatClass = isPvc ? 'PVC' : 'NORMAL';
         const label = beatClass;
 
-        // Check active beat filter
         let isFilteredMatch = true;
         if (activeBeatFilter) {
           isFilteredMatch = (activeBeatFilter === beatClass);
         }
 
-        const baseColor = isPvc ? '#c27827' : '#1e7256';
+        const baseColor = isPvc ? '#d97706' : '#059669';
         const color = isFilteredMatch ? baseColor : 'rgba(120, 140, 130, 0.25)';
         const size = isFilteredMatch ? (activeBeatFilter ? 8.5 : 6.5) : 4.0;
 
@@ -1820,7 +2013,6 @@
         peakSizes.push(size);
 
         if (isFilteredMatch) {
-          // Drop line from label down to peak marker
           shapes.push({
             type: 'line',
             x0: px,
@@ -1830,13 +2022,12 @@
             line: { color: color, width: activeBeatFilter ? 1.8 : 1.2 }
           });
 
-          // Uppercase text label above
           annotations.push({
             x: px,
             y: py + 0.70,
             text: label,
             showarrow: false,
-            font: { size: 9, color: color, family: 'ui-monospace, monospace', weight: 'bold' }
+            font: { size: 10, color: color, family: 'Inter, sans-serif', weight: 'bold' }
           });
         }
       });
@@ -1850,7 +2041,6 @@
         hoverinfo: 'x+y'
       };
 
-      // Dynamic Y bounds
       const sampleSlice = currentSignal.slice(0, Math.round(displayWindow * currentFs));
       const minY = Math.min(...sampleSlice, -1.5) - 0.3;
       const maxY = Math.max(...sampleSlice, 2.5) + 0.9;
@@ -1861,15 +2051,15 @@
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: {
           range: [0, displayWindow],
-          tickfont: { color: '#68776e', size: 9, family: 'monospace' },
-          gridcolor: 'rgba(160, 185, 168, 0.25)',
-          zerolinecolor: 'rgba(160, 185, 168, 0.4)'
+          tickfont: { color: '#64748b', size: 10, family: 'JetBrains Mono, monospace' },
+          gridcolor: 'rgba(160, 185, 168, 0.35)',
+          zerolinecolor: 'rgba(160, 185, 168, 0.5)'
         },
         yaxis: {
           range: [minY, maxY],
-          tickfont: { color: '#68776e', size: 9, family: 'monospace' },
-          gridcolor: 'rgba(160, 185, 168, 0.25)',
-          zerolinecolor: 'rgba(160, 185, 168, 0.4)'
+          tickfont: { color: '#64748b', size: 10, family: 'JetBrains Mono, monospace' },
+          gridcolor: 'rgba(160, 185, 168, 0.35)',
+          zerolinecolor: 'rgba(160, 185, 168, 0.5)'
         },
         shapes: shapes,
         annotations: annotations,
@@ -1883,7 +2073,7 @@
           chartEl.on('plotly_hover', function(data) {
             if (!data || !data.points || data.points.length === 0) return;
             const pt = data.points[0];
-            if (pt.curveNumber === 1) { // R-peaks marker trace
+            if (pt.curveNumber === 1) {
               showBeatInspector(pt.pointIndex, pt.x, pt.y);
             }
           });
@@ -1909,7 +2099,7 @@
         return Math.round(v * 1000) / 10;
       });
 
-      const colors = ['#1e7256', '#475569', '#c27827'];
+      const colors = ['#059669', '#64748b', '#d97706'];
 
       const data = [{
         type: 'bar',
@@ -1919,23 +2109,23 @@
         marker: { color: colors },
         text: xVals.map(v => `${v.toFixed(1)}%`),
         textposition: 'outside',
-        textfont: { color: '#121814', size: 10, family: 'monospace' }
+        textfont: { color: '#0f172a', size: 11, family: 'Inter, sans-serif', weight: '600' }
       }];
 
       const layout = {
-        margin: { t: 5, r: 35, b: 25, l: 55 },
+        margin: { t: 10, r: 40, b: 25, l: 65 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: {
           range: [0, 100],
-          gridcolor: '#e2ebe4',
-          zerolinecolor: '#e2ebe4',
-          tickfont: { color: '#68776e', size: 9, family: 'monospace' }
+          gridcolor: '#e2e8f0',
+          zerolinecolor: '#e2e8f0',
+          tickfont: { color: '#64748b', size: 10, family: 'JetBrains Mono, monospace' }
         },
         yaxis: {
           autorange: 'reversed',
-          tickfont: { color: '#121814', size: 10 },
-          gridcolor: '#e2ebe4'
+          tickfont: { color: '#0f172a', size: 12, family: 'Inter, sans-serif' },
+          gridcolor: '#e2e8f0'
         },
         showlegend: false
       };
@@ -1961,7 +2151,7 @@
             x: tRel.slice(0, bArr.length),
             y: bArr,
             mode: 'lines',
-            line: { color: 'rgba(30, 114, 86, 0.35)', width: 1 },
+            line: { color: 'rgba(5, 150, 105, 0.30)', width: 1.2 },
             showlegend: false,
             hoverinfo: 'none'
           });
@@ -1979,14 +2169,13 @@
             x: tRel,
             y: beatSignal,
             mode: 'lines',
-            line: { color: 'rgba(30, 114, 86, 0.35)', width: 1 },
+            line: { color: 'rgba(5, 150, 105, 0.30)', width: 1.2 },
             showlegend: false,
             hoverinfo: 'none'
           });
         }
       }
 
-      // Mean Profile Line
       const meanVals = (meanProfile && meanProfile.length > 0) ? meanProfile : tRel.map(t => {
         let v = 0;
         if (t >= -0.05 && t <= 0.05) v += 2.35 * Math.cos((t / 0.05) * (Math.PI / 2));
@@ -1999,12 +2188,11 @@
         x: tRel.slice(0, meanVals.length),
         y: meanVals,
         mode: 'lines',
-        line: { color: '#121814', width: 2 },
+        line: { color: '#0f172a', width: 2.2 },
         name: 'Mean Beat Profile',
         showlegend: true
       });
 
-      // Highlight selected/inspected beat if available
       if (selectedBeatIndex !== null && beatSegments && beatSegments[selectedBeatIndex]) {
         traces.push({
           x: tRel.slice(0, beatSegments[selectedBeatIndex].length),
@@ -2021,19 +2209,41 @@
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: {
-          title: { text: 'Time relative to R-peak (s)', font: { size: 9, color: '#68776e' } },
-          gridcolor: '#e2ebe4',
-          tickfont: { color: '#68776e', size: 9, family: 'monospace' },
+          title: { text: 'Time relative to R-peak (s)', font: { size: 10, color: '#64748b', family: 'Inter' } },
+          gridcolor: '#e2e8f0',
+          tickfont: { color: '#64748b', size: 10, family: 'JetBrains Mono, monospace' },
           range: [-0.2, 0.4]
         },
         yaxis: {
-          gridcolor: '#e2ebe4',
-          tickfont: { color: '#68776e', size: 9, family: 'monospace' }
+          gridcolor: '#e2e8f0',
+          tickfont: { color: '#64748b', size: 10, family: 'JetBrains Mono, monospace' }
         },
-        legend: { font: { size: 9, color: '#121814' }, x: 0.60, y: 0.95 }
+        legend: { font: { size: 11, color: '#0f172a' }, x: 0.55, y: 0.95 }
       };
 
       Plotly.react('chartBeatOverlay', traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    // 4. Clinical Tabs Switching
+    function switchClinicalTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+      if (tabId === 'morpho') {
+        document.getElementById('tabBtnMorpho')?.classList.add('active');
+        document.getElementById('tabContentMorpho')?.classList.remove('hidden');
+        Plotly.Plots.resize('chartBeatOverlay');
+      } else if (tabId === 'ai') {
+        document.getElementById('tabBtnAi')?.classList.add('active');
+        document.getElementById('tabContentAi')?.classList.remove('hidden');
+        Plotly.Plots.resize('chartProbabilities');
+      } else if (tabId === 'cds') {
+        document.getElementById('tabBtnCds')?.classList.add('active');
+        document.getElementById('tabContentCds')?.classList.remove('hidden');
+      } else if (tabId === 'attest') {
+        document.getElementById('tabBtnAttest')?.classList.add('active');
+        document.getElementById('tabContentAttest')?.classList.remove('hidden');
+      }
     }
 
     // Workspace Switching
@@ -2093,6 +2303,7 @@
       updatePatientPortalView();
       renderWaveformChart();
       triggerAnalysis();
+      showToast(`Patient updated: ${name}`, 'fa-user-check');
     }
 
     // Quick Benchmark Loader
@@ -2116,7 +2327,6 @@
         console.warn('API sample fetch error:', e);
       }
       
-      // Fallback
       if (sampleType === 'pvc') {
         loadDemoRecord('106');
       } else {
@@ -2127,13 +2337,13 @@
     // Demo Record Loader
     function loadDemoRecord(recId) {
       if (recId === '106' || recId === '119' || recId === '208') {
-        updateVitaliscopeHeadline('VENTRICULAR ECTOPY / FREQUENT PVCS');
+        updateVitaliscopeHeadline('Ventricular Ectopy / Frequent PVCs');
         const data = generateSyntheticECG(3.5, 360.0, 88, true);
         currentSignal = data.signal;
         currentRPeaks = data.peaks.length > 0 ? data.peaks : [60, 310, 560, 810, 1060];
         renderAllCharts();
       } else {
-        updateVitaliscopeHeadline('NORMAL SINUS RHYTHM');
+        updateVitaliscopeHeadline('Normal Sinus Rhythm');
         const data = generateSyntheticECG(3.5, 360.0, 72, false);
         currentSignal = data.signal;
         currentRPeaks = data.peaks.length > 0 ? data.peaks : [70, 370, 670, 970];
@@ -2153,7 +2363,6 @@
       const ext = file.name.split('.').pop().toLowerCase();
       const fsVal = parseFloat(document.getElementById('sbSamplingRate').value) || 360.0;
 
-      // 1. Send to unified backend /api/upload
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -2172,7 +2381,7 @@
             currentFs = data.sampling_rate || fsVal;
             document.getElementById('sbSamplingRate').value = String(currentFs);
             dropzone.innerText = `${file.name} (${data.source_type} • ${data.sample_count} pts)`;
-
+            showToast(`File imported: ${file.name}`, 'fa-file-medical');
             renderWaveformChart();
             triggerAnalysis();
             return;
@@ -2189,14 +2398,14 @@
                 document.getElementById('vitaliMeasQt').innerText = `${Math.round(m.qt_interval_ms)} / ${Math.round(m.qtc_interval_ms)} ms`;
               }
               if (m.machine_interpretation && m.machine_interpretation.length > 0) {
-                updateVitaliscopeHeadline(m.machine_interpretation[0].toUpperCase());
+                updateVitaliscopeHeadline(m.machine_interpretation[0]);
               }
-              alert(`📄 PDF clinical report parsed: HR=${m.heart_rate_printed || 'N/A'} BPM, QRS=${m.qrs_duration_ms || 'N/A'} ms, PR=${m.pr_interval_ms || 'N/A'} ms.`);
+              showToast(`PDF parsed: HR=${m.heart_rate_printed || 'N/A'} bpm`, 'fa-file-pdf');
             }
             return;
           } else if (data.status === 'WAVEFORM_EXTRACTION_FAILED') {
             dropzone.innerText = `⚠️ Extraction Failed: ${file.name}`;
-            alert(`⚠️ ECG waveform could not be reliably extracted from this image (confidence: ${data.extraction_confidence || 0}). Safe fallback applied: No synthetic data generated.`);
+            alert(`⚠️ ECG waveform could not be reliably extracted from this image (confidence: ${data.extraction_confidence || 0}). Safe fallback applied.`);
             return;
           } else if (data.status === 'REJECTED') {
             dropzone.innerText = `❌ Rejected: ${file.name}`;
@@ -2208,7 +2417,6 @@
         console.warn('Backend /api/upload error, attempting fallback:', uploadErr);
       }
 
-      // 2. Client-side fallback for CSV / TXT / JSON
       if (['csv', 'txt', 'json'].includes(ext)) {
         const reader = new FileReader();
         reader.onload = function(evt) {
@@ -2235,7 +2443,6 @@
       }
     }
 
-    // Smart ECG Parser for CSV, TXT, JSON
     function parseEcgContent(content, defaultFs = 360.0) {
       content = content.trim();
       if (!content) return { signal: [], fs: defaultFs };
@@ -2262,19 +2469,26 @@
       for (let i = 0; i < lines.length; i++) {
         const parts = lines[i].split(delim).map(p => p.trim()).filter(p => p.length > 0);
         const nums = parts.map(Number);
-        if (nums.every(n => !isNaN(n))) numericRows.push(nums);
+        if (nums.some(n => !isNaN(n))) {
+          numericRows.push(nums);
+        }
       }
 
       if (numericRows.length === 0) return { signal: [], fs: defaultFs };
-      const numCols = numericRows[0].length;
-      if (numCols === 1) return { signal: numericRows.map(r => r[0]), fs: defaultFs };
-      if (numCols === 2) return { signal: numericRows.map(r => r[1]), fs: defaultFs };
-      return { signal: numericRows.map(r => r[1] !== undefined ? r[1] : r[0]), fs: defaultFs };
+
+      let valCol = 0;
+      if (numericRows[0].length > 1) {
+        valCol = 1;
+      }
+      const signal = numericRows.map(r => r[valCol]).filter(v => v !== undefined && !isNaN(v));
+      return { signal, fs: defaultFs };
     }
 
-    // Trigger Clinical Analysis via Backend /api/analyze
+    // Trigger AI Analysis Pipeline via /api/analyze
     async function triggerAnalysis() {
-      if (!currentSignal || currentSignal.length === 0) return;
+      if (!currentSignal || currentSignal.length === 0) {
+        return;
+      }
 
       const btn = document.getElementById('btnRunAnalysis');
       if (btn) {
@@ -2284,17 +2498,20 @@
 
       try {
         const payload = {
-          signal: currentSignal.slice(0, 3600),
+          signal: currentSignal,
           fs: currentFs,
           lead: 'II',
-          patient_name: currentPatient.name,
-          patient_mrn: currentPatient.mrn,
-          age: currentPatient.age,
-          sex: currentPatient.sex,
-          blood_group: currentPatient.blood,
-          existing_conditions: currentPatient.conditions,
-          current_medications: currentPatient.meds,
-          include_full_report: true
+          patient_context: {
+            name: currentPatient.name,
+            mrn: currentPatient.mrn,
+            age: currentPatient.age,
+            sex: currentPatient.sex,
+            blood_group: currentPatient.blood,
+            smoking_status: currentPatient.smoke,
+            allergies: currentPatient.allergies,
+            existing_conditions: currentPatient.conditions,
+            current_medications: currentPatient.meds
+          }
         };
 
         const res = await fetch(`${API_BASE}/api/analyze`, {
@@ -2307,16 +2524,14 @@
           const data = await res.json();
           lastAnalysisResult = data;
 
-          // 1. R-peaks synchronization
           if (data.detected_r_peaks && data.detected_r_peaks.length > 0) {
             currentRPeaks = data.detected_r_peaks;
           }
           renderWaveformChart();
 
-          // 2. Giant Headline synchronization
           if (data.ai_classification) {
             const pred = data.ai_classification.prediction || 'Normal Sinus Rhythm';
-            updateVitaliscopeHeadline(pred.toUpperCase());
+            updateVitaliscopeHeadline(pred);
 
             if (data.ai_classification.probabilities) {
               renderProbabilitiesChart(data.ai_classification.probabilities);
@@ -2342,35 +2557,40 @@
             }
           }
 
-          // 3. Clinical Measurements synchronization
           if (data.cardiac_parameters) {
             const cp = data.cardiac_parameters;
             const hr = Math.round(cp.heart_rate_bpm || 72);
             document.getElementById('vitaliMeasHr').innerText = `${hr} bpm`;
+            
+            // Adjust heart pulse animation duration
+            const animEl = document.getElementById('heartPulseAnim');
+            if (animEl) {
+              const duration = Math.max(0.4, Math.min(1.5, 60.0 / Math.max(40, hr)));
+              animEl.style.animationDuration = `${duration.toFixed(2)}s`;
+            }
+
             if (cp.pr_interval_ms) document.getElementById('vitaliMeasPr').innerText = `${Math.round(cp.pr_interval_ms)} ms`;
             if (cp.qrs_duration_ms) document.getElementById('vitaliMeasQrs').innerText = `${Math.round(cp.qrs_duration_ms)} ms`;
             if (cp.qtc_ms) document.getElementById('vitaliMeasQt').innerText = `${Math.round(cp.qt_ms || 390)} / ${Math.round(cp.qtc_ms)} ms`;
           }
 
-          // 4. Signal Quality synchronization
           if (data.signal_quality) {
             const sq = data.signal_quality;
             const snr = sq.snr_db !== undefined ? sq.snr_db.toFixed(1) : '23.4';
             document.getElementById('vitaliSnrVal').innerText = `${snr} dB`;
             const snrPct = Math.min(100, Math.max(10, Math.round(((parseFloat(snr) + 10) / 40) * 100)));
             document.getElementById('vitaliSnrBar').style.width = `${snrPct}%`;
-            document.getElementById('vitaliDriftVal').innerText = sq.baseline_drift ? '0.24 mV (Drift)' : '0.08 mV (Clean)';
+            document.getElementById('vitaliDriftVal').innerText = sq.baseline_drift ? '0.24 mV drift' : '0.08 mV clean drift';
 
             document.getElementById('sqSnrVal').innerText = `${snr} dB`;
-            document.getElementById('sqSnrStatus').innerText = sq.snr_db >= 15 ? '✓ Good' : '⚠️ Low';
-            document.getElementById('sqSnrStatus').className = sq.snr_db >= 15 ? 'text-green' : 'text-yellow';
+            document.getElementById('sqSnrStatus').innerText = sq.snr_db >= 15 ? '✓ Acceptable' : '⚠️ Low';
+            document.getElementById('sqSnrStatus').className = sq.snr_db >= 15 ? 'badge badge-green' : 'badge badge-yellow';
             document.getElementById('sqDriftVal').innerText = String(sq.baseline_drift);
             document.getElementById('sqDriftStatus').innerText = sq.baseline_drift ? '⚠️ Drift' : '✓ Clean';
             document.getElementById('sqPowerlineVal').innerText = String(sq.powerline_interference);
             document.getElementById('sqMotionVal').innerText = String(sq.motion_artifacts);
           }
 
-          // 5. Beat Segments & Features
           if (data.beat_segments && data.beat_segments.length > 0) {
             lastBeatSegments = data.beat_segments;
             lastMeanBeatProfile = data.mean_beat_profile;
@@ -2387,7 +2607,6 @@
             if (bf.local_rr_ratio !== undefined) document.getElementById('featLocalRr').innerText = bf.local_rr_ratio.toFixed(3);
           }
 
-          // 6. Clinical Decision Support
           if (data.clinical_decision_support) {
             const cds = data.clinical_decision_support;
             document.getElementById('cdsFinding').innerText = cds.finding || 'Normal Sinus Rhythm';
@@ -2402,7 +2621,6 @@
             }
           }
 
-          // 7. Persisted Report ID
           if (data.report_id) {
             document.getElementById('topReportId').innerText = data.report_id;
           }
@@ -2428,17 +2646,15 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sealing...';
 
-      try {
-        const payload = {
-          analysis_id: (lastAnalysisResult && lastAnalysisResult.analysis_id) ? lastAnalysisResult.analysis_id : `ANALYSIS-${Date.now()}`,
-          clinician_name: "Dr. Ananya Roy, MD DM (Cardiology)",
-          clinician_role: "CARDIOLOGIST",
-          registration_number: "MCI-CARD-4421",
-          agreement_status: agr,
-          clinician_interpretation: finding,
-          clinical_notes: directives
-        };
+      const payload = {
+        report_id: lastAnalysisResult ? (lastAnalysisResult.report_id || 'ECG-LIVE') : 'ECG-LIVE',
+        reviewer_name: 'Dr. Ananya Roy, MD DM',
+        agreement_status: agr,
+        clinical_notes: finding,
+        care_plan_directives: directives
+      };
 
+      try {
         const res = await fetch(`${API_BASE}/api/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2448,15 +2664,15 @@
         if (res.ok) {
           const rev = await res.json();
           document.getElementById('lblSignStatus').innerHTML = `
-            <span class="text-green">✓ Sealed & Attested by Dr. Roy (Rev ID: <strong>${rev.review_id || 'REV-OK'}</strong>) · Dual-Storage Hash Validated</span>
+            <span class="text-green">✓ Sealed &amp; Attested by Dr. Roy (Rev ID: <strong>${rev.review_id || 'REV-OK'}</strong>)</span>
           `;
-          alert('Report signed and sealed into dual storage audit log.');
+          showToast('Report signed and sealed into dual storage', 'fa-shield-halved');
         }
       } catch (e) {
-        alert('Sealing completed with local verified dual storage hash.');
+        showToast('Sealed with local verified hash', 'fa-check');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '✍️ Sign & Seal Report';
+        btn.innerHTML = '✍️ Sign &amp; Seal Report';
       }
     }
 
@@ -2477,7 +2693,7 @@
                 <td>${r.created_at ? r.created_at.slice(0, 16).replace('T', ' ') : 'Just now'}</td>
                 <td>
                   <button class="btn btn-outline btn-sm" onclick="downloadReportPdf('${r.report_id}')">
-                    <i class="fa-solid fa-file-pdf" style="color:#b91c1c;"></i> PDF
+                    <i class="fa-solid fa-file-pdf" style="color:var(--accent-red);"></i> PDF
                   </button>
                 </td>
               </tr>
@@ -2490,12 +2706,10 @@
       }
     }
 
-    // Download PDF by Report ID
     function downloadReportPdf(reportId) {
       window.open(`${API_BASE}/api/report/${reportId}/pdf?type=doctor`, '_blank');
     }
 
-    // Direct PDF Export for Active Session
     async function exportDoctorPdf() {
       if (!currentSignal || currentSignal.length === 0) return alert('No active ECG recording.');
       const payload = {
@@ -2528,6 +2742,7 @@
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
+          showToast('Physician PDF Downloaded', 'fa-file-pdf');
         } else {
           const err = await res.json();
           alert(err.detail || 'Could not generate PDF.');
@@ -2541,7 +2756,6 @@
       exportDoctorPdf();
     }
 
-    // Export JSON
     function exportJson() {
       const data = {
         patient: currentPatient,
@@ -2556,9 +2770,9 @@
       a.href = URL.createObjectURL(blob);
       a.download = `ECG_Data_${currentPatient.mrn}.json`;
       a.click();
+      showToast('JSON Dataset Exported', 'fa-code');
     }
 
-    // Export TXT
     function exportTxt() {
       const txt = [
         `============================================================`,
@@ -2579,9 +2793,9 @@
       a.href = URL.createObjectURL(blob);
       a.download = `ECG_Summary_${currentPatient.mrn}.txt`;
       a.click();
+      showToast('ASCII Transcript Exported', 'fa-file-lines');
     }
 
-    // Patient Portal View Update
     function updatePatientPortalView() {
       document.getElementById('portalPatientName').innerText = currentPatient.name;
       document.getElementById('portalPatientMeta').innerText = `MRN: ${currentPatient.mrn} · ${currentPatient.age}y / ${currentPatient.sex}`;
@@ -2593,9 +2807,7 @@
       }
     }
 
-    // ── 21st.dev Interactive Features & Synthesizers ──
-
-    // 1. Web Audio API QRS Synthesizer
+    // ── Web Audio API QRS Synthesizer ──
     function initAudio() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -2613,10 +2825,10 @@
       const label = document.getElementById('audioLabel');
       const btn = document.getElementById('btnAudioToggle');
       if (soundEnabled) {
-        if (icon) icon.className = 'fa-solid fa-volume-high';
+        if (icon) icon.className = 'fa-solid fa-volume-high text-green';
         if (label) label.innerText = 'Audio 880Hz';
         if (btn) btn.classList.add('active');
-        playQrsBeep(false); // test tone
+        playQrsBeep(false);
         showToast('QRS Monitor Audio Enabled', 'fa-volume-high');
       } else {
         if (icon) icon.className = 'fa-solid fa-volume-xmark';
@@ -2653,15 +2865,15 @@
     function pulseRadarBeacon() {
       const badge = document.getElementById('telemetryPulsingBadge');
       if (!badge) return;
-      badge.style.borderColor = '#1e7256';
-      badge.style.boxShadow = '0 0 8px rgba(30, 114, 86, 0.4)';
+      badge.style.borderColor = 'var(--accent-green)';
+      badge.style.boxShadow = '0 0 10px rgba(5, 150, 105, 0.45)';
       setTimeout(() => {
-        badge.style.borderColor = '#c0d4c4';
+        badge.style.borderColor = 'var(--accent-green-border)';
         badge.style.boxShadow = 'none';
       }, 160);
     }
 
-    // 2. Oscilloscope Sweep Playback Engine
+    // Oscilloscope Sweep Playback Engine
     function toggleSweepPlayback() {
       isSweeping = !isSweeping;
       const btn = document.getElementById('btnSweepPlay');
@@ -2710,7 +2922,6 @@
         lastPassedPeakIdx = -1;
       }
 
-      // Update sweep line position
       const container = document.getElementById('chartWaveform');
       const line = document.getElementById('sweepLine');
       if (container && line) {
@@ -2721,7 +2932,6 @@
         line.style.left = `${posPx}px`;
       }
 
-      // Check R-peak crossover
       if (currentRPeaks && currentRPeaks.length > 0) {
         const currentSample = sweepCurrentTime * currentFs;
         for (let i = 0; i < currentRPeaks.length; i++) {
@@ -2741,7 +2951,6 @@
       sweepAnimId = requestAnimationFrame(sweepAnimLoop);
     }
 
-    // 3. Time Window Selector
     function setTimeWindow(win, btn) {
       currentDisplayWindow = win;
       document.querySelectorAll('.bench-time-btn').forEach(b => b.classList.remove('active'));
@@ -2750,7 +2959,6 @@
       showToast(`Time Window: ${win === 'full' ? 'Full Recording' : win + 's'}`, 'fa-clock');
     }
 
-    // 4. Interactive Beat Inspector Tooltip
     function showBeatInspector(pointIndex, px, py, isClick = false) {
       if (pointIndex === undefined || pointIndex === null || !currentRPeaks || pointIndex >= currentRPeaks.length) return;
       selectedBeatIndex = pointIndex;
@@ -2771,7 +2979,6 @@
       }
       const instHr = Math.round(60000 / Math.max(250, rrMs));
 
-      // Fill tooltip
       document.getElementById('bitTitle').innerText = `Beat #${pointIndex + 1}`;
       document.getElementById('bitAmp').innerText = `${pAmp} mV`;
       document.getElementById('bitRr').innerText = `${rrMs} ms`;
@@ -2808,11 +3015,11 @@
     function focusBeatInOverlay() {
       if (selectedBeatIndex === null) return;
       showToast(`Focused Beat #${selectedBeatIndex + 1} in Segmentation Overlay`, 'fa-magnifying-glass');
+      switchClinicalTab('morpho');
       renderBeatOverlayChart(lastBeatSegments, lastMeanBeatProfile);
       document.getElementById('chartBeatOverlay')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // 5. Beat Filter Highlighting
     function toggleBeatFilter(type) {
       if (activeBeatFilter === type) {
         activeBeatFilter = null;
@@ -2830,7 +3037,6 @@
       renderWaveformChart();
     }
 
-    // 6. Collapsible Sidebar
     function toggleSidebar() {
       document.body.classList.toggle('sidebar-collapsed');
       const isCollapsed = document.body.classList.contains('sidebar-collapsed');
@@ -2842,13 +3048,11 @@
       }, 300);
     }
 
-    // 7. Keyboard Shortcuts Modal
     function toggleShortcutsModal() {
       const modal = document.getElementById('shortcutsModal');
       if (modal) modal.classList.toggle('hidden');
     }
 
-    // 8. Toast Notification System
     function showToast(msg, icon = 'fa-circle-check') {
       const container = document.getElementById('toastContainer');
       if (!container) return;
@@ -2864,7 +3068,6 @@
       }, 2400);
     }
 
-    // 9. Keyboard Shortcuts Listener
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
 
@@ -2907,8 +3110,8 @@
   <div id="shortcutsModal" class="shortcuts-backdrop hidden" onclick="if(event.target===this) toggleShortcutsModal()">
     <div class="shortcuts-card">
       <div class="shortcuts-header">
-        <div style="font-weight:800; font-size:0.85rem; font-family:var(--font-mono); color:var(--text-main); display:flex; align-items:center; gap:8px;">
-          <i class="fa-solid fa-keyboard" style="color:var(--accent-green);"></i>
+        <div style="font-weight:800; font-size:0.95rem; font-family:var(--font-mono); color:var(--text-main); display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-keyboard text-green"></i>
           <span>CLINICAL BENCH SHORTCUTS</span>
         </div>
         <button class="bit-close-btn" onclick="toggleShortcutsModal()"><i class="fa-solid fa-xmark"></i></button>
