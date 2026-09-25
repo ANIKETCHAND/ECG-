@@ -135,6 +135,45 @@ def test_api_generate_pdf_endpoint():
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert len(response.content) > 1000
-    # PDF magic header bytes
     assert response.content[:4] == b"%PDF"
+
+
+def test_api_upload_csv():
+    with open("sample_ecgs/normal_ecg_sample.csv", "rb") as f:
+        file_bytes = f.read()
+
+    response = client.post(
+        "/api/upload",
+        files={"file": ("normal_ecg_sample.csv", file_bytes, "text/csv")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUCCESS"
+    assert data["source_type"] == "DIGITAL"
+    assert len(data["signal"]) > 100
+    assert data["sampling_rate"] > 0
+
+
+def test_api_upload_pdf():
+    with open("sample_ecgs/sample_clinical_ecg_report.pdf", "rb") as f:
+        file_bytes = f.read()
+
+    response = client.post(
+        "/api/upload",
+        files={"file": ("sample_clinical_ecg_report.pdf", file_bytes, "application/pdf")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] in ["SUCCESS", "PDF_METADATA_EXTRACTED"]
+    assert data["source_type"] == "PDF"
+    assert "extracted_measurements" in data
+    assert data["extracted_measurements"].get("heart_rate_printed") is not None
+
+
+def test_api_upload_unsupported_file():
+    response = client.post(
+        "/api/upload",
+        files={"file": ("corrupt.xyz", b"not an ecg", "application/octet-stream")},
+    )
+    assert response.status_code == 400
 

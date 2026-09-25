@@ -21,15 +21,21 @@ if str(BASE_DIR) not in sys.path:
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+import io
 import uuid
 import numpy as np
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi.responses import Response
 
 from ecg_core.models import ECGRecording
+from ecg_input.signal_loader import load_any_ecg
+from ecg_input.image_processor import process_ecg_image
+from ecg_input.waveform_extractor import extract_waveform_from_image
+from ecg_input.pdf_processor import process_pdf_report
+from ecg_input.measurement_extractor import extract_report_measurements
 from inference.inference_engine import ACTIVE_MODEL_ID, run_ecg_inference
 from measurements.measurement_engine import compute_ecg_measurements
 from safety.signal_quality_gate import QualityCategory, evaluate_signal_quality_gate
@@ -527,6 +533,153 @@ def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor"):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={rep_num}_{type}.pdf"}
     )
+
+
+@router.post("/upload")
+async def upload_ecg_file(
+    file: UploadFile = File(...),
+    fs: Optional[float] = None,
+    lead: str = "II",
+):
+    """
+    Unified Ingestion Endpoint supporting:
+    - Digital: CSV, TXT, NPY, JSON, EDF, XML, DICOM, WFDB
+    - Image: JPG, JPEG, PNG, TIFF, BMP
+    - Document: PDF
+    Converts inputs into standardized numerical waveforms + extracted clinical metadata.
+    """
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+
+    filename = file.filename
+    fname_lower = filename.lower()
+    contents = await file.read()
+
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # 1. Digital Formats: CSV, TXT, NPY, JSON, EDF, XML, DICOM
+    if fname_lower.endswith((".csv", ".txt", ".npy", ".json", ".edf", ".xml", ".dcm", ".dicom", ".dat", ".hea")):
+        rec, err = load_any_ecg(io.BytesIO(contents), filename=filename, fs=fs, lead_name=lead)
+        if err or not rec:
+            raise HTTPException(status_code=422, detail=err or "Failed to parse digital ECG file.")
+
+        sig_arr = rec.signals[0] if rec.signals.ndim > 1 else rec.signals
+        return {
+            "status": "SUCCESS",
+            "source_type": "DIGITAL",
+            "filename": filename,
+            "sampling_rate": rec.sampling_rate,
+            "lead": rec.lead_names[0] if rec.lead_names else lead,
+            "signal": [round(float(v), 4) for v in sig_arr],
+            "duration_sec": round(float(rec.duration), 2),
+            "sample_count": len(sig_arr),
+            "message": f"Successfully ingested digital ECG recording ({len(sig_arr)} samples).",
+            "provenance": "Direct digital acquisition",
+        }
+
+    # 2. Image Formats: JPG, JPEG, PNG, TIFF, BMP
+    if fname_lower.endswith((".jpg", ".jpeg", ".png", ".tiff", ".bmp")):
+        import cv2
+        nparr = np.frombuffer(contents, np.uint8)
+        cv_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if cv_img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image file.")
+
+        img_info = process_ecg_image(cv_img)
+        if not img_info["is_ecg"]:
+            return {
+                "status": "REJECTED",
+                "source_type": "IMAGE",
+                "filename": filename,
+                "message": img_info.get("status_message", "Image does not appear to contain an ECG grid or waveform trace."),
+                "signal": None,
+            }
+
+        wf_res = extract_waveform_from_image(cv_img, target_fs=fs or 360.0)
+        if wf_res["success"] and wf_res["signal"] is not None:
+            sig = wf_res["signal"]
+            return {
+                "status": "SUCCESS",
+                "source_type": "IMAGE",
+                "filename": filename,
+                "sampling_rate": wf_res["sampling_rate"],
+                "lead": lead,
+                "signal": [round(float(v), 4) for v in sig],
+                "duration_sec": round(float(len(sig) / wf_res["sampling_rate"]), 2),
+                "sample_count": len(sig),
+                "extraction_confidence": round(float(wf_res["confidence_score"]), 3),
+                "provenance": "Extracted from ECG document",
+                "message": "ECG waveform successfully digitized from image strip.",
+            }
+        else:
+            return {
+                "status": "WAVEFORM_EXTRACTION_FAILED",
+                "source_type": "IMAGE",
+                "filename": filename,
+                "message": "ECG waveform could not be reliably extracted from this image.",
+                "extraction_confidence": round(float(wf_res.get("confidence_score", 0.0)), 3),
+                "signal": None,
+            }
+
+    # 3. Document Format: PDF
+    if fname_lower.endswith(".pdf"):
+        pdf_res = process_pdf_report(io.BytesIO(contents))
+        if not pdf_res.get("is_ecg"):
+            return {
+                "status": "REJECTED",
+                "source_type": "PDF",
+                "filename": filename,
+                "message": pdf_res.get("status_message", "PDF document does not appear to contain an ECG clinical report."),
+                "signal": None,
+            }
+
+        meas = extract_report_measurements(pdf_res.get("text", ""))
+
+        # Check if an embedded waveform image exists
+        extracted_sig = None
+        confidence = 0.0
+        if pdf_res.get("images"):
+            for pil_img in pdf_res["images"]:
+                try:
+                    import cv2
+                    cv_img = cv2.cvtColor(np.array(pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
+                    wf_res = extract_waveform_from_image(cv_img, target_fs=fs or 360.0)
+                    if wf_res["success"] and wf_res["signal"] is not None:
+                        extracted_sig = wf_res["signal"]
+                        confidence = wf_res["confidence_score"]
+                        break
+                except Exception:
+                    continue
+
+        if extracted_sig is not None:
+            return {
+                "status": "SUCCESS",
+                "source_type": "PDF",
+                "filename": filename,
+                "sampling_rate": fs or 360.0,
+                "lead": lead,
+                "signal": [round(float(v), 4) for v in extracted_sig],
+                "duration_sec": round(float(len(extracted_sig) / (fs or 360.0)), 2),
+                "sample_count": len(extracted_sig),
+                "extraction_confidence": round(float(confidence), 3),
+                "extracted_measurements": meas,
+                "provenance": "Extracted from ECG document",
+                "message": "ECG waveform and clinical measurements successfully extracted from PDF.",
+            }
+        else:
+            return {
+                "status": "PDF_METADATA_EXTRACTED",
+                "source_type": "PDF",
+                "filename": filename,
+                "extracted_measurements": meas,
+                "message": "Extracted clinical measurements and machine interpretation from PDF document. No raw raster waveform strip was digitizable.",
+                "provenance": "Extracted from ECG document",
+                "signal": None,
+            }
+
+    raise HTTPException(status_code=400, detail=f"Unsupported file format '{Path(filename).suffix}'. Supported: CSV, TXT, NPY, JSON, JPG, PNG, PDF.")
 
 
 

@@ -580,9 +580,9 @@
         <div class="file-dropzone" onclick="document.getElementById('fileInput').click()">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.2rem; margin-bottom:4px; display:block; color:#58a6ff;"></i>
           <span id="dropzoneLabel">Browse or drop ECG file</span>
-          <div style="font-size:0.68rem; color:#6e7681; margin-top:2px;">Supports CSV, JSON, TXT</div>
+          <div style="font-size:0.68rem; color:#6e7681; margin-top:2px;">Supports CSV, JSON, TXT, NPY, JPG, PNG, PDF, EDF, XML, DICOM</div>
         </div>
-        <input type="file" id="fileInput" accept=".csv,.json,.txt" class="hidden" onchange="handleFileUpload(event)" />
+        <input type="file" id="fileInput" accept=".csv,.json,.txt,.npy,.jpg,.jpeg,.png,.pdf,.edf,.xml,.dcm" class="hidden" onchange="handleFileUpload(event)" />
 
         <div style="margin-top:8px;">
           <label style="font-size:0.68rem; color:#8b949e; text-transform:uppercase;">Sampling Rate (Hz)</label>
@@ -1508,36 +1508,103 @@
       }
     }
 
-    // File Upload Handler
-    function handleFileUpload(e) {
+    // Multimodal File Upload Handler
+    async function handleFileUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
-      document.getElementById('dropzoneLabel').innerText = file.name;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const content = evt.target.result;
-          const parsed = parseEcgContent(content, parseFloat(document.getElementById('sbSamplingRate').value) || 360.0);
-          
-          if (!parsed.signal || parsed.signal.length === 0) {
-            alert('Could not detect numeric ECG voltage values in this file.');
+      const dropzone = document.getElementById('dropzoneLabel');
+      dropzone.innerText = `Uploading: ${file.name}...`;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const fsVal = parseFloat(document.getElementById('sbSamplingRate').value) || 360.0;
+
+      // 1. Send to unified backend /api/upload
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fs', String(fsVal));
+        formData.append('lead', 'II');
+
+        const res = await fetch(`${API_BASE}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'SUCCESS' && data.signal && data.signal.length > 0) {
+            currentSignal = data.signal;
+            currentFs = data.sampling_rate || fsVal;
+            document.getElementById('sbSamplingRate').value = String(currentFs);
+            dropzone.innerText = `${file.name} (${data.source_type} • ${data.sample_count} pts)`;
+
+            if (data.provenance) {
+              const provElem = document.getElementById('waveformDurationTitle');
+              if (provElem) provElem.innerText = `ECG • ${data.duration_sec}s (${data.provenance})`;
+            }
+
+            // Render waveform immediately & trigger clinical analysis
+            renderWaveformChart();
+            triggerAnalysis();
+            return;
+          } else if (data.status === 'PDF_METADATA_EXTRACTED') {
+            dropzone.innerText = `${file.name} (PDF OCR Data)`;
+            if (data.extracted_measurements) {
+              const m = data.extracted_measurements;
+              if (m.heart_rate_printed) {
+                document.getElementById('cardHeartRate').innerText = `${Math.round(m.heart_rate_printed)} BPM`;
+                document.getElementById('cardHeartRateSub').innerText = 'Extracted from ECG document (OCR)';
+              }
+              if (m.machine_interpretation && m.machine_interpretation.length > 0) {
+                document.getElementById('cardAiPattern').innerText = m.machine_interpretation[0];
+                document.getElementById('cardAiPatternSub').innerText = 'Extracted from Document';
+              }
+              if (m.patient_age && currentPatient) {
+                currentPatient.age = parseInt(m.patient_age) || currentPatient.age;
+                document.getElementById('mainPatAgeSex').innerText = `${currentPatient.age}y / ${currentPatient.sex}`;
+              }
+              alert(`📄 PDF clinical report parsed: HR=${m.heart_rate_printed || 'N/A'} BPM, QRS=${m.qrs_duration_ms || 'N/A'} ms, PR=${m.pr_interval_ms || 'N/A'} ms. Waveform raster was not present, but printed measurements were successfully extracted.`);
+            }
+            return;
+          } else if (data.status === 'WAVEFORM_EXTRACTION_FAILED') {
+            dropzone.innerText = `⚠️ Extraction Failed: ${file.name}`;
+            alert(`⚠️ ECG waveform could not be reliably extracted from this image (confidence: ${data.extraction_confidence || 0}). Safe fallback applied: No synthetic data generated.`);
+            return;
+          } else if (data.status === 'REJECTED') {
+            dropzone.innerText = `❌ Rejected: ${file.name}`;
+            alert(`❌ File Rejected: ${data.message || 'The uploaded file does not contain a recognizable ECG trace or report.'}`);
             return;
           }
-
-          currentSignal = parsed.signal;
-          currentFs = parsed.fs || 360.0;
-          document.getElementById('sbSamplingRate').value = String(currentFs);
-
-          // Render waveform immediately
-          renderWaveformChart();
-          
-          // Trigger backend analysis
-          triggerAnalysis();
-        } catch (err) {
-          alert('Could not parse file: ' + err.message);
         }
-      };
-      reader.readAsText(file);
+      } catch (uploadErr) {
+        console.warn('Backend /api/upload failed, attempting client-side fallback if text format:', uploadErr);
+      }
+
+      // 2. Fallback for CSV/JSON/TXT if backend upload is unavailable
+      if (['csv', 'txt', 'json'].includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const content = evt.target.result;
+            const parsed = parseEcgContent(content, fsVal);
+            if (!parsed.signal || parsed.signal.length === 0) {
+              alert('Could not detect numeric ECG voltage values in this file.');
+              return;
+            }
+            currentSignal = parsed.signal;
+            currentFs = parsed.fs || fsVal;
+            document.getElementById('sbSamplingRate').value = String(currentFs);
+            dropzone.innerText = file.name;
+            renderWaveformChart();
+            triggerAnalysis();
+          } catch (err) {
+            alert('Could not parse file: ' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Could not process this file format via backend ingestion. Please verify backend is running.');
+      }
     }
 
     // Demo Record Loader
