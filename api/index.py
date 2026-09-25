@@ -580,9 +580,17 @@ async def upload_ecg_file(
 
     # 2. Image Formats: JPG, JPEG, PNG, TIFF, BMP
     if fname_lower.endswith((".jpg", ".jpeg", ".png", ".tiff", ".bmp")):
-        import cv2
-        nparr = np.frombuffer(contents, np.uint8)
-        cv_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        try:
+            import cv2
+            nparr = np.frombuffer(contents, np.uint8)
+            cv_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        except ImportError:
+            from PIL import Image
+            try:
+                pil_img = Image.open(io.BytesIO(contents)).convert("RGB")
+                cv_img = np.array(pil_img)[:, :, ::-1].copy()
+            except Exception:
+                cv_img = None
 
         if cv_img is None:
             raise HTTPException(status_code=400, detail="Could not decode image file.")
@@ -643,8 +651,8 @@ async def upload_ecg_file(
         if pdf_res.get("images"):
             for pil_img in pdf_res["images"]:
                 try:
-                    import cv2
-                    cv_img = cv2.cvtColor(np.array(pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
+                    rgb_arr = np.array(pil_img.convert("RGB"))
+                    cv_img = rgb_arr[:, :, ::-1].copy()
                     wf_res = extract_waveform_from_image(cv_img, target_fs=fs or 360.0)
                     if wf_res["success"] and wf_res["signal"] is not None:
                         extracted_sig = wf_res["signal"]

@@ -15,7 +15,12 @@ Research/educational use only.
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
-import cv2
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 import numpy as np
 
 
@@ -62,27 +67,36 @@ def extract_waveform_from_image(
         }
 
     # 1. Color filtering: eliminate pink/red ECG grid
-    hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
-    gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+    if cv2 is not None:
+        hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
+        gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+        mask1 = cv2.inRange(hsv, np.array([0, 20, 100]), np.array([20, 255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([160, 20, 100]), np.array([180, 255, 255]))
+        grid_mask = cv2.bitwise_or(mask1, mask2)
+        suppressed_gray = gray.copy()
+        suppressed_gray[grid_mask > 0] = 255
 
-    # Grid mask (pink/red)
-    mask1 = cv2.inRange(hsv, np.array([0, 20, 100]), np.array([20, 255, 255]))
-    mask2 = cv2.inRange(hsv, np.array([160, 20, 100]), np.array([180, 255, 255]))
-    grid_mask = cv2.bitwise_or(mask1, mask2)
+        # 2. Extract dark trace pixels
+        blurred = cv2.GaussianBlur(suppressed_gray, (3, 3), 0)
+        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+        clean_trace = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    else:
+        # Pure NumPy fallback
+        b = bgr_image[:, :, 0].astype(float)
+        g = bgr_image[:, :, 1].astype(float)
+        r = bgr_image[:, :, 2].astype(float)
+        gray = (b * 0.114 + g * 0.587 + r * 0.299).astype(np.uint8)
 
-    # If grid present, neutralize it in grayscale
-    suppressed_gray = gray.copy()
-    suppressed_gray[grid_mask > 0] = 255
+        pink_mask = (r > 150) & (g > 30) & (b > 60) & (r > g + 15)
+        suppressed_gray = gray.copy()
+        suppressed_gray[pink_mask] = 255
 
-    # 2. Extract dark trace pixels
-    # Blur slightly to connect antialiased pixels
-    blurred = cv2.GaussianBlur(suppressed_gray, (3, 3), 0)
-    # Adaptive or Otsu threshold
-    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        # Threshold dark trace (trace pixels are darker than background)
+        p15 = np.percentile(suppressed_gray, 20)
+        clean_trace = np.zeros_like(suppressed_gray, dtype=np.uint8)
+        clean_trace[suppressed_gray <= max(p15, 120)] = 255
 
-    # Remove isolated specks
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
-    clean_trace = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
     # 3. Column-wise extraction
     raw_y = np.full(w, np.nan)
