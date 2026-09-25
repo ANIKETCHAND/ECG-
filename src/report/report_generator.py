@@ -192,10 +192,10 @@ def generate_structured_report(
     hr_val = None
     mean_rr = None
     beat_cnt = None
-    if ai_results and "heart_rate_bpm" in ai_results:
+    if ai_results and ai_results.get("heart_rate_bpm") is not None:
         hr_val = round(float(ai_results["heart_rate_bpm"]), 1)
-        mean_rr = round(float(ai_results.get("mean_rr_sec", 0.0)) * 1000.0, 1)
-        beat_cnt = int(ai_results.get("beat_count", 0))
+        mean_rr = round(float(ai_results.get("mean_rr_sec", 0.0) or 0.0) * 1000.0, 1)
+        beat_cnt = int(ai_results.get("beat_count", 0) or 0)
     elif extracted_measurements and extracted_measurements.get("heart_rate_printed") is not None:
         hr_val = float(extracted_measurements["heart_rate_printed"])
 

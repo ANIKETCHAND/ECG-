@@ -139,24 +139,43 @@ class ModelRegistry:
     def __init__(self, base_models_dir: Optional[Path] = None):
         self.base_dir = Path(base_models_dir) if base_models_dir else MODELS_DIR
         self.catalog_path = self.base_dir / "registry" / "catalog.json"
-        self._ensure_catalog()
+        try:
+            self._ensure_catalog()
+        except (OSError, PermissionError):
+            self.base_dir = Path("/tmp") / "models"
+            self.catalog_path = self.base_dir / "registry" / "catalog.json"
+            try:
+                self._ensure_catalog()
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------ catalog
     def _ensure_catalog(self) -> None:
-        self.catalog_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.catalog_path.exists():
-            with open(self.catalog_path, "w", encoding="utf-8") as f:
-                json.dump(_default_catalog(), f, indent=2)
-            return
-        self._migrate_catalog()
+        try:
+            self.catalog_path.parent.mkdir(parents=True, exist_ok=True)
+            if not self.catalog_path.exists():
+                with open(self.catalog_path, "w", encoding="utf-8") as f:
+                    json.dump(_default_catalog(), f, indent=2)
+                return
+            self._migrate_catalog()
+        except (OSError, PermissionError):
+            pass
 
     def _read_catalog(self) -> Dict[str, Dict[str, Any]]:
-        with open(self.catalog_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            if not self.catalog_path.exists():
+                return _default_catalog()
+            with open(self.catalog_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return _default_catalog()
 
     def _write_catalog(self, data: Dict[str, Dict[str, Any]]) -> None:
-        with open(self.catalog_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        try:
+            with open(self.catalog_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except (OSError, PermissionError):
+            pass
 
     def _migrate_catalog(self) -> None:
         """Bring an existing catalog up to the provenance-aware schema.
