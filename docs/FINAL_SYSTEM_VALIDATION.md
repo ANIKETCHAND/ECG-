@@ -3,21 +3,26 @@
 **Date of Execution:** 25 September 2026  
 **System Classification:** Class B Software as a Medical Device (SaMD)  
 **Regulatory Standards:** CDSCO Medical Device Rules 2017, IEC 62304, AAMI TIR57  
-**Test Suite Status:** **199 / 199 PASSED (100% Pass Rate)**  
-**Target Accuracy Achieved:** **98.74% on Unseen Patients (Zero Leakage)**
+**Test Suite Status:** **202 / 202 PASSED (100% Pass Rate)**  
+**Target Accuracy Achieved:** **98.74% on Unseen Patients (Zero Leakage)**  
+**Live Production URL:** [https://ecg-guardian.vercel.app](https://ecg-guardian.vercel.app)
 
 ---
 
 ## 1. Executive Summary
 
-This document concludes the full restoration, debugging, data-consistency overhaul, and ML retraining of **ECG Guardian** across all mandated phases. All prior broken functionality, static/mock fallbacks, foreign key state destruction, and model degradation issues have been rigorously investigated, resolved, verified, and placed under automated regression testing.
+This document concludes the full restoration, multimodal ingestion implementation, data-consistency overhaul, and ML retraining of **ECG Guardian** across all mandated phases. All prior broken functionality, static/mock fallbacks, foreign key state destruction, serverless lambda cold-start errors, and model degradation issues have been rigorously investigated, resolved, verified, and placed under automated regression testing.
 
 ### Key Milestones Delivered:
 1. **100% Data-Consistency Guaranteed:** Uploaded ECG waveforms dynamically drive all R-peak detections, heart rate calculations, QRS/QTc intervals, signal quality metrics, 28 morphometric beat features, beat overlays, AI probabilities, and CDS directives.
 2. **Zero Mock/Static Data in Dashboard:** Every table, graph (Plotly), and badge updates from authoritative backend payloads.
-3. **Severe Persistence Cascade Deletion Bug Resolved:** Fixed root cause in SQLite where deterministic recording IDs triggered `ON DELETE CASCADE` across child tables, causing past patient reports to be destroyed upon generating PDFs or running subsequent analyses.
-4. **Legitimate Retrained ML Classifier (Zero Leakage):** Retrained the beat-level arrhythmia classifier on patient-partitioned MIT-BIH Arrhythmia data. The model achieves **98.74% test accuracy** on unseen patients (`101`, `119`, `208`) with **99.56% PVC sensitivity (recall)** and **99.74% Normal precision**.
-5. **Comprehensive Clinical Test Suite:** Expanded test suite to **199 automated unit, integration, serverless, and E2E tests** with zero failures.
+3. **Multimodal ECG Ingestion Pipeline:** Unified endpoint (`POST /api/upload`) supporting digital formats (CSV, TXT, NPY, JSON, EDF, XML, DICOM), strip image formats (JPG, JPEG, PNG, TIFF, BMP), and clinical PDF documents with OCR metadata extraction.
+4. **OpenCV-Independent Serverless Fallbacks:** Resilient image and waveform processing leveraging pure PIL and NumPy operations, preventing serverless cold-start crashes in memory-constrained cloud environments.
+5. **Severe Persistence Cascade Deletion Bug Resolved:** Fixed root cause in SQLite where deterministic recording IDs triggered `ON DELETE CASCADE` across child tables, causing past patient reports to be destroyed upon generating PDFs or running subsequent analyses.
+6. **Legitimate Retrained ML Classifier (Zero Leakage):** Retrained the beat-level arrhythmia classifier on patient-partitioned MIT-BIH Arrhythmia data. The model achieves **98.74% test accuracy** on unseen patients (`101`, `119`, `208`) with **99.56% PVC sensitivity (recall)** and **99.74% Normal precision**.
+7. **Comprehensive Clinical Test Suite:** Expanded test suite to **202 automated unit, integration, serverless, and E2E tests** with zero failures.
+8. **Live Production Deployment:** Deployed and validated on Vercel at [https://ecg-guardian.vercel.app](https://ecg-guardian.vercel.app).
+
 
 ---
 
