@@ -9,7 +9,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": "src/**,models/candidate/classifier.pkl,models/candidate/scaler.pkl"
+      "includeFiles": "src/**,models/classifier.pkl,models/scaler.pkl,models/metadata.json,models/production/classifier.pkl,models/production/scaler.pkl"
     }
   }
 }

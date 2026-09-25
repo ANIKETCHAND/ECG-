@@ -27,4 +27,4 @@ models/production/clinical_submodel/
 models/registry/
 docs/
 configs/
-app.py
+scripts/

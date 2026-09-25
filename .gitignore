@@ -43,3 +43,5 @@ data/*.jsonl
 data/datasets/**/raw/*
 data/datasets/**/processed/*
 !data/datasets/**/.gitkeep
+
+.vercel

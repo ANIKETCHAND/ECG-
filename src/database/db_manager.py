@@ -63,13 +63,24 @@ class DatabaseManager:
 
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            base_dir = Path(__file__).resolve().parent.parent.parent
-            data_dir = base_dir / "data"
-            data_dir.mkdir(parents=True, exist_ok=True)
+            if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+                data_dir = Path("/tmp") / "data"
+            else:
+                base_dir = Path(__file__).resolve().parent.parent.parent
+                data_dir = base_dir / "data"
+            try:
+                data_dir.mkdir(parents=True, exist_ok=True)
+            except (PermissionError, OSError):
+                data_dir = Path("/tmp") / "data"
+                data_dir.mkdir(parents=True, exist_ok=True)
             self.db_path = str(data_dir / "hospital_clinical.db")
         else:
             self.db_path = db_path
-            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+            try:
+                Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+            except (PermissionError, OSError):
+                self.db_path = str(Path("/tmp") / "data" / Path(self.db_path).name)
+                Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
         self._lock = threading.Lock()
         self._init_schema()

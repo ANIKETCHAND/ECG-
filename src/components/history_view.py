@@ -17,7 +17,10 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
+try:
+    import streamlit as st
+except ImportError:
+    st = None
 
 from services.report_persistence_service import REPORT_PERSISTENCE_SERVICE
 from database.supabase_client import is_supabase_configured

@@ -54,9 +54,16 @@ class AuditLogger:
     """Manages append-only, cryptographically chained audit logging."""
 
     def __init__(self, db_path: Optional[str] = None, jsonl_path: Optional[str] = None):
-        base_dir = Path(__file__).resolve().parent.parent.parent
-        data_dir = base_dir / "data"
-        data_dir.mkdir(parents=True, exist_ok=True)
+        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            data_dir = Path("/tmp") / "data"
+        else:
+            base_dir = Path(__file__).resolve().parent.parent.parent
+            data_dir = base_dir / "data"
+        try:
+            data_dir.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError):
+            data_dir = Path("/tmp") / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
 
         self.db_path = db_path or str(data_dir / "audit_trail.db")
         self.jsonl_path = jsonl_path or str(data_dir / "audit_trail.jsonl")

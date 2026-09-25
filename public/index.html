@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI-ECG Clinical Decision Support Platform</title>
+  <title>ECG Guardian — Hospital Clinical Decision Support Platform</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -14,17 +14,18 @@
         extend: {
           colors: {
             brand: {
-              50: '#f0fdf4',
-              500: '#10b981',
-              600: '#059669',
-              900: '#064e3b',
+              teal: '#14B8A6',
+              red: '#FF2E2E',
+              amber: '#F59E0B',
+              emerald: '#10B981',
             },
             clinical: {
-              dark: '#0b0f17',
-              panel: '#111827',
-              card: '#1f2937',
-              border: '#374151',
-              accent: '#38bdf8',
+              bg: '#07070A',
+              panel: '#0E0E10',
+              card: '#121518',
+              border: '#27272A',
+              input: '#181B1F',
+              accent: '#14B8A6'
             }
           }
         }
@@ -33,205 +34,341 @@
   </script>
   <style>
     body {
-      background-color: #0b0f17;
-      color: #f3f4f6;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #07070A;
+      color: #F4F4F5;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .ecg-grid {
-      background-image: linear-gradient(rgba(239, 68, 68, 0.07) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(239, 68, 68, 0.07) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(255, 46, 46, 0.08) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 46, 46, 0.08) 1px, transparent 1px);
       background-size: 20px 20px;
     }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0E0E10; }
+    ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3F3F46; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-clinical-border bg-clinical-panel sticky top-0 z-50">
+<body class="min-h-screen flex flex-col selection:bg-brand-teal/30">
+
+  <!-- Top Clinical Header -->
+  <header class="border-b border-clinical-border bg-clinical-panel sticky top-0 z-50 backdrop-blur-md bg-opacity-95">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xl font-bold">
+        <div class="w-10 h-10 rounded-xl bg-brand-red/10 border border-brand-red/40 flex items-center justify-center text-brand-red text-xl font-bold shadow-[0_0_15px_rgba(255,46,46,0.2)]">
           <i class="fa-solid fa-heart-pulse animate-pulse"></i>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <h1 class="text-lg font-bold tracking-wide text-white">AI-ECG Analyzer</h1>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">SaMD Class B</span>
+            <h1 class="text-base font-bold tracking-tight text-white">ECG GUARDIAN</h1>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-teal/20 text-brand-teal border border-brand-teal/30 font-semibold tracking-wide">SaMD CLASS B</span>
+            <span class="hidden md:inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">CDSCO MDR 2017</span>
           </div>
-          <p class="text-xs text-gray-400">CDSCO MDR 2017 & IEC 62304 Clinical Decision Support</p>
+          <p class="text-xs text-zinc-400">Hospital-Grade Multimodal ECG & Clinical Decision Support System</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-4 text-xs text-gray-400">
-        <div class="flex items-center space-x-2">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-gray-300 font-mono">SERVERLESS API ACTIVE</span>
-        </div>
-        <div class="hidden md:flex border-l border-clinical-border pl-4">
-          <span>Model: <strong class="text-white font-mono">ECG-RF-1.0.0</strong></span>
+      <div class="flex items-center space-x-3 text-xs">
+        <button onclick="openHistoryModal()" class="px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-zinc-800 border border-clinical-border text-zinc-300 hover:text-white flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-clock-rotate-left text-brand-teal"></i>
+          <span>Report Archive</span>
+        </button>
+        <a href="/design-preview.html" target="_blank" class="hidden sm:flex px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-clinical-border text-zinc-400 hover:text-zinc-200 items-center space-x-1.5 transition text-[11px]">
+          <i class="fa-solid fa-chart-line text-zinc-400"></i>
+          <span>Design Preview</span>
+        </a>
+        <div class="flex items-center space-x-1.5 pl-2 border-l border-clinical-border text-[11px] font-mono text-zinc-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-emerald-400 font-semibold">ONLINE</span>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Workspace -->
+  <!-- Main Container -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-    <!-- Regulatory Notice Banner -->
-    <div class="bg-amber-950/30 border border-amber-500/40 rounded-lg p-3 text-xs text-amber-200 flex items-start space-x-3">
-      <i class="fa-solid fa-shield-halved text-amber-400 text-base mt-0.5"></i>
+
+    <!-- Clinical Safety Directive Banner -->
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200 flex items-start space-x-3">
+      <i class="fa-solid fa-shield-halved text-amber-400 text-sm mt-0.5"></i>
       <div>
-        <span class="font-semibold text-amber-300">CLINICAL SAFETY DIRECTIVE (IEC 62304 / ISO 14971):</span>
-        This system provides algorithmic decision support to assist qualified medical practitioners. It is not an autonomous diagnostic instrument. "NO RELIABLE INPUT = NO AI RESULT" safety gatekeeper is active.
+        <span class="font-bold text-amber-300">CLINICAL SAFETY MANDATE (IEC 62304 / ISO 14971):</span>
+        This system is an automated clinical decision support tool. It does not replace certified physician evaluation.
+        <strong class="text-amber-100 font-mono">Rule: "NO RELIABLE INPUT = NO AI RESULT"</strong> is strictly enforced by the signal quality gatekeeper.
       </div>
     </div>
 
-    <!-- Controls & Sample Selection -->
-    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-lg">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Select or Upload ECG Record</h2>
-          <p class="text-xs text-gray-400 mt-0.5">Load clinical benchmark waveforms or test safety gatekeeper</p>
+    <!-- STEP 1: Hospital Patient Registration Form -->
+    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-xl relative overflow-hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-clinical-border/80 mb-4">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-6 h-6 rounded-full bg-brand-teal text-black flex items-center justify-center font-bold text-xs">1</span>
+          <div>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Step 1 — Patient Clinical Registration</h2>
+            <p class="text-[11px] text-zinc-400">Hospital staff enters patient demographics before signal ingestion</p>
+          </div>
         </div>
-        
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="loadSample('normal')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-check text-emerald-400"></i>
-            <span>Normal Sinus Rhythm</span>
-          </button>
-          <button onclick="loadSample('pvc')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-bolt text-amber-400"></i>
-            <span>PVC Ectopic Rhythm</span>
-          </button>
-          <button onclick="loadSample('noisy')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-ban text-rose-400"></i>
-            <span>Artifact / Unusable (Safety Gate)</span>
-          </button>
-          <button onclick="openHistoryModal()" class="sample-btn px-3 py-1.5 rounded-lg bg-sky-950/40 hover:bg-sky-900/50 border border-sky-500/40 text-xs text-sky-300 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Report History</span>
-          </button>
+        <button type="button" onclick="generateNewMRN()" class="text-[11px] font-mono text-brand-teal hover:underline flex items-center space-x-1">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Regenerate MRN</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Hospital MRN *</label>
+          <input type="text" id="patientMrn" required class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-brand-teal font-mono font-bold outline-none focus:border-brand-teal" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Patient Full Name *</label>
+          <input type="text" id="patientName" placeholder="e.g. Rajesh Kumar" required class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Age (Years) *</label>
+            <input type="number" id="patientAge" value="55" min="1" max="120" required class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Sex *</label>
+            <select id="patientSex" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-brand-teal">
+              <option value="M">Male (M)</option>
+              <option value="F">Female (F)</option>
+              <option value="O">Other</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Blood Group</label>
+          <select id="bloodGroup" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal">
+            <option value="O+">O Positive (O+)</option>
+            <option value="A+">A Positive (A+)</option>
+            <option value="B+">B Positive (B+)</option>
+            <option value="AB+">AB Positive (AB+)</option>
+            <option value="O-">O Negative (O-)</option>
+            <option value="A-">A Negative (A-)</option>
+            <option value="B-">B Negative (B-)</option>
+            <option value="AB-">AB Negative (AB-)</option>
+          </select>
         </div>
       </div>
 
-      <div class="mt-4 pt-4 border-t border-clinical-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center space-x-4">
+      <!-- Secondary Clinical Fields -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t border-clinical-border/40 text-xs">
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Smoking Status</label>
+          <select id="smokingStatus" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal">
+            <option value="Non-Smoker">Non-Smoker</option>
+            <option value="Former Smoker">Former Smoker</option>
+            <option value="Active Smoker">Active Smoker</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Contact Number</label>
+          <input type="text" id="contactNo" placeholder="+91 98765 43210" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Known Drug Allergies</label>
+          <input type="text" id="knownAllergies" placeholder="e.g. Penicillin, Sulfa" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Existing Conditions</label>
+          <input type="text" id="existingConditions" placeholder="e.g. Hypertension, Diabetes" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 pt-3 border-t border-clinical-border/40 text-xs">
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Current Medications (for Drug-Safety Checking)</label>
+          <input type="text" id="currentMedications" placeholder="e.g. Metoprolol, Amiodarone, Aspirin" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Cardiac History / Symptoms</label>
+          <input type="text" id="cardiacHistory" placeholder="e.g. Prior MI in 2022, Palpitations on exertion" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-brand-teal" />
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: ECG Acquisition & Controls -->
+    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-clinical-border/80 mb-4">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-6 h-6 rounded-full bg-brand-teal text-black flex items-center justify-center font-bold text-xs">2</span>
           <div>
-            <label class="block text-[11px] font-medium text-gray-400 mb-1">Lead</label>
-            <select id="leadSelect" class="bg-clinical-card border border-clinical-border rounded-md px-3 py-1 text-xs text-gray-200 focus:ring-1 focus:ring-clinical-accent outline-none">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Step 2 — ECG Signal Acquisition</h2>
+            <p class="text-[11px] text-zinc-400">Upload patient ECG recording or load clinical benchmark traces</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- Preset benchmark buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs text-zinc-400 font-semibold mr-1">Load Benchmarks:</span>
+          <button onclick="loadSample('normal')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-zinc-800 border border-clinical-border text-xs text-zinc-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span>Normal Sinus (PhysioNet)</span>
+          </button>
+          <button onclick="loadSample('pvc')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-zinc-800 border border-clinical-border text-xs text-zinc-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-bolt text-amber-400"></i>
+            <span>PVC Ectopic Rhythm</span>
+          </button>
+          <button onclick="loadSample('noisy')" class="sample-btn px-3 py-1.5 rounded-lg bg-clinical-card hover:bg-zinc-800 border border-clinical-border text-xs text-zinc-200 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-ban text-brand-red"></i>
+            <span>Artifact / Test Gatekeeper</span>
+          </button>
+        </div>
+
+        <!-- Technical signal settings -->
+        <div class="flex items-center space-x-3 text-xs">
+          <div>
+            <label class="block text-[10px] text-zinc-400 uppercase font-semibold">Lead</label>
+            <select id="leadSelect" class="bg-clinical-input border border-clinical-border rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-brand-teal">
               <option value="II" selected>Lead II (Rhythm)</option>
               <option value="V1">Lead V1</option>
               <option value="V5">Lead V5</option>
             </select>
           </div>
           <div>
-            <label class="block text-[11px] font-medium text-gray-400 mb-1">Sampling Rate (Hz)</label>
-            <input type="number" id="fsInput" value="360" class="w-24 bg-clinical-card border border-clinical-border rounded-md px-3 py-1 text-xs text-gray-200 focus:ring-1 focus:ring-clinical-accent outline-none" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-gray-400 mb-1">Custom File (CSV / JSON)</label>
-            <input type="file" id="fileUpload" accept=".csv,.json" class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:bg-clinical-card file:text-gray-200 hover:file:bg-clinical-border" />
+            <label class="block text-[10px] text-zinc-400 uppercase font-semibold">Sampling Rate</label>
+            <input type="number" id="fsInput" value="360" class="w-20 bg-clinical-input border border-clinical-border rounded-lg px-2.5 py-1 text-xs text-white font-mono outline-none focus:border-brand-teal" />
           </div>
         </div>
+      </div>
 
-        <button id="analyzeBtn" onclick="runAnalysis()" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md flex items-center justify-center space-x-2 transition disabled:opacity-50">
+      <!-- File upload dropzone -->
+      <div class="mt-4 pt-4 border-t border-clinical-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3 flex-1">
+          <label class="cursor-pointer px-4 py-2 rounded-lg bg-clinical-card hover:bg-zinc-800 border border-clinical-border text-xs text-zinc-200 flex items-center space-x-2 transition">
+            <i class="fa-solid fa-upload text-brand-teal"></i>
+            <span id="uploadLabel">Upload ECG File (.csv, .json, .txt)</span>
+            <input type="file" id="fileUpload" accept=".csv,.json,.txt" class="hidden" />
+          </label>
+          <span id="fileStatus" class="text-xs text-zinc-400 font-mono">No custom file selected</span>
+        </div>
+
+        <button id="analyzeBtn" onclick="runAnalysis()" class="px-6 py-2.5 rounded-xl bg-brand-teal hover:bg-teal-500 text-black font-bold text-xs shadow-[0_0_20px_rgba(20,184,166,0.3)] flex items-center justify-center space-x-2 transition disabled:opacity-50">
           <i class="fa-solid fa-play"></i>
-          <span>Execute Clinical Analysis</span>
+          <span>EXECUTE CLINICAL ANALYSIS</span>
         </button>
       </div>
     </section>
 
-    <!-- Signal Quality Gatekeeper Status -->
-    <div id="qualityGateAlert" class="hidden rounded-xl p-4 border transition">
-      <!-- Injected dynamically -->
+    <!-- Signal Quality Gate Alert -->
+    <div id="qualityGateAlert" class="hidden rounded-xl p-4 border transition"></div>
+
+    <!-- Active Patient Identity Card (Shown when analysis completes) -->
+    <div id="patientCard" class="hidden rounded-xl p-4 bg-gradient-to-r from-teal-950/40 via-zinc-900 to-zinc-900 border border-brand-teal/40 shadow-lg">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-brand-teal/20 text-brand-teal border border-brand-teal/40 flex items-center justify-center font-bold text-base">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 id="cardPatientName" class="text-base font-bold text-white">--</h3>
+              <span id="cardPatientMrn" class="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800 text-brand-teal border border-zinc-700">MRN: --</span>
+              <span id="cardBloodGroup" class="text-xs font-semibold px-2 py-0.5 rounded bg-rose-950/50 text-rose-400 border border-rose-800/40">--</span>
+            </div>
+            <p id="cardDemographics" class="text-xs text-zinc-400 mt-0.5">--</p>
+          </div>
+        </div>
+
+        <button onclick="downloadDoctorPdf()" id="downloadPdfBtn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs flex items-center space-x-2 transition shadow-[0_0_15px_rgba(255,46,46,0.25)]">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span>DOWNLOAD DOCTOR REPORT (PDF)</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 text-xs text-zinc-400">
+        <div><strong class="text-zinc-300">Allergies:</strong> <span id="cardAllergies">None recorded</span></div>
+        <div><strong class="text-zinc-300">Conditions:</strong> <span id="cardConditions">None recorded</span></div>
+        <div><strong class="text-zinc-300">Medications:</strong> <span id="cardMedications">None recorded</span></div>
+      </div>
     </div>
 
-    <!-- ECG Waveform Viewer -->
-    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-4 shadow-lg">
+    <!-- Calibrated ECG Waveform Viewer (Plotly) -->
+    <section class="bg-clinical-panel border border-clinical-border rounded-xl p-4 shadow-xl">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center space-x-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-          <h2 class="text-xs font-semibold text-gray-200 uppercase tracking-wider">ECG Calibrated Waveform (Lead II)</h2>
-          <span id="waveformStats" class="text-xs text-gray-400 font-mono"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brand-red"></span>
+          <h2 class="text-xs font-bold text-white uppercase tracking-wider">Calibrated Rhythm Strip (Lead II)</h2>
+          <span id="waveformStats" class="text-xs text-zinc-400 font-mono ml-2"></span>
         </div>
-        <div class="text-[11px] text-gray-400 font-mono flex items-center space-x-3">
-          <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1"></span>Signal</span>
-          <span><span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>Detected R-Peaks</span>
+        <div class="text-[11px] text-zinc-400 font-mono flex items-center space-x-3">
+          <span><span class="inline-block w-2 h-2 rounded-full bg-brand-teal mr-1"></span>Voltage (mV)</span>
+          <span><span class="inline-block w-2 h-2 rounded-full bg-brand-red mr-1"></span>R-Peaks</span>
         </div>
       </div>
+
       <div id="plotlyChart" class="w-full h-72 rounded-lg ecg-grid"></div>
-      <div id="waveformCriteriaFooter" class="mt-2 pt-2 border-t border-clinical-border/40 text-[11px] text-gray-400 flex flex-wrap items-center gap-1.5 leading-relaxed">
-        <span class="font-semibold text-gray-300">Criteria used:</span>
-        <span>Raw ECG signal <span class="text-gray-500">•</span> Sampling rate (360 Hz) <span class="text-gray-500">•</span> Lead II <span class="text-gray-500">•</span> Signal duration</span>
-        <div class="w-full text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
-          <span class="font-semibold text-gray-400">Processing:</span>
-          <span>Baseline correction (0.5 Hz) <span class="text-gray-600">•</span> Bandpass filtering (0.5-45 Hz) <span class="text-gray-600">•</span> Amplitude normalization</span>
-        </div>
+
+      <div id="waveformCriteriaFooter" class="mt-2 pt-2 border-t border-clinical-border/40 text-[11px] text-zinc-400 flex flex-wrap items-center gap-1.5 leading-relaxed">
+        <span class="font-semibold text-zinc-300">Criteria:</span>
+        <span>Raw ECG signal <span class="text-zinc-600">•</span> Sampling rate (360 Hz) <span class="text-zinc-600">•</span> Bandpass filtering (0.5–45 Hz) <span class="text-zinc-600">•</span> Baseline wander suppression</span>
       </div>
     </section>
 
-    <!-- Metrics & AI Classification Cards -->
-    <section id="resultsSection" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- Metrics & AI Findings -->
+    <section id="resultsSection" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
-        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Heart Rate</p>
+        <p class="text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">Heart Rate</p>
         <div class="mt-2 flex items-baseline space-x-2">
-          <span id="metricHr" class="text-3xl font-bold font-mono text-white">--</span>
-          <span class="text-xs text-gray-400">BPM</span>
+          <span id="metricHr" class="text-3xl font-extrabold font-mono text-white">--</span>
+          <span class="text-xs text-zinc-400 font-semibold">BPM</span>
         </div>
-        <p id="metricHrSub" class="text-[11px] text-gray-400 mt-1 font-mono">Mean RR: -- ms</p>
+        <p id="metricHrSub" class="text-[11px] text-zinc-400 mt-1 font-mono">Mean RR: -- ms</p>
       </div>
 
       <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
-        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">QRS Duration</p>
+        <p class="text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">QRS Duration</p>
         <div class="mt-2 flex items-baseline space-x-2">
-          <span id="metricQrs" class="text-3xl font-bold font-mono text-white">--</span>
-          <span class="text-xs text-gray-400">ms</span>
+          <span id="metricQrs" class="text-3xl font-extrabold font-mono text-white">--</span>
+          <span class="text-xs text-zinc-400 font-semibold">ms</span>
         </div>
-        <p id="metricQrsSub" class="text-[11px] text-gray-400 mt-1">Ref: 70 - 110 ms</p>
+        <p id="metricQrsSub" class="text-[11px] text-zinc-400 mt-1">Ref: 70 – 110 ms</p>
       </div>
 
       <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
-        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Corrected QT (Bazett)</p>
+        <p class="text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">Corrected QT (Bazett)</p>
         <div class="mt-2 flex items-baseline space-x-2">
-          <span id="metricQtc" class="text-3xl font-bold font-mono text-white">--</span>
-          <span class="text-xs text-gray-400">ms</span>
+          <span id="metricQtc" class="text-3xl font-extrabold font-mono text-white">--</span>
+          <span class="text-xs text-zinc-400 font-semibold">ms</span>
         </div>
-        <p id="metricQtcSub" class="text-[11px] text-gray-400 mt-1">Normal &lt; 440 ms</p>
+        <p id="metricQtcSub" class="text-[11px] text-zinc-400 mt-1">Normal &lt; 440 ms</p>
       </div>
 
       <div class="bg-clinical-panel border border-clinical-border rounded-xl p-4">
-        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">AI Finding & Confidence</p>
+        <p class="text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">AI Abnormality Prediction</p>
         <div class="mt-2">
-          <span id="metricAiFinding" class="text-sm font-bold text-emerald-400">--</span>
+          <span id="metricAiFinding" class="text-sm font-bold text-brand-teal">--</span>
         </div>
-        <div class="mt-2 w-full bg-clinical-card rounded-full h-1.5 overflow-hidden">
-          <div id="metricAiProbBar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+        <div class="mt-2 w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+          <div id="metricAiProbBar" class="bg-brand-teal h-1.5 rounded-full" style="width: 0%"></div>
         </div>
-        <p id="metricAiProb" class="text-[10px] text-gray-400 mt-1 text-right font-mono">Confidence: --%</p>
-      </div>
-
-      <div id="resultsCriteriaFooter" class="col-span-1 md:col-span-4 bg-clinical-card/40 border border-clinical-border/60 rounded-lg p-2.5 text-[11px] text-gray-400 flex flex-col gap-1">
-        <!-- Injected dynamically -->
+        <p id="metricAiProb" class="text-[10px] text-zinc-400 mt-1 text-right font-mono">Confidence: --%</p>
       </div>
     </section>
 
-    <!-- Clinician Sign-off & Audit Section -->
-    <section id="reviewSection" class="hidden bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-lg">
+    <!-- Clinician Review & Verification Section -->
+    <section id="reviewSection" class="hidden bg-clinical-panel border border-clinical-border rounded-xl p-5 shadow-xl">
       <div class="flex items-center space-x-2 mb-4 border-b border-clinical-border pb-3">
-        <i class="fa-solid fa-user-doctor text-clinical-accent"></i>
-        <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Clinician Review & Verification (CDSCO Class B Requirement)</h2>
+        <i class="fa-solid fa-user-doctor text-brand-teal text-base"></i>
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Clinician Review & Diagnostic Sign-Off (CDSCO Class B Mandate)</h2>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Clinician Full Name</label>
-          <input type="text" id="clinicianName" placeholder="Dr. Aniket Chand" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent" />
+          <label class="block text-xs text-zinc-400 mb-1 font-semibold">Attending Physician Name *</label>
+          <input type="text" id="clinicianName" value="Dr. Aniket Chand" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal" />
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Medical Registration Number</label>
-          <input type="text" id="clinicianReg" placeholder="MCI-2024-88492" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent" />
+          <label class="block text-xs text-zinc-400 mb-1 font-semibold">Medical Council Reg. No. (MCI/NMC) *</label>
+          <input type="text" id="clinicianReg" value="MCI-2024-88492" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal" />
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Agreement with AI</label>
-          <select id="agreementSelect" class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent">
+          <label class="block text-xs text-zinc-400 mb-1 font-semibold">Agreement with AI</label>
+          <select id="agreementSelect" class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal">
             <option value="CONFIRMED">CONFIRMED (Agree with AI Finding)</option>
             <option value="MODIFIED">MODIFIED (Adjusted Interpretation)</option>
             <option value="REJECTED">REJECTED (Disagree with AI Finding)</option>
@@ -240,75 +377,85 @@
       </div>
 
       <div class="mt-4">
-        <label class="block text-xs text-gray-400 mb-1">Clinical Interpretation / Notes</label>
-        <textarea id="clinicianNotes" rows="2" placeholder="Record physician diagnostic notes, bedside correlation, and treatment instructions..." class="w-full bg-clinical-card border border-clinical-border rounded-md px-3 py-1.5 text-xs text-gray-200 outline-none focus:ring-1 focus:ring-clinical-accent"></textarea>
+        <label class="block text-xs text-zinc-400 mb-1 font-semibold">Clinical Interpretation / Notes</label>
+        <textarea id="clinicianNotes" rows="2" placeholder="Record diagnostic correlation, bedside findings, or recommended therapeutic interventions..." class="w-full bg-clinical-input border border-clinical-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-teal"></textarea>
       </div>
 
-      <div class="mt-4 flex items-center justify-between">
-        <div id="sealStatus" class="text-xs font-mono text-gray-400">
-          Status: PENDING CLINICIAN SIGN-OFF
+      <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-clinical-border/60">
+        <div id="sealStatus" class="text-xs font-mono text-zinc-400">
+          Status: PENDING PHYSICIAN SIGN-OFF
         </div>
-        <button id="sealBtn" onclick="submitReview()" class="px-4 py-2 rounded-lg bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 font-semibold flex items-center space-x-2 transition">
-          <i class="fa-solid fa-stamp text-clinical-accent"></i>
-          <span>Sign & Cryptographically Seal Report</span>
+        <button id="sealBtn" onclick="submitReview()" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center space-x-2 transition shadow-md">
+          <i class="fa-solid fa-stamp"></i>
+          <span>SIGN & CRYPTOGRAPHICALLY SEAL</span>
         </button>
       </div>
-
-      <div id="reviewCriteriaFooter" class="mt-3 pt-3 border-t border-clinical-border/40 text-[11px] text-gray-400">
-        <span class="font-semibold text-gray-300">Criteria verified:</span>
-        <span>Attending clinician review <span class="text-gray-500">•</span> Physician registration ID <span class="text-gray-500">•</span> Agreement status <span class="text-gray-500">•</span> Tamper-evident SHA-256 seal</span>
-      </div>
     </section>
+
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-clinical-border bg-clinical-panel/60 py-4 text-center text-xs text-gray-500">
-    <p>AI-ECG Analyzer | Architectural Framework: IEC 62304 Class B | Risk Assessment: ISO 14971 | CDSCO Medical Device Rules 2017</p>
+  <!-- Report History Modal -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-clinical-panel border border-clinical-border rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-clinical-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-clock-rotate-left text-brand-teal"></i>
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Permanent ECG Report Archive</h3>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-zinc-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="historyList" class="p-4 overflow-y-auto space-y-3 flex-1"></div>
+      <div class="p-3 border-t border-clinical-border bg-clinical-card flex justify-between items-center text-xs text-zinc-400">
+        <span>Dual Persistent Store: Supabase & SQLite</span>
+        <button onclick="closeHistoryModal()" class="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-md">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t border-clinical-border bg-clinical-panel/60 py-4 mt-8 text-center text-xs text-zinc-500">
+    ECG Guardian v2.0 • CDSCO MDR 2017 & IEC 62304 Compliant SaMD • Deployed on Vercel Serverless
   </footer>
 
+  <!-- Application Logic -->
   <script>
-    const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+    const API_BASE = window.location.origin;
     let currentSignal = [];
     let currentFs = 360.0;
     let currentAnalysisId = null;
 
-    // Load initial normal sample on page start
+    function generateNewMRN() {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      document.getElementById('patientMrn').value = `MRN-${code}`;
+    }
+
+    // Initialize MRN on page load
     window.addEventListener('DOMContentLoaded', () => {
+      generateNewMRN();
       loadSample('normal');
     });
 
-    async function loadSample(type) {
-      if (type === 'noisy') {
-        // High amplitude baseline wander + random noise (safety gatekeeper test)
-        currentFs = 360.0;
-        const duration = 5.0;
-        const n = Math.floor(currentFs * duration);
-        currentSignal = [];
-        for (let i = 0; i < n; i++) {
-          const t = i / currentFs;
-          currentSignal.push(4.0 * Math.sin(2 * Math.PI * 0.1 * t) + (Math.random() - 0.5) * 2.5);
-        }
-        renderWaveform(currentSignal, currentFs, []);
-        document.getElementById('waveformStats').innerText = `Duration: ${duration}s | Samples: ${n} | Noise injected`;
-        return;
-      }
-
+    async function loadSample(sampleType) {
       try {
-        const res = await fetch(`${API_BASE}/api/sample?sample_type=${type}`);
+        const res = await fetch(`${API_BASE}/api/sample?sample_type=${sampleType}`);
         const data = await res.json();
         currentSignal = data.signal;
         currentFs = data.fs;
         renderWaveform(currentSignal, currentFs, []);
         document.getElementById('waveformStats').innerText = `Duration: ${data.duration_sec}s | Samples: ${data.signal.length}`;
+        document.getElementById('fileStatus').innerText = `Loaded benchmark: ${sampleType.toUpperCase()}`;
       } catch (err) {
         console.error('Failed to load sample:', err);
       }
     }
 
-    // Handle file upload
+    // Handle custom file upload
     document.getElementById('fileUpload').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
+      document.getElementById('uploadLabel').innerText = file.name;
+      document.getElementById('fileStatus').innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
       const reader = new FileReader();
       reader.onload = function(evt) {
         try {
@@ -317,14 +464,14 @@
             const parsed = JSON.parse(content);
             currentSignal = Array.isArray(parsed) ? parsed : (parsed.signal || []);
           } else {
-            // CSV
+            // CSV / TXT
             currentSignal = content.split(/[\r\n,]+/)
               .map(v => parseFloat(v.trim()))
               .filter(v => !isNaN(v));
           }
           currentFs = parseFloat(document.getElementById('fsInput').value) || 360.0;
           renderWaveform(currentSignal, currentFs, []);
-          document.getElementById('waveformStats').innerText = `Samples: ${currentSignal.length}`;
+          document.getElementById('waveformStats').innerText = `Samples: ${currentSignal.length} | Fs: ${currentFs}Hz`;
         } catch (err) {
           alert('Could not parse file: ' + err.message);
         }
@@ -339,7 +486,7 @@
         x: timeAxis,
         y: sig,
         mode: 'lines',
-        line: { color: '#10b981', width: 1.5 },
+        line: { color: '#14B8A6', width: 1.5 },
         name: 'Lead II (mV)'
       };
 
@@ -352,7 +499,7 @@
           x: peakX,
           y: peakY,
           mode: 'markers',
-          marker: { color: '#ef4444', size: 8, symbol: 'circle' },
+          marker: { color: '#FF2E2E', size: 8, symbol: 'circle' },
           name: 'R-Peak'
         });
       }
@@ -360,18 +507,18 @@
       const layout = {
         margin: { t: 20, r: 20, b: 35, l: 40 },
         paper_bgcolor: 'transparent',
-        plot_bgcolor: 'rgba(17, 24, 39, 0.7)',
+        plot_bgcolor: 'rgba(14, 14, 16, 0.7)',
         xaxis: {
-          title: { text: 'Time (s)', font: { size: 10, color: '#9ca3af' } },
-          tickfont: { size: 9, color: '#9ca3af' },
-          gridcolor: 'rgba(239, 68, 68, 0.1)',
-          zerolinecolor: '#374151'
+          title: { text: 'Time (s)', font: { size: 10, color: '#9CA3AF' } },
+          tickfont: { size: 9, color: '#9CA3AF' },
+          gridcolor: 'rgba(255, 46, 46, 0.1)',
+          zerolinecolor: '#27272A'
         },
         yaxis: {
-          title: { text: 'Voltage (mV)', font: { size: 10, color: '#9ca3af' } },
-          tickfont: { size: 9, color: '#9ca3af' },
-          gridcolor: 'rgba(239, 68, 68, 0.1)',
-          zerolinecolor: '#374151'
+          title: { text: 'Voltage (mV)', font: { size: 10, color: '#9CA3AF' } },
+          tickfont: { size: 9, color: '#9CA3AF' },
+          gridcolor: 'rgba(255, 46, 46, 0.1)',
+          zerolinecolor: '#27272A'
         },
         showlegend: false
       };
@@ -379,7 +526,48 @@
       Plotly.react('plotlyChart', traces, layout, { responsive: true, displayModeBar: false });
     }
 
+    function buildPatientPayload() {
+      const name = document.getElementById('patientName').value.trim() || 'Anonymous';
+      const mrn = document.getElementById('patientMrn').value.trim() || 'MRN-UNASSIGNED';
+      const age = parseInt(document.getElementById('patientAge').value) || 55;
+      const sex = document.getElementById('patientSex').value || 'M';
+      const bloodGroup = document.getElementById('bloodGroup').value || 'O+';
+      const allergies = document.getElementById('knownAllergies').value.trim();
+      const conditions = document.getElementById('existingConditions').value.trim();
+      const medications = document.getElementById('currentMedications').value.trim();
+      const cardiacHistory = document.getElementById('cardiacHistory').value.trim();
+
+      return {
+        signal: currentSignal,
+        fs: parseFloat(document.getElementById('fsInput').value) || 360.0,
+        lead: document.getElementById('leadSelect').value || 'II',
+        patient_name: name,
+        patient_mrn: mrn,
+        patient_id: mrn,
+        age: age,
+        sex: sex,
+        blood_group: bloodGroup,
+        existing_conditions: conditions || null,
+        current_medications: medications || null,
+        cardiac_history: cardiacHistory || null,
+        symptoms: cardiacHistory || null,
+        include_full_report: true
+      };
+    }
+
     async function runAnalysis() {
+      if (!currentSignal || currentSignal.length === 0) {
+        alert('Please select or upload an ECG waveform first.');
+        return;
+      }
+
+      const pName = document.getElementById('patientName').value.trim();
+      if (!pName) {
+        alert('Please enter Patient Full Name in Step 1.');
+        document.getElementById('patientName').focus();
+        return;
+      }
+
       const btn = document.getElementById('analyzeBtn');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Analyzing...</span>';
@@ -387,17 +575,15 @@
       const gateAlert = document.getElementById('qualityGateAlert');
       const resultsSection = document.getElementById('resultsSection');
       const reviewSection = document.getElementById('reviewSection');
+      const patientCard = document.getElementById('patientCard');
 
       gateAlert.classList.add('hidden');
       resultsSection.classList.add('hidden');
       reviewSection.classList.add('hidden');
+      patientCard.classList.add('hidden');
 
       try {
-        const payload = {
-          signal: currentSignal,
-          fs: parseFloat(document.getElementById('fsInput').value) || 360.0,
-          lead: document.getElementById('leadSelect').value || 'II'
-        };
+        const payload = buildPatientPayload();
 
         const res = await fetch(`${API_BASE}/api/analyze`, {
           method: 'POST',
@@ -408,11 +594,10 @@
         const data = await res.json();
 
         if (data.status === 'UNUSABLE_SIGNAL') {
-          // Safety gate rejected signal
-          gateAlert.className = 'block rounded-xl p-4 bg-rose-950/40 border border-rose-500/50 text-rose-200';
+          gateAlert.className = 'block rounded-xl p-4 bg-rose-950/40 border border-brand-red text-rose-200';
           gateAlert.innerHTML = `
             <div class="flex items-start space-x-3">
-              <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg mt-0.5"></i>
+              <i class="fa-solid fa-triangle-exclamation text-brand-red text-lg mt-0.5"></i>
               <div>
                 <h3 class="font-bold text-rose-300 uppercase tracking-wide text-xs">SIGNAL QUALITY GATE REJECTION (ISO 14971 SAFETY INTERLOCK)</h3>
                 <p class="text-xs mt-1">${data.message}</p>
@@ -430,6 +615,16 @@
 
         // Render Waveform with R-peaks
         renderWaveform(currentSignal, payload.fs, data.detected_r_peaks);
+
+        // Update Patient Identity Card
+        document.getElementById('cardPatientName').innerText = payload.patient_name;
+        document.getElementById('cardPatientMrn').innerText = `MRN: ${payload.patient_mrn}`;
+        document.getElementById('cardBloodGroup').innerText = payload.blood_group;
+        document.getElementById('cardDemographics').innerText = `Age: ${payload.age} Yrs | Sex: ${payload.sex === 'M' ? 'Male' : payload.sex === 'F' ? 'Female' : 'Other'}`;
+        document.getElementById('cardAllergies').innerText = document.getElementById('knownAllergies').value.trim() || 'None reported';
+        document.getElementById('cardConditions').innerText = payload.existing_conditions || 'None reported';
+        document.getElementById('cardMedications').innerText = payload.current_medications || 'None reported';
+        patientCard.classList.remove('hidden');
 
         // Populate metrics
         document.getElementById('metricHr').innerText = data.cardiac_parameters.heart_rate_bpm ?? '--';
@@ -455,53 +650,59 @@
             <i class="fa-solid fa-circle-check text-emerald-400"></i>
             <span>Signal Quality Gatekeeper: <strong>${data.signal_quality.category}</strong> (Score: ${data.signal_quality.score}/100, SNR: ${data.signal_quality.snr_db} dB)</span>
           </div>
-          <span class="text-[10px] font-mono text-emerald-400">Analysis ID: ${data.analysis_id.substring(0, 16)}...</span>
+          <span class="text-[10px] font-mono text-brand-teal">Analysis ID: ${data.analysis_id.substring(0, 16)}...</span>
         `;
         gateAlert.classList.remove('hidden');
-
-        // Dynamically inject criteria footers from backend metadata
-        if (data.criteria_metadata) {
-          const cm = data.criteria_metadata;
-          const aiInputs = cm.ecg_model_inputs || ["ECG waveform", "R-peaks", "RR intervals", "QRS features", "28 extracted features"];
-          const measInputs = cm.cardiac_measurements_criteria || ["Detected R-peaks", "Instantaneous R-R intervals", "QRS fiducials", "Bazett formula"];
-          
-          document.getElementById('resultsCriteriaFooter').innerHTML = `
-            <div class="flex flex-wrap items-center gap-1.5 leading-relaxed">
-              <span class="font-semibold text-gray-300">Model inputs (${cm.model_version || 'BeatArrhythmia-RF-v1'}):</span>
-              <span>${aiInputs.join(' <span class="text-gray-500">•</span> ')}</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 border-t border-clinical-border/30 pt-1 mt-0.5">
-              <span class="font-semibold text-gray-400">Measurement criteria:</span>
-              <span>${measInputs.join(' <span class="text-gray-600">•</span> ')}</span>
-            </div>
-          `;
-          
-          if (cm.waveform_processing) {
-            document.getElementById('waveformCriteriaFooter').innerHTML = `
-              <span class="font-semibold text-gray-300">Criteria used:</span>
-              <span>Raw ECG signal <span class="text-gray-500">•</span> Sampling rate (${payload.fs} Hz) <span class="text-gray-500">•</span> Lead ${payload.lead} <span class="text-gray-500">•</span> Signal duration</span>
-              <div class="w-full text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
-                <span class="font-semibold text-gray-400">Processing:</span>
-                <span>${cm.waveform_processing.join(' <span class="text-gray-600">•</span> ')}</span>
-              </div>
-            `;
-          }
-        }
 
         resultsSection.classList.remove('hidden');
         reviewSection.classList.remove('hidden');
 
       } catch (err) {
-        alert('Analysis failed: ' + err.message);
+        alert('Analysis execution failed: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Execute Clinical Analysis</span>';
+        btn.innerHTML = '<i class="fa-solid fa-play"></i><span>EXECUTE CLINICAL ANALYSIS</span>';
+      }
+    }
+
+    async function downloadDoctorPdf() {
+      const btn = document.getElementById('downloadPdfBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Generating PDF...</span>';
+
+      try {
+        const payload = buildPatientPayload();
+        const res = await fetch(`${API_BASE}/api/report/pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error('PDF server generation failed.');
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const pName = (payload.patient_name || 'Patient').replace(/\s+/g, '_');
+        a.download = `ECG_Clinical_Report_${pName}_${payload.patient_mrn}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Could not download PDF report: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i><span>DOWNLOAD DOCTOR REPORT (PDF)</span>';
       }
     }
 
     async function submitReview() {
       if (!currentAnalysisId) {
-        alert('Please execute an analysis first.');
+        alert('Please run an analysis first.');
         return;
       }
       const clinicianName = document.getElementById('clinicianName').value.trim() || 'Dr. Attending Physician';
@@ -540,7 +741,7 @@
       const modal = document.getElementById('historyModal');
       const listDiv = document.getElementById('historyList');
       modal.classList.remove('hidden');
-      listDiv.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner animate-spin text-xl mr-2"></i>Loading persistent archive…</div>';
+      listDiv.innerHTML = '<div class="text-center py-8 text-zinc-400"><i class="fa-solid fa-spinner animate-spin text-xl mr-2"></i>Loading persistent archive…</div>';
       
       try {
         const res = await fetch(`${API_BASE}/api/reports`);
@@ -548,7 +749,7 @@
         const reports = data.reports || [];
         
         if (reports.length === 0) {
-          listDiv.innerHTML = '<div class="text-center py-8 text-gray-400">No archived reports found. Run an analysis to persist reports.</div>';
+          listDiv.innerHTML = '<div class="text-center py-8 text-zinc-400">No archived reports found. Run an analysis to persist records.</div>';
           return;
         }
         
@@ -563,18 +764,18 @@
             <div class="bg-clinical-card border border-clinical-border rounded-lg p-3.5 flex items-center justify-between gap-4">
               <div class="space-y-1">
                 <div class="flex items-center space-x-2">
-                  <span class="font-mono text-xs font-bold text-sky-400">${r.report_number || r.report_id}</span>
+                  <span class="font-mono text-xs font-bold text-brand-teal">${r.report_number || r.report_id}</span>
                   ${badge}
-                  <span class="text-[10px] text-gray-400">${dateStr}</span>
+                  <span class="text-[10px] text-zinc-400">${dateStr}</span>
                 </div>
-                <div class="text-xs text-gray-200">
+                <div class="text-xs text-zinc-200">
                   <strong>${r.patient_name || 'Anonymous'}</strong> 
-                  <span class="text-gray-400 text-[11px]">(MRN: ${r.hospital_mrn || '—'})</span> · 
-                  <span class="text-gray-300">Finding: <strong>${r.primary_prediction || 'Normal'}</strong></span>
+                  <span class="text-zinc-400 text-[11px]">(MRN: ${r.hospital_mrn || '—'})</span> · 
+                  <span class="text-zinc-300">Finding: <strong>${r.primary_prediction || 'Normal'}</strong></span>
                 </div>
               </div>
               <div class="flex items-center space-x-2">
-                <a href="${API_BASE}/api/reports/${r.report_id}/pdf" target="_blank" class="px-2.5 py-1 rounded bg-clinical-panel hover:bg-clinical-border border border-clinical-border text-xs text-sky-400 flex items-center space-x-1 transition">
+                <a href="${API_BASE}/api/reports/${r.report_id}/pdf" target="_blank" class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-clinical-border text-xs text-brand-teal flex items-center space-x-1 transition">
                   <i class="fa-solid fa-file-pdf"></i>
                   <span>PDF</span>
                 </a>
@@ -591,27 +792,5 @@
       document.getElementById('historyModal').classList.add('hidden');
     }
   </script>
-
-  <!-- Report History Modal -->
-  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-clinical-panel border border-clinical-border rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
-      <div class="p-4 border-b border-clinical-border flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
-          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Permanent ECG Report Archive</h3>
-        </div>
-        <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-white transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-      <div id="historyList" class="p-4 overflow-y-auto space-y-3 flex-1">
-        <!-- Injected via openHistoryModal -->
-      </div>
-      <div class="p-3 border-t border-clinical-border bg-clinical-card/40 flex justify-between items-center text-xs text-gray-400">
-        <span>Reports loaded from Supabase / Local SQLite Dual Store</span>
-        <button onclick="closeHistoryModal()" class="px-3 py-1 bg-clinical-card hover:bg-clinical-border border border-clinical-border text-xs text-gray-200 rounded">Close</button>
-      </div>
-    </div>
-  </div>
 </body>
 </html>

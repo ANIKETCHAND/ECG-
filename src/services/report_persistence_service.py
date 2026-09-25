@@ -37,9 +37,18 @@ class ReportPersistenceService:
     """Enterprise report persistence orchestrator coordinating Supabase and local storage."""
 
     def __init__(self, local_reports_dir: Optional[Path] = None):
-        base_dir = Path(__file__).resolve().parent.parent.parent
-        self.local_reports_dir = local_reports_dir or (base_dir / "reports")
-        self.local_reports_dir.mkdir(parents=True, exist_ok=True)
+        if local_reports_dir:
+            self.local_reports_dir = local_reports_dir
+        elif os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            self.local_reports_dir = Path("/tmp") / "reports"
+        else:
+            base_dir = Path(__file__).resolve().parent.parent.parent
+            self.local_reports_dir = base_dir / "reports"
+        try:
+            self.local_reports_dir.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError):
+            self.local_reports_dir = Path("/tmp") / "reports"
+            self.local_reports_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_report_number(self, sequence_hint: Optional[int] = None) -> str:
         """Generate human-readable, hospital-standard report number: ECG-YYYY-XXXXXX."""
