@@ -1024,6 +1024,211 @@
     .btn-export-card strong { font-size: 0.84rem; display: block; color: var(--text-main); }
     .btn-export-card .sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
 
+    /* ── Clinical Result Report & Document Export Center ── */
+    .result-report-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .result-report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .result-report-title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .result-report-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: #fee2e2;
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .result-report-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .report-lead-chip {
+      background: #fee2e2;
+      color: #991b1b;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .report-status-chip {
+      background: #dcfce7;
+      color: #166534;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .report-id-chip {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+    .result-report-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 2px 0;
+    }
+    .result-report-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .btn-pdf-primary {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1px solid #b91c1c;
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(220, 38, 38, 0.25);
+      white-space: nowrap;
+    }
+    .btn-pdf-primary:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+    }
+    .result-report-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 1100px) {
+      .result-report-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .result-report-grid { grid-template-columns: 1fr; }
+    }
+    .report-card-item {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      transition: all 0.15s ease;
+    }
+    .report-card-item:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
+    .report-card-item.card-primary {
+      border-color: #fca5a5;
+      background: #fffafa;
+    }
+    .report-card-item.card-primary:hover {
+      border-color: #dc2626;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+    }
+    .report-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .report-card-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      flex-shrink: 0;
+      margin-bottom: 6px;
+    }
+    .icon-red { background: #fee2e2; color: #dc2626; }
+    .icon-amber { background: #fef3c7; color: #d97706; }
+    .icon-blue { background: #dbeafe; color: #2563eb; }
+    .icon-slate { background: #f1f5f9; color: #475569; }
+    .report-card-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .report-card-badge.red { color: #dc2626; }
+    .report-card-badge.amber { color: #d97706; }
+    .report-card-badge.blue { color: #2563eb; }
+    .report-card-badge.slate { color: #64748b; }
+    .report-card-name {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .report-card-desc {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .report-card-btn {
+      width: 100%;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #ffffff;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+    .report-card-btn.btn-red {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #b91c1c;
+    }
+    .report-card-btn.btn-red:hover { background: #b91c1c; }
+    .report-card-btn.btn-amber:hover { background: #fef3c7; border-color: #d97706; }
+    .report-card-btn.btn-blue:hover { background: #dbeafe; border-color: #2563eb; }
+    .report-card-btn.btn-slate:hover { background: #f1f5f9; border-color: #94a3b8; }
+
     /* Clean Patient Bottom Strip */
     .patient-context-strip {
       background: var(--bg-surface);
@@ -1378,9 +1583,12 @@
       </select>
     </div>
 
-    <!-- Run Analysis Button -->
+    <!-- Run Analysis & Direct Report Actions -->
     <button class="btn btn-primary" id="btnRunAnalysis" style="width:100%; margin-top:8px; padding:9px 12px; font-family:var(--font-mono); font-size:0.88rem;" onclick="triggerAnalysis()">
       <i class="fa-solid fa-play"></i> RUN ANALYSIS
+    </button>
+    <button type="button" class="btn btn-outline" id="btnSidebarPdf" style="width:100%; margin-top:6px; padding:8px 12px; font-size:0.82rem; display:flex; align-items:center; justify-content:center; gap:6px; font-weight:600;" onclick="exportDoctorPdf()" title="Download Official Doctor Clinical Report (PDF)">
+      <i class="fa-solid fa-file-pdf" style="color:var(--accent-red);"></i> Download Result PDF
     </button>
   </aside>
 
@@ -1432,6 +1640,9 @@
         </div>
 
         <div class="hero-right">
+          <button type="button" class="btn-hero-pill" onclick="exportDoctorPdf()" title="Download Full Clinical PDF Report" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b; font-weight:700;">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF Report
+          </button>
           <button type="button" class="btn-hero-pill" onclick="openFilePicker('.csv,.txt,.npy,.json,.pdf,.png,.jpg')">
             <i class="fa-solid fa-cloud-arrow-up text-green"></i> Upload File
           </button>
@@ -1518,6 +1729,9 @@
               <button id="btnSpeedToggle" type="button" class="bench-control-pill" onclick="toggleSweepSpeed()" title="Playback Speed">
                 <span id="speedLabel">1x</span>
               </button>
+              <button id="btnToolbarPdf" type="button" class="bench-control-pill" onclick="exportDoctorPdf()" title="Download Official Doctor Clinical Report (PDF)" style="color:#b91c1c; font-weight:700;">
+                <i class="fa-solid fa-file-pdf"></i> <span>PDF</span>
+              </button>
             </div>
           </div>
 
@@ -1588,7 +1802,105 @@
         </div>
       </div>
 
-      <!-- 6. Progressive Disclosure Clinical Tabs -->
+      <!-- 6. CLINICAL RESULT REPORT & EXPORT CENTER -->
+      <div class="result-report-section" id="sectionResultReport">
+        <div class="result-report-header">
+          <div class="result-report-title-row">
+            <div class="result-report-icon-box">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div>
+              <div class="result-report-badge-row">
+                <span class="report-lead-chip">OFFICIAL CLINICAL REPORT</span>
+                <span class="report-status-chip" id="reportPersistedStatus"><i class="fa-solid fa-shield-halved"></i> PERSISTED &amp; AUDITED</span>
+                <span class="report-id-chip">REPORT ID: <strong id="topReportId">ECG-2026-15CA39</strong></span>
+              </div>
+              <h3 class="result-report-title">Diagnostic Analysis Report &amp; Clinical Document Center</h3>
+              <p class="result-report-subtitle">
+                Download publication-grade ECG reports with rhythm classification, deterministic interval measurements, R-peak annotations, and clinical decision support.
+              </p>
+            </div>
+          </div>
+          <div class="result-report-quick-action">
+            <button type="button" class="btn-pdf-primary" onclick="exportDoctorPdf()" id="btnDownloadMainPdf" title="Download Official Physician PDF Report">
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span>Download Doctor Report (PDF)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="result-report-grid">
+          <!-- Card 1: Physician Clinical PDF -->
+          <div class="report-card-item card-primary" onclick="exportDoctorPdf()">
+            <div class="report-card-top">
+              <div class="report-card-icon-wrap icon-red">
+                <i class="fa-solid fa-file-pdf"></i>
+              </div>
+              <div>
+                <div class="report-card-badge red">CLINICAL DOSSIER</div>
+                <div class="report-card-name">Physician Diagnostic PDF</div>
+              </div>
+            </div>
+            <div class="report-card-desc">Complete diagnostic report with embedded continuous ECG strip, PR/QRS/QT intervals, AI confidence vectors, and guideline considerations.</div>
+            <button type="button" class="report-card-btn btn-red">
+              <i class="fa-solid fa-download"></i> Download Doctor PDF
+            </button>
+          </div>
+
+          <!-- Card 2: Patient Health Summary PDF -->
+          <div class="report-card-item" onclick="exportPatientPdf()">
+            <div class="report-card-top">
+              <div class="report-card-icon-wrap icon-amber">
+                <i class="fa-solid fa-user-doctor"></i>
+              </div>
+              <div>
+                <div class="report-card-badge amber">PATIENT SUMMARY</div>
+                <div class="report-card-name">Patient Health Report (PDF)</div>
+              </div>
+            </div>
+            <div class="report-card-desc">Clear, plain-language patient summary explaining heart rhythm results, resting pulse category, and clinician directives.</div>
+            <button type="button" class="report-card-btn btn-amber">
+              <i class="fa-solid fa-download"></i> Download Patient PDF
+            </button>
+          </div>
+
+          <!-- Card 3: Machine Data JSON -->
+          <div class="report-card-item" onclick="exportJson()">
+            <div class="report-card-top">
+              <div class="report-card-icon-wrap icon-blue">
+                <i class="fa-solid fa-code"></i>
+              </div>
+              <div>
+                <div class="report-card-badge blue">INTEROPERABLE DATA</div>
+                <div class="report-card-name">Telemetry Dataset (JSON)</div>
+              </div>
+            </div>
+            <div class="report-card-desc">Standardized JSON snapshot containing raw signal properties, detected R-peak timestamps, noise metrics, and metadata.</div>
+            <button type="button" class="report-card-btn btn-blue">
+              <i class="fa-solid fa-download"></i> Export JSON Data
+            </button>
+          </div>
+
+          <!-- Card 4: Plaintext Summary TXT -->
+          <div class="report-card-item" onclick="exportTxt()">
+            <div class="report-card-top">
+              <div class="report-card-icon-wrap icon-slate">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+              <div>
+                <div class="report-card-badge slate">CLINICAL TRANSCRIPT</div>
+                <div class="report-card-name">Summary Transcript (TXT)</div>
+              </div>
+            </div>
+            <div class="report-card-desc">Clean ASCII clinical summary for direct pasting into hospital electronic health record (EHR/EMR) charting systems.</div>
+            <button type="button" class="report-card-btn btn-slate">
+              <i class="fa-solid fa-download"></i> Export Plain TXT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Progressive Disclosure Clinical Tabs -->
       <div class="clinical-tabs-container">
         <div class="clinical-tabs-nav">
           <button type="button" class="tab-btn active" id="tabBtnMorpho" onclick="switchClinicalTab('morpho')">
@@ -1765,7 +2077,7 @@
         </div>
         <div class="pat-right">
           <span class="dual-storage-tag">
-            <i class="fa-solid fa-circle-check text-green"></i> Dual Storage Verified · <span id="topReportId">ECG-2026-15CA39</span>
+            <i class="fa-solid fa-circle-check text-green"></i> Dual Storage Verified · <span id="topReportIdBottom">ECG-2026-15CA39</span>
           </span>
         </div>
       </div>
@@ -2622,8 +2934,12 @@
           }
 
           if (data.report_id) {
-            document.getElementById('topReportId').innerText = data.report_id;
+            const el1 = document.getElementById('topReportId');
+            if (el1) el1.innerText = data.report_id;
+            const el2 = document.getElementById('topReportIdBottom');
+            if (el2) el2.innerText = data.report_id;
           }
+          showToast('Analysis Complete — Clinical PDF Ready', 'fa-file-pdf');
         }
       } catch (err) {
         console.error('Analysis failed:', err);
@@ -2753,7 +3069,45 @@
     }
 
     async function exportPatientPdf() {
-      exportDoctorPdf();
+      if (!currentSignal || currentSignal.length === 0) return alert('No active ECG recording.');
+      const payload = {
+        signal: currentSignal.slice(0, 3600),
+        fs: currentFs,
+        lead: 'II',
+        patient_name: currentPatient.name,
+        patient_mrn: currentPatient.mrn,
+        age: currentPatient.age,
+        sex: currentPatient.sex,
+        blood_group: currentPatient.blood,
+        existing_conditions: currentPatient.conditions,
+        current_medications: currentPatient.meds
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/report/pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Patient_Summary_${currentPatient.mrn}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          showToast('Patient Summary PDF Downloaded', 'fa-file-pdf');
+        } else {
+          const err = await res.json();
+          alert(err.detail || 'Could not generate PDF.');
+        }
+      } catch (e) {
+        alert('Network error while requesting PDF.');
+      }
     }
 
     function exportJson() {
