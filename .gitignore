@@ -50,3 +50,4 @@ data/datasets/**/metadata/*.json
 .vercel
 reports/MRN-*/
 reports/PAT-*/
+.env*
