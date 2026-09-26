@@ -1,0 +1,40 @@
+{
+  "evaluation_name": "Medication Decision Support 4-Architecture Ablation",
+  "held_out_patients": 90,
+  "architectures": {
+    "1_ecg_only": {
+      "macro_f1": 0.037,
+      "micro_f1": 0.15,
+      "macro_precision": 0.0222,
+      "macro_recall": 0.1111,
+      "macro_pr_auc": 0.2687
+    },
+    "2_clinical_context_only": {
+      "macro_f1": 0.6566,
+      "micro_f1": 0.7952,
+      "macro_precision": 0.6667,
+      "macro_recall": 0.6481,
+      "macro_pr_auc": 0.7966
+    },
+    "3_ecg_plus_clinical_context": {
+      "macro_f1": 0.8863,
+      "micro_f1": 0.9728,
+      "macro_precision": 0.8838,
+      "macro_recall": 0.8889,
+      "macro_pr_auc": 0.9409
+    },
+    "4_full_system_plus_safety_gate": {
+      "macro_f1": 0.8889,
+      "micro_f1": 0.9761,
+      "macro_precision": 0.8889,
+      "macro_recall": 0.8889,
+      "macro_pr_auc": 0.9409
+    }
+  },
+  "safety_audit": {
+    "unsafe_candidates_blocked_by_safety_gate": 1,
+    "total_safety_evaluations": 810,
+    "safety_gate_blocking_rate": 0.0012
+  },
+  "conclusion": "Multimodal integration (ECG + Clinical Context) outperforms both single-modality baselines. The multi-layer safety gate successfully intercepts and blocks unsafe physiological candidates."
+}

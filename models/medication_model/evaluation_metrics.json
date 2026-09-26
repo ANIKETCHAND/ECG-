@@ -1,0 +1,39 @@
+{
+  "model_architecture": "Calibrated-gradient_boosting",
+  "calibration_method": "sigmoid",
+  "validation_comparison": {
+    "logistic_regression": {
+      "macro_f1": 0.8903850496838301,
+      "micro_f1": 0.9174917491749175
+    },
+    "random_forest": {
+      "macro_f1": 0.8812978081250196,
+      "micro_f1": 0.92
+    },
+    "gradient_boosting": {
+      "macro_f1": 0.9188712522045854,
+      "micro_f1": 0.9790209790209791
+    }
+  },
+  "test_metrics": {
+    "macro_f1": 0.8863,
+    "micro_f1": 0.9728,
+    "macro_precision": 0.8838,
+    "macro_recall": 0.8889,
+    "pr_auc": 0.9409,
+    "precision_at_1": 0.7667,
+    "precision_at_3": 0.5296,
+    "recall_at_3": 0.9844
+  },
+  "per_class_f1": {
+    "beta_blocker": 0.9767,
+    "calcium_channel_blocker": 1.0,
+    "antiarrhythmic_class_3": 0.0,
+    "anticoagulant_doac": 1.0,
+    "antiplatelet": 1.0,
+    "ace_inhibitor_arb": 1.0,
+    "diuretic_loop": 1.0,
+    "statin": 1.0,
+    "electrolyte_replacement": 1.0
+  }
+}

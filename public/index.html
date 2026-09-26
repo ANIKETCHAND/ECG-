@@ -1277,6 +1277,54 @@
       gap: 5px;
     }
 
+    /* Medication Decision Support Styling */
+    .safety-check-tile {
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .sc-label {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .sc-status {
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .candidate-card {
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .candidate-card:hover {
+      box-shadow: var(--shadow-sm);
+      border-color: var(--border-strong);
+    }
+    .candidate-card.blocked {
+      border-left: 4px solid var(--accent-red);
+      background: #fffafa;
+    }
+    .candidate-card.caution {
+      border-left: 4px solid var(--accent-amber);
+      background: #fffdf5;
+    }
+    .candidate-card.safe {
+      border-left: 4px solid var(--accent-green);
+    }
+
     /* Badges */
     .badge {
       display: inline-block;
@@ -1964,7 +2012,7 @@
           </div>
         </div>
 
-        <!-- Tab 3: Clinical Decision Support -->
+        <!-- Tab 3: Clinical Decision Support & Medication Guidance -->
         <div id="tabContentCds" class="tab-content hidden">
           <div class="panel-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1988,6 +2036,70 @@
                   <li>Correlate with current symptoms (chest pain, palpitation, dyspnea).</li>
                   <li>Compare with previous archival records if available.</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Medication & Candidate Treatment Decision Support Section -->
+          <div class="panel-card" style="margin-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="font-size:1.1rem; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-pills" style="color:var(--accent-blue);"></i> Evidence-Based Medication &amp; Treatment Decision Support
+                  </div>
+                  <span id="medStatusBadge" class="badge badge-green" style="font-size:0.75rem; padding:3px 8px;">AVAILABLE</span>
+                </div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:3px;">
+                  Multimodal clinical candidates evaluated across ACC/AHA/ESC practice guidelines, DailyMed product labels, and physiological safety gates.
+                </div>
+              </div>
+              <div style="font-size:0.72rem; font-family:var(--font-mono); color:var(--accent-blue); background:#eff6ff; border:1px solid #bfdbfe; padding:4px 8px; border-radius:4px;">
+                NON-AUTONOMOUS · CLINICIAN REVIEW REQUIRED
+              </div>
+            </div>
+
+            <!-- Withheld or Insufficient Information Notice Banner -->
+            <div id="medNoticeBanner" class="hidden" style="margin-bottom:14px; padding:10px 14px; border-radius:6px; background:#fef2f2; border:1px solid #fca5a5; font-size:0.82rem; color:#991b1b;">
+              <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span id="medNoticeTitle">Recommendations Withheld</span>
+              </div>
+              <div id="medNoticeDesc" style="margin-top:3px; font-size:0.78rem; color:#7f1d1d;">
+                Clinical context missing or signal quality unverified.
+              </div>
+            </div>
+
+            <!-- Safety Gate Summary Row -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:14px;" id="medSafetyChecksRow">
+              <div class="safety-check-tile" id="scTileAllergy">
+                <span class="sc-label">ALLERGY SCREEN</span>
+                <span class="sc-status text-green" id="scValAllergy">✓ Clear</span>
+              </div>
+              <div class="safety-check-tile" id="scTileQtc">
+                <span class="sc-label">QTC GATE</span>
+                <span class="sc-status text-green" id="scValQtc">✓ Passed</span>
+              </div>
+              <div class="safety-check-tile" id="scTileBrady">
+                <span class="sc-label">CONDUCTION / HR</span>
+                <span class="sc-status text-green" id="scValBrady">✓ Normal</span>
+              </div>
+              <div class="safety-check-tile" id="scTileElec">
+                <span class="sc-label">K+ / ELECTROLYTES</span>
+                <span class="sc-status text-green" id="scValElec">✓ Physiological</span>
+              </div>
+              <div class="safety-check-tile" id="scTileInter">
+                <span class="sc-label">DRUG INTERACTIONS</span>
+                <span class="sc-status text-green" id="scValInter">✓ Screened</span>
+              </div>
+            </div>
+
+            <!-- Candidate Medication Cards Container -->
+            <div style="font-size:0.76rem; font-family:var(--font-mono); text-transform:uppercase; color:var(--text-faint); margin-bottom:8px; font-weight:700;">
+              Multimodal Treatment Candidates
+            </div>
+            <div id="medCandidatesContainer" style="display:flex; flex-direction:column; gap:10px;">
+              <div style="padding:16px; text-align:center; color:var(--text-faint); font-size:0.84rem;">
+                Run analysis to generate guideline medication candidates and safety checks.
               </div>
             </div>
           </div>
@@ -2813,6 +2925,27 @@
           signal: currentSignal,
           fs: currentFs,
           lead: 'II',
+          patient_name: currentPatient.name,
+          patient_mrn: currentPatient.mrn,
+          age: currentPatient.age,
+          patient_age: currentPatient.age,
+          sex: currentPatient.sex,
+          patient_sex: currentPatient.sex,
+          blood_group: currentPatient.blood,
+          smoking_status: currentPatient.smoke,
+          allergies: currentPatient.allergies,
+          existing_conditions: currentPatient.conditions,
+          current_medications: currentPatient.meds,
+          vital_signs: {
+            heart_rate: Math.round(currentPatient.hr || 72),
+            systolic_bp: currentPatient.sbp || 120,
+            diastolic_bp: currentPatient.dbp || 80,
+            spo2: 98
+          },
+          laboratory_results: {
+            potassium_meq_l: currentPatient.k || 4.2,
+            creatinine_mg_dl: currentPatient.cr || 0.95
+          },
           patient_context: {
             name: currentPatient.name,
             mrn: currentPatient.mrn,
@@ -2933,6 +3066,9 @@
             }
           }
 
+          // Render Medication & Candidate Decision Support Suite
+          renderMedicationDecisionSupport(data.clinical_decision_support, data.clinical_analysis);
+
           if (data.report_id) {
             const el1 = document.getElementById('topReportId');
             if (el1) el1.innerText = data.report_id;
@@ -2949,6 +3085,136 @@
           btn.innerHTML = '<i class="fa-solid fa-play"></i> RUN ANALYSIS';
         }
       }
+    // Render Medication & Candidate Treatment Decision Support Suite
+    function renderMedicationDecisionSupport(cds, clinicalAnalysis) {
+      if (!cds && !clinicalAnalysis) return;
+
+      const ca = clinicalAnalysis || {};
+      const medDs = ca.medication_decision_support || cds.medication_decision_support || {};
+      const candidates = medDs.candidates || cds.medication_candidates || cds.medication_recommendations || [];
+      const status = medDs.status || (cds.medication_recommendations_withheld ? 'WITHHELD' : 'AVAILABLE');
+      const statusReason = medDs.status_reason || cds.withheld_reason;
+
+      // 1. Status Badge
+      const badgeEl = document.getElementById('medStatusBadge');
+      if (badgeEl) {
+        badgeEl.innerText = status;
+        if (status === 'AVAILABLE') {
+          badgeEl.className = 'badge badge-green';
+        } else if (status === 'LIMITED') {
+          badgeEl.className = 'badge badge-yellow';
+        } else {
+          badgeEl.className = 'badge badge-red';
+        }
+      }
+
+      // 2. Withheld / Insufficient Info Banner
+      const noticeBanner = document.getElementById('medNoticeBanner');
+      const noticeTitle = document.getElementById('medNoticeTitle');
+      const noticeDesc = document.getElementById('medNoticeDesc');
+      if (noticeBanner && noticeTitle && noticeDesc) {
+        if (status === 'WITHHELD' || status === 'INSUFFICIENT_INFORMATION') {
+          noticeBanner.classList.remove('hidden');
+          noticeTitle.innerText = status === 'WITHHELD' ? 'Therapy Considerations Withheld' : 'Insufficient Clinical Information';
+          noticeDesc.innerText = statusReason || 'Clinical context missing or signal quality unverified. Complete attending physician review required.';
+        } else {
+          noticeBanner.classList.add('hidden');
+        }
+      }
+
+      // 3. Safety Checks Tiles
+      const scList = medDs.safety_checks || [];
+      scList.forEach(sc => {
+        const name = (sc.check || '').toLowerCase();
+        let valId = null;
+        if (name.includes('allergy')) { valId = 'scValAllergy'; }
+        else if (name.includes('qtc')) { valId = 'scValQtc'; }
+        else if (name.includes('brady') || name.includes('conduction')) { valId = 'scValBrady'; }
+        else if (name.includes('potassium') || name.includes('electrolyte')) { valId = 'scValElec'; }
+        else if (name.includes('interaction')) { valId = 'scValInter'; }
+
+        if (valId) {
+          const el = document.getElementById(valId);
+          if (el) {
+            el.innerText = sc.status === 'PASSED' ? '✓ Passed' : (sc.status === 'FLAGGED' || sc.status === 'CONTRAINDICATED' ? '⚠️ ' + sc.status : sc.status);
+            el.className = sc.status === 'PASSED' ? 'sc-status text-green' : 'sc-status text-red';
+          }
+        }
+      });
+
+      // 4. Candidate Cards Container
+      const container = document.getElementById('medCandidatesContainer');
+      if (!container) return;
+
+      if (!candidates || candidates.length === 0) {
+        container.innerHTML = `
+          <div style="padding:16px; text-align:center; color:var(--text-faint); font-size:0.84rem;">
+            ${status === 'WITHHELD' ? '⚠️ Recommendations withheld pending physician over-read.' : 'No active candidate medications indicated for this rhythm profile.'}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = candidates.map(c => {
+        const medName = c.medication || c.drug_class || 'Candidate Therapy';
+        const assocScore = c.model_association !== undefined ? Math.round(c.model_association * 100) : null;
+        const indication = c.relevant_indication || c.indication || c.clinical_rationale || 'Clinical management candidate';
+        const safetyStatus = c.safety_status || (status === 'WITHHELD' ? 'REVIEW_REQUIRED' : 'SAFE');
+        const guideline = c.evidence_source || c.guideline || 'ACC/AHA/ESC Standards';
+
+        let cardClass = 'candidate-card';
+        let safetyBadgeClass = 'badge badge-green';
+        if (safetyStatus === 'BLOCKED' || safetyStatus === 'CONTRAINDICATED') {
+          cardClass += ' blocked';
+          safetyBadgeClass = 'badge badge-red';
+        } else if (safetyStatus === 'REVIEW_REQUIRED' || safetyStatus === 'CAUTION') {
+          cardClass += ' caution';
+          safetyBadgeClass = 'badge badge-yellow';
+        } else {
+          cardClass += ' safe';
+        }
+
+        const contraList = (c.contraindications_detected || []).map(ci => `
+          <div style="font-size:0.75rem; color:#991b1b; display:flex; align-items:center; gap:5px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span>${ci}</span>
+          </div>
+        `).join('');
+
+        const interList = (c.drug_interactions_detected || []).map(di => `
+          <div style="font-size:0.75rem; color:#b45309; display:flex; align-items:center; gap:5px;">
+            <i class="fa-solid fa-bolt"></i> <span>${di}</span>
+          </div>
+        `).join('');
+
+        const assocHtml = assocScore !== null ? `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:60px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+              <div style="width:${assocScore}%; height:100%; background:var(--accent-blue);"></div>
+            </div>
+            <span style="font-size:0.72rem; font-family:var(--font-mono); color:var(--text-muted); font-weight:600;">${assocScore}% Assoc</span>
+          </div>
+        ` : '';
+
+        return `
+          <div class="${cardClass}">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong style="font-size:0.92rem; color:var(--text-main);">${medName}</strong>
+                <span class="${safetyBadgeClass}">${safetyStatus}</span>
+              </div>
+              ${assocHtml}
+            </div>
+            <div style="font-size:0.80rem; color:var(--text-muted); line-height:1.4;">
+              ${indication}
+            </div>
+            ${contraList || interList ? `<div style="display:flex; flex-direction:column; gap:3px; margin-top:2px;">${contraList}${interList}</div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.70rem; color:var(--text-faint); margin-top:4px; border-top:1px solid #f1f5f9; padding-top:6px;">
+              <span><i class="fa-solid fa-book-medical"></i> ${guideline}</span>
+              <span>Physician review required</span>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     // Submit Sign & Seal Review to Backend

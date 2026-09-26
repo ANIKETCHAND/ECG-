@@ -40,6 +40,7 @@ from inference.inference_engine import ACTIVE_MODEL_ID, run_ecg_inference
 from measurements.measurement_engine import compute_ecg_measurements
 from safety.signal_quality_gate import QualityCategory, evaluate_signal_quality_gate
 from clinical.recommendation_engine import GLOBAL_CDS_ENGINE
+from clinical.medication_candidate_engine import build_authoritative_clinical_analysis
 from medications.interaction_checker import check_medication_safety
 from report.report_generator import generate_structured_report
 from report.pdf_generator import generate_doctor_report
@@ -98,6 +99,8 @@ class AnalyzeRequest(BaseModel):
     existing_conditions: Optional[Union[str, List[str]]] = None
     cardiac_history: Optional[Union[str, List[str]]] = None
     current_medications: Optional[Union[str, List[str]]] = None
+    allergies: Optional[Union[str, List[str]]] = None
+    known_allergies: Optional[Union[str, List[str]]] = None
     vital_signs: Optional[Dict[str, Any]] = None
     laboratory_results: Optional[Dict[str, Any]] = None
     include_full_report: bool = False
@@ -330,6 +333,12 @@ def analyze_ecg(req: AnalyzeRequest):
     else:
         cardiac_hist_str = req.cardiac_history
 
+    raw_allergies = req.allergies if req.allergies is not None else req.known_allergies
+    if isinstance(raw_allergies, list):
+        allergies_str = ", ".join(str(a).strip() for a in raw_allergies if str(a).strip())
+    else:
+        allergies_str = raw_allergies
+
     # 4. Multimodal Medication Safety Check
     med_safety = check_medication_safety(
         medication_names=med_list,
@@ -346,6 +355,45 @@ def analyze_ecg(req: AnalyzeRequest):
         # Pass the analysis itself so therapy considerations are gated on the
         # measured reliability of the finding, not on its text.
         reliability=analysis_res,
+    )
+
+    # 5b. Authoritative Multimodal Clinical Analysis & Candidate Generation
+    auth_ca = build_authoritative_clinical_analysis(
+        ecg_finding=analysis_res.prediction,
+        ecg_measurements={
+            "heart_rate_bpm": analysis_res.heart_rate_bpm,
+            "mean_rr_ms": analysis_res.mean_rr_ms,
+            "pr_interval_ms": measurements.pr_interval_ms,
+            "qrs_duration_ms": measurements.qrs_duration_ms,
+            "qt_interval_ms": measurements.qt_interval_ms,
+            "qtc_bazett_ms": measurements.qtc_bazett_ms,
+            "qtc_fridericia_ms": measurements.qtc_fridericia_ms,
+            "p_axis_deg": measurements.p_axis_deg,
+            "qrs_axis_deg": measurements.qrs_axis_deg,
+            "t_axis_deg": measurements.t_axis_deg,
+        },
+        ecg_probabilities=analysis_res.model_probabilities,
+        signal_quality_info={
+            "category": quality_res.category.value,
+            "score": quality_res.quality_score,
+            "snr_db": quality_res.snr_db,
+        },
+        patient_profile={
+            "patient_id": req.patient_id,
+            "mrn": req.patient_mrn,
+            "name": req.patient_name,
+            "age": eff_age,
+            "sex": eff_sex,
+            "blood_group": req.blood_group,
+            "conditions": existing_cond_str,
+            "symptoms": symptoms_str,
+            "cardiac_history": cardiac_hist_str,
+            "current_medications": curr_meds_str,
+            "allergies": allergies_str,
+        },
+        vital_signs=req.vital_signs,
+        laboratory_results=req.laboratory_results,
+        finding_reliability=analysis_res,
     )
 
     # 6. Cardiac Beat Segmentation & Morphological Feature Computation
@@ -435,11 +483,14 @@ def analyze_ecg(req: AnalyzeRequest):
             "summary": cds_rec.clinician_action_required,
             "guidelines": cds_rec.relevant_guidelines,
             "considerations": cds_rec.clinical_considerations,
-            "medication_recommendations": cds_rec.medication_recommendations,
-            "medication_recommendations_withheld": cds_rec.medication_recommendations_withheld,
-            "withheld_reason": cds_rec.withheld_reason,
+            "medication_recommendations": cds_rec.medication_recommendations if not cds_rec.medication_recommendations_withheld else [],
+            "medication_candidates": [c.to_dict() for c in auth_ca.medication_decision_support.candidates],
+            "medication_decision_support": auth_ca.medication_decision_support.to_dict(),
+            "medication_recommendations_withheld": cds_rec.medication_recommendations_withheld or auth_ca.medication_decision_support.status in ["WITHHELD", "INSUFFICIENT_INFORMATION"],
+            "withheld_reason": cds_rec.withheld_reason or auth_ca.medication_decision_support.status_reason,
             "reliability": cds_rec.reliability,
         },
+        "clinical_analysis": auth_ca.to_dict(),
         "disclaimer": (
             "AI-Assisted Clinical Decision Support. Subject to mandatory qualified physician review. "
             "Not an autonomous medical diagnostic device (CDSCO MDR 2017 & IEC 62304)."
@@ -516,9 +567,11 @@ def analyze_ecg(req: AnalyzeRequest):
             "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
             "symptoms": symptoms_str, "conditions": existing_cond_str,
             "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+            "allergies": allergies_str,
         },
         vital_signs=req.vital_signs,
         laboratory_results=req.laboratory_results,
+        clinical_analysis=auth_ca.to_dict(),
     )
 
     # Persist immutable report snapshot to Supabase / Local storage
@@ -555,6 +608,8 @@ def generate_pdf_endpoint(req: AnalyzeRequest):
     existing_cond_str = ", ".join(str(c).strip() for c in req.existing_conditions if str(c).strip()) if isinstance(req.existing_conditions, list) else req.existing_conditions
     symptoms_str = ", ".join(str(s).strip() for s in req.symptoms if str(s).strip()) if isinstance(req.symptoms, list) else req.symptoms
     cardiac_hist_str = ", ".join(str(h).strip() for h in req.cardiac_history if str(h).strip()) if isinstance(req.cardiac_history, list) else req.cardiac_history
+    raw_allergies = req.allergies if req.allergies is not None else req.known_allergies
+    allergies_str = ", ".join(str(a).strip() for a in raw_allergies if str(a).strip()) if isinstance(raw_allergies, list) else raw_allergies
 
     report_dict = generate_structured_report(
         input_info={"file_name": "ecg_recording", "sampling_rate": req.fs, "duration_sec": len(sig_arr)/req.fs, "lead": req.lead},
@@ -567,9 +622,11 @@ def generate_pdf_endpoint(req: AnalyzeRequest):
             "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
             "symptoms": symptoms_str, "conditions": existing_cond_str,
             "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+            "allergies": allergies_str,
         },
         vital_signs=req.vital_signs,
         laboratory_results=req.laboratory_results,
+        clinical_analysis=analysis.get("clinical_analysis"),
     )
     pdf_bytes = generate_doctor_report(report_dict, waveform=sig_arr, fs=req.fs, r_peaks=r_peaks)
 

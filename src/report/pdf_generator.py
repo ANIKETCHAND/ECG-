@@ -570,55 +570,110 @@ def generate_doctor_report(
         story.append(KeepTogether([t_cds, t_crit_cds]))
         story.append(Spacer(1, 4))
 
-        # Guideline-Based Medication Recommendations
+        # 7. Guideline-Based Medication & Candidate Decision Support
+        ca = report_data.get('clinical_analysis') or {}
+        med_ds = ca.get('medication_decision_support') or {}
+        med_candidates = med_ds.get('candidates', [])
         med_suggestions = cds.get('medication_recommendations', [])
-        if med_suggestions:
-            story.append(Paragraph('7. GUIDELINE-BASED MEDICATION CONSIDERATIONS (PHYSICIAN REFERENCE)', sec_heading_style))
+        is_withheld = cds.get('medication_recommendations_withheld') or med_ds.get('status') in ['WITHHELD', 'INSUFFICIENT_INFORMATION']
+        withheld_reason = cds.get('withheld_reason') or med_ds.get('status_reason') or med_ds.get('withheld_reason')
+
+        if med_candidates or med_suggestions or is_withheld:
+            story.append(Paragraph('7. GUIDELINE-BASED MEDICATION DECISION SUPPORT (PHYSICIAN REFERENCE)', sec_heading_style))
             story.append(Paragraph(
-                '<b>For Physician Reference Only:</b> Evidence-based drug class considerations from AHA/ACC/ESC guidelines. '
-                'This system does <b>NOT</b> prescribe medication. All prescribing decisions rest with the attending physician.',
+                '<b>For Qualified Clinician Reference Only:</b> Evidence-based therapy candidates synthesized from multimodal clinical features '
+                'and ACC/AHA/ESC clinical guidelines. This system does <b>NOT</b> autonomously prescribe. '
+                'All prescribing and dosing determinations remain the exclusive responsibility of the attending physician.',
                 ParagraphStyle('MedNote', parent=cell_normal, textColor=colors.HexColor('#0369a1'), fontSize=8)
             ))
             story.append(Spacer(1, 3))
-            med_header = [
-                Paragraph('<b>Drug Class</b>', cell_bold),
-                Paragraph('<b>Example Agents</b>', cell_bold),
-                Paragraph('<b>Indication</b>', cell_bold),
-                Paragraph('<b>Guideline</b>', cell_bold),
-            ]
-            med_rows = [med_header]
-            for m in med_suggestions:
-                med_rows.append([
-                    Paragraph(str(m.get('drug_class', '-')), ParagraphStyle('MedDC', parent=cell_normal, fontName='Helvetica-Bold', fontSize=7.5)),
-                    Paragraph(str(m.get('example_agents', '-')), ParagraphStyle('MedAg', parent=cell_normal, fontSize=7.5)),
-                    Paragraph(str(m.get('indication', '-')), ParagraphStyle('MedInd', parent=cell_normal, fontSize=7.5)),
-                    Paragraph(str(m.get('guideline', '-')), ParagraphStyle('MedGL', parent=cell_normal, fontSize=7, textColor=colors.HexColor('#0369a1'))),
-                ])
-                if m.get('note'):
+
+            if is_withheld:
+                withheld_text = (
+                    f"<b>⚠️ CLINICAL NOTICE — THERAPY RECOMMENDATIONS WITHHELD / REVIEW REQUIRED:</b><br/>"
+                    f"{withheld_reason or 'Signal reliability was not verified or critical multimodal clinical context is missing. Automated recommendations are suppressed for patient safety.'}<br/>"
+                    f"<i>Mandatory Action: Repeat acquisition or manual attending physician evaluation required.</i>"
+                )
+                t_withheld = Table([[Paragraph(withheld_text, ParagraphStyle('WithheldP', parent=cell_normal, fontSize=8, textColor=colors.HexColor('#991b1b')))]], colWidths=[540])
+                t_withheld.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fef2f2')),
+                    ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#ef4444')),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                story.append(t_withheld)
+                story.append(Spacer(1, 4))
+
+            # Table of candidates or guideline suggestions
+            med_rows = [[
+                Paragraph('<b>Drug Class / Agent</b>', cell_bold),
+                Paragraph('<b>Clinical Indication & Rationale</b>', cell_bold),
+                Paragraph('<b>Safety Status & Checks</b>', cell_bold),
+                Paragraph('<b>Guideline Source</b>', cell_bold),
+            ]]
+
+            if med_candidates:
+                for c in med_candidates:
+                    c_dict = c if isinstance(c, dict) else (c.to_dict() if hasattr(c, "to_dict") else vars(c))
+                    d_name = c_dict.get('medication') or c_dict.get('drug_class', 'Therapy')
+                    ind = c_dict.get('relevant_indication') or c_dict.get('clinical_rationale', '-')
+                    safety = c_dict.get('safety_status', 'REVIEW_REQUIRED')
+                    gl = c_dict.get('evidence_source', 'ACC/AHA/ESC')
+                    assoc = f" (Score: {c_dict.get('model_association'):.1%})" if c_dict.get('model_association') is not None else ""
+
+                    # Safety style
+                    s_color = '#15803d' if safety == 'SAFE' else ('#b91c1c' if safety in ['BLOCKED', 'CONTRAINDICATED'] else '#b45309')
+                    s_badge = f"<font color='{s_color}'><b>[{safety}]</b></font>"
+
+                    details = []
+                    if c_dict.get('contraindications_detected'):
+                        details.extend([f"<font color='#b91c1c'>• {cd}</font>" for cd in c_dict['contraindications_detected']])
+                    if c_dict.get('drug_interactions_detected'):
+                        details.extend([f"<font color='#b45309'>• {di}</font>" for di in c_dict['drug_interactions_detected']])
+
+                    safety_text = s_badge
+                    if details:
+                        safety_text += "<br/>" + "<br/>".join(details[:2])
+
                     med_rows.append([
-                        Paragraph('', cell_normal),
-                        Paragraph(str(m.get('note', '')), ParagraphStyle('MedNote2', parent=cell_normal, fontSize=7, textColor=colors.HexColor('#6b7280'), fontName='Helvetica-Oblique')),
-                        Paragraph('', cell_normal),
-                        Paragraph('', cell_normal),
+                        Paragraph(f"<b>{d_name}</b>{assoc}", ParagraphStyle('MedDC2', parent=cell_normal, fontSize=7.5)),
+                        Paragraph(ind, ParagraphStyle('MedInd2', parent=cell_normal, fontSize=7.5)),
+                        Paragraph(safety_text, ParagraphStyle('MedSafe2', parent=cell_normal, fontSize=7)),
+                        Paragraph(gl, ParagraphStyle('MedGL2', parent=cell_normal, fontSize=7, textColor=colors.HexColor('#0369a1'))),
                     ])
-            t_med_sug = Table(med_rows, colWidths=[135, 140, 160, 105])
-            t_med_sug.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dbeafe')),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8faff')),
-                ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bfdbfe')),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
-            med_tokens = ["ECG findings", "AHA/ACC/ESC clinical guidelines"]
-            if existing_conditions and existing_conditions != "None documented":
-                med_tokens.append("Existing conditions")
-            if p_info.get("patient_age"):
-                med_tokens.append("Patient age")
-            t_crit_med_sug = _make_pdf_criteria_footer(label="Criteria considered", criteria=med_tokens, width=540)
-            story.append(KeepTogether([t_med_sug, t_crit_med_sug]))
-            story.append(Spacer(1, 4))
+            elif med_suggestions:
+                for m in med_suggestions:
+                    med_rows.append([
+                        Paragraph(f"<b>{m.get('drug_class', '-')}</b><br/><font color='#6b7280'>{m.get('example_agents', '')}</font>", ParagraphStyle('MedDC', parent=cell_normal, fontSize=7.5)),
+                        Paragraph(str(m.get('indication', '-')), ParagraphStyle('MedInd', parent=cell_normal, fontSize=7.5)),
+                        Paragraph("<font color='#15803d'><b>[CLINICIAN OVER-READ]</b></font>", ParagraphStyle('MedSafe', parent=cell_normal, fontSize=7)),
+                        Paragraph(str(m.get('guideline', '-')), ParagraphStyle('MedGL', parent=cell_normal, fontSize=7, textColor=colors.HexColor('#0369a1'))),
+                    ])
+
+            if len(med_rows) > 1:
+                t_med_sug = Table(med_rows, colWidths=[130, 160, 150, 100])
+                t_med_sug.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dbeafe')),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8faff')),
+                    ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bfdbfe')),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                med_tokens = ["ECG findings", "AHA/ACC/ESC clinical guidelines"]
+                if existing_conditions and existing_conditions != "None documented":
+                    med_tokens.append("Existing conditions")
+                if p_info.get("patient_age"):
+                    med_tokens.append("Patient age")
+                if labs.get("potassium_meq_l"):
+                    med_tokens.append("Electrolyte profile")
+                t_crit_med_sug = _make_pdf_criteria_footer(label="Criteria considered", criteria=med_tokens, width=540)
+                story.append(KeepTogether([t_med_sug, t_crit_med_sug]))
+                story.append(Spacer(1, 4))
 
     # Medication Safety Evaluation (If Available)
     if report_data.get('medication_safety'):

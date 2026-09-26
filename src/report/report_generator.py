@@ -38,6 +38,7 @@ def generate_structured_report(
     laboratory_results: Optional[Dict[str, Any]] = None,
     multimodal_results: Optional[Dict[str, Any]] = None,
     clinical_context_summary: Optional[Dict[str, Any]] = None,
+    clinical_analysis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Assemble complete clinical research and review report dictionary.
 
@@ -374,6 +375,7 @@ def generate_structured_report(
         "longitudinal_comparison": longitudinal_comparison,
         "clinical_decision_support": cds_report,
         "medication_safety": medication_safety,
+        "clinical_analysis": clinical_analysis,
         "findings": findings,
         "disclaimer": (
             "This report is generated automatically as an AI-assisted clinical decision support tool. "
@@ -593,18 +595,26 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
             if a.get('clinical_recommendation'):
                 lines.append(f"      Action: {a.get('clinical_recommendation')}")
 
-    if report.get("clinical_decision_support"):
-        cds = report["clinical_decision_support"]
+    if report.get("clinical_decision_support") or report.get("clinical_analysis"):
+        cds = report.get("clinical_decision_support") or {}
+        ca = report.get("clinical_analysis") or {}
+        med_ds = ca.get("medication_decision_support") or {}
+
+        primary_finding = cds.get("primary_finding") or med_ds.get("clinical_finding") or "N/A"
+        urgency = cds.get("urgency", "ROUTINE REVIEW")
+        summary = cds.get("summary") or "Mandatory attending physician evaluation required."
+
         lines.extend([
             "",
             "SECTION 11: CLINICAL DECISION SUPPORT & GUIDELINES (NON-AUTONOMOUS)",
             "-" * 76,
-            f"  Primary Finding      : {cds.get('primary_finding', 'N/A')}",
-            f"  Triage Urgency       : {cds.get('urgency', 'ROUTINE REVIEW')}",
-            f"  Clinical Summary     : {cds.get('summary', 'N/A')}",
+            f"  Primary Finding      : {primary_finding}",
+            f"  Triage Urgency       : {urgency}",
+            f"  Clinical Summary     : {summary}",
         ])
-        if cds.get("guideline_citations"):
-            lines.append("  Guideline References : " + "; ".join(cds["guideline_citations"]))
+        if cds.get("guideline_citations") or cds.get("guidelines"):
+            gls = cds.get("guideline_citations") or cds.get("guidelines")
+            lines.append("  Guideline References : " + "; ".join(gls))
         if cds.get("considerations"):
             lines.append("  Clinical Considerations:")
             for c in cds["considerations"]:
@@ -613,6 +623,45 @@ def export_report_to_text(report: Dict[str, Any]) -> str:
             lines.append("  Important Contraindications / Cautions:")
             for ci in cds["contraindications"]:
                 lines.append(f"    - ⚠️ {ci}")
+
+        # Render Medication Decision Support Candidates & Verification
+        candidates = med_ds.get("candidates") or cds.get("medication_candidates") or cds.get("medication_recommendations") or []
+        is_withheld = cds.get("medication_recommendations_withheld") or med_ds.get("status") in ["WITHHELD", "INSUFFICIENT_INFORMATION"]
+        withheld_reason = cds.get("withheld_reason") or med_ds.get("status_reason") or med_ds.get("withheld_reason")
+
+        lines.extend([
+            "",
+            "  EVIDENCE-BASED MEDICATION & CANDIDATE THERAPY DECISION SUPPORT:",
+            "  * Physician Reference Only: The system does NOT prescribe medication.",
+        ])
+
+        if is_withheld:
+            lines.extend([
+                f"  ⚠️ STATUS: WITHHELD / INSUFFICIENT INFORMATION",
+                f"     Reason: {withheld_reason or 'Underlying finding unverified or clinical context incomplete.'}",
+                "     Action: Full physician evaluation and repeat tracing required before initiating therapy.",
+            ])
+
+        if candidates:
+            lines.append("  Candidate Drug Classes Evaluated:")
+            for c in candidates:
+                if isinstance(c, dict):
+                    drug_name = c.get("medication") or c.get("drug_class", "Therapy Option")
+                    eg_agents = c.get("example_agents", "Formulary specific")
+                    indication = c.get("indication") or c.get("relevant_indication", "Cardiac finding management")
+                    safety = c.get("safety_status") or ("REVIEW_REQUIRED" if is_withheld else "SAFE")
+                    assoc = f" (Association: {c.get('model_association'):.1%})" if c.get("model_association") is not None else ""
+                    lines.append(f"    • [{safety}] {drug_name}{assoc}")
+                    lines.append(f"      Agents    : {eg_agents}")
+                    lines.append(f"      Indication: {indication}")
+                    if c.get("contraindications_detected"):
+                        for cd in c["contraindications_detected"]:
+                            lines.append(f"      ⚠️ Caution: {cd}")
+                    if c.get("drug_interactions_detected"):
+                        for di in c["drug_interactions_detected"]:
+                            lines.append(f"      ⚡ Interaction: {di}")
+                else:
+                    lines.append(f"    • {c}")
 
     cr = report.get("clinician_review", {})
     lines.extend([
