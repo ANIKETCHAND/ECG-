@@ -22,6 +22,8 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 import io
+import json
+import base64
 import uuid
 import numpy as np
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile
@@ -29,6 +31,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi.responses import Response
+
+from auth.auth_manager import AUTH_MANAGER, UserRole
 
 from ecg_core.models import ECGRecording
 from ecg_input.signal_loader import load_any_ecg
@@ -125,6 +129,85 @@ router = APIRouter()
 # /health and /sample are intentionally left open for liveness probes.
 _protected = Depends(require_api_key)
 
+
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    role: Optional[str] = "CARDIOLOGIST"
+    hospital_id: Optional[str] = "HOSP-APEX"
+
+def decode_google_jwt(jwt_token: str) -> dict:
+    """Decode unverified claims from Google Identity Services JWT payload."""
+    try:
+        parts = jwt_token.strip().split(".")
+        if len(parts) >= 2:
+            padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+            payload_bytes = base64.urlsafe_b64decode(padded)
+            return json.loads(payload_bytes.decode("utf-8"))
+    except Exception:
+        pass
+    return {}
+
+@router.post("/auth/google")
+def google_auth_endpoint(req: GoogleAuthRequest):
+    """Authenticate or auto-provision clinical user via Google Identity or OAuth."""
+    email = req.email
+    name = req.name
+    picture = req.picture
+    sub = None
+
+    if req.credential:
+        claims = decode_google_jwt(req.credential)
+        if claims:
+            email = claims.get("email") or email
+            name = claims.get("name") or name
+            picture = claims.get("picture") or picture
+            sub = claims.get("sub")
+
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing email or Google credential in authentication request."
+        )
+
+    role_key = (req.role or "CARDIOLOGIST").upper()
+    role_enum = UserRole.__members__.get(role_key, UserRole.CARDIOLOGIST)
+    user, token = AUTH_MANAGER.authenticate_google(
+        email=email,
+        full_name=name or email.split("@")[0],
+        google_id=sub,
+        picture=picture,
+        role=role_enum,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+    )
+
+    return {
+        "status": "AUTHENTICATED",
+        "user": user.to_dict(),
+        "token": token,
+        "message": f"Welcome, {user.full_name}",
+    }
+
+@router.get("/auth/me")
+def get_current_user_endpoint(token: Optional[str] = None):
+    """Get active authenticated clinician profile."""
+    if token:
+        user = AUTH_MANAGER.validate_session(token)
+        if user:
+            return {"status": "AUTHENTICATED", "user": user.to_dict()}
+    cardiologist = AUTH_MANAGER.get_user_by_username("cardiologist")
+    if cardiologist:
+        return {"status": "DEFAULT", "user": cardiologist.to_dict()}
+    return {"status": "UNAUTHENTICATED", "user": None}
+
+@router.post("/auth/logout")
+def logout_endpoint(token: Optional[str] = None):
+    """Invalidate clinical session."""
+    if token and token in AUTH_MANAGER._sessions:
+        del AUTH_MANAGER._sessions[token]
+    return {"status": "LOGGED_OUT"}
 
 @router.get("/health")
 def health_check():

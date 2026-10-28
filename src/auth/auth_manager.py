@@ -51,6 +51,7 @@ class User:
     email: str
     hospital_id: str = "HOSP-APEX"
     registration_number: Optional[str] = None  # Medical Council Registration
+    picture: Optional[str] = None
     is_active: bool = True
     created_at: float = 0.0
 
@@ -278,6 +279,58 @@ class AuthManager:
 
     def get_user_by_username(self, username: str) -> Optional[User]:
         return self._users.get(username.strip().lower())
+
+    def authenticate_google(
+        self,
+        email: str,
+        full_name: str,
+        google_id: Optional[str] = None,
+        picture: Optional[str] = None,
+        role: UserRole = UserRole.CARDIOLOGIST,
+        hospital_id: str = "HOSP-APEX",
+    ) -> Tuple[User, str]:
+        """Authenticate or auto-provision a clinical user logging in with Google."""
+        clean_email = email.strip().lower()
+        existing_user = None
+        for u in self._users.values():
+            if u.email.strip().lower() == clean_email:
+                existing_user = u
+                break
+
+        if existing_user:
+            if full_name and full_name.strip():
+                existing_user.full_name = full_name.strip()
+            if picture:
+                existing_user.picture = picture
+            user = existing_user
+        else:
+            username = clean_email.split("@")[0]
+            base_username = username
+            counter = 1
+            while username in self._users:
+                username = f"{base_username}_{counter}"
+                counter += 1
+
+            dummy_pwd = secrets.token_hex(16)
+            p_hash, salt = hash_password(dummy_pwd)
+            user = User(
+                user_id=f"USR-G-{secrets.token_hex(4).upper()}",
+                username=username,
+                password_hash=p_hash,
+                salt=salt,
+                role=role,
+                full_name=full_name or username,
+                email=clean_email,
+                hospital_id=hospital_id,
+                registration_number=f"MCI-G-{secrets.token_hex(3).upper()}",
+                picture=picture,
+                is_active=True,
+                created_at=time.time(),
+            )
+            self._users[username] = user
+
+        token = self.create_session(user, duration_sec=86400)
+        return user, token
 
     def list_users(self, hospital_id: Optional[str] = None) -> List[User]:
         users = list(self._users.values())

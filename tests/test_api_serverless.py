@@ -177,3 +177,32 @@ def test_api_upload_unsupported_file():
     )
     assert response.status_code == 400
 
+
+def test_api_google_auth_endpoint():
+    payload = {
+        "email": "dr.smith@cardio.hospital.org",
+        "name": "Dr. Jane Smith, MD DM",
+        "role": "CARDIOLOGIST",
+        "hospital_id": "HOSP-APEX",
+    }
+    response = client.post("/api/auth/google", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "AUTHENTICATED"
+    assert data["user"]["email"] == "dr.smith@cardio.hospital.org"
+    assert data["user"]["full_name"] == "Dr. Jane Smith, MD DM"
+    assert "token" in data
+
+    token = data["token"]
+    # Test /api/auth/me
+    me_resp = client.get(f"/api/auth/me?token={token}")
+    assert me_resp.status_code == 200
+    me_data = me_resp.json()
+    assert me_data["status"] == "AUTHENTICATED"
+    assert me_data["user"]["full_name"] == "Dr. Jane Smith, MD DM"
+
+    # Test /api/auth/logout
+    logout_resp = client.post(f"/api/auth/logout?token={token}")
+    assert logout_resp.status_code == 200
+    assert logout_resp.json()["status"] == "LOGGED_OUT"
+
