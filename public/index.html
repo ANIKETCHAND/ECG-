@@ -182,6 +182,36 @@
     .badge-red { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
     .badge-blue { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
 
+    /* ── Authentic Medical Millimeter ECG Grid Paper Screen ── */
+    .ecg-paper-screen {
+      background-color: #ebf2ec;
+      background-image:
+        linear-gradient(to right, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(160, 185, 168, 0.45) 1px, transparent 1px),
+        linear-gradient(to right, rgba(160, 185, 168, 0.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(160, 185, 168, 0.18) 1px, transparent 1px);
+      background-size: 25px 25px, 25px 25px, 5px 5px, 5px 5px;
+      border: 1px solid #c4d7c7;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .ecg-screen-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #1e7256;
+      background: #e1efe3;
+      border: 1px solid #c4d7c7;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+
     .card {
       background: var(--bg-primary);
       border: 1px solid var(--border-color);
@@ -2526,6 +2556,39 @@
             </div>
           </div>
 
+          <!-- ECG Scanner Live Telemetry Display Matching Reference Design -->
+          <div class="card" style="margin-top:20px; padding:18px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">
+                  <i class="fa-solid fa-heart-pulse" style="color:#b8402c;"></i> ECG Scanner &middot; Continuous Rhythm Strip (Lead II, 360 Hz)
+                </span>
+                <span class="ecg-screen-badge" id="scanPreviewStatusBadge">
+                  <i class="fa-solid fa-circle-dot fa-fade"></i> <span id="scanPreviewStatusText">Waveform Active &middot; 25 mm/s</span>
+                </span>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span style="font-size:0.76rem; color:var(--text-secondary); margin-right:4px;">Window:</span>
+                <button class="btn btn-outline btn-sm bench-time-btn active scan-time-btn" onclick="setScanTimeWindow(2.5, this)">2.5s</button>
+                <button class="btn btn-outline btn-sm bench-time-btn scan-time-btn" onclick="setScanTimeWindow(5.0, this)">5.0s</button>
+                <button class="btn btn-soft btn-sm" onclick="toggleAudioQrs()" id="btnScanAudioToggle">
+                  <i class="fa-solid fa-volume-high"></i> Sound
+                </button>
+              </div>
+            </div>
+
+            <!-- Authentic Medical Millimeter ECG Grid Container -->
+            <div class="ecg-paper-screen">
+              <div id="scanPreviewWaveformChart" style="height:220px; width:100%;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:0.74rem; color:#556b5c; font-family:'JetBrains Mono', monospace;">
+              <span><i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.6rem;"></i> GREEN MARKERS: DETECTED R-PEAKS</span>
+              <span id="scanWaveformPointsMeta">900 SAMPLES &middot; 3 BEATS DETECTED</span>
+              <span>CALIBRATION: 10 MM/MV &middot; 25 MM/S</span>
+            </div>
+          </div>
+
           <!-- Large Prominent Purple Button: Analyze ECG -->
           <div style="text-align:center; margin-top:28px;">
             <button class="btn btn-primary btn-lg" style="min-width:240px;" onclick="triggerAnalysisAndOpenBench()">
@@ -2566,9 +2629,12 @@
             <div class="card" style="padding:16px;">
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <span style="font-weight:700; font-size:0.86rem;">
-                  <i class="fa-solid fa-wave-square text-purple"></i> Rhythm Strip (Lead II, 360 Hz)
+                  <i class="fa-solid fa-wave-square" style="color:#b8402c;"></i> Rhythm Strip (Lead II, 360 Hz)
                 </span>
-                <div style="display:flex; gap:6px;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span class="ecg-screen-badge" style="font-size:0.68rem; padding:2px 8px;">
+                    <i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.5rem;"></i> R-Peaks
+                  </span>
                   <button class="btn btn-outline btn-sm bench-time-btn active" onclick="setTimeWindow(2.5, this)">2.5s</button>
                   <button class="btn btn-outline btn-sm bench-time-btn" onclick="setTimeWindow(5.0, this)">5.0s</button>
                   <button class="btn btn-soft btn-sm" onclick="toggleAudioQrs()" id="btnAudioToggle">
@@ -2576,7 +2642,13 @@
                   </button>
                 </div>
               </div>
-              <div id="analysisWaveformChart" style="height:210px; width:100%;"></div>
+              <div class="ecg-paper-screen">
+                <div id="analysisWaveformChart" style="height:210px; width:100%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.72rem; color:#556b5c; font-family:'JetBrains Mono', monospace;">
+                <span><i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.55rem;"></i> GREEN MARKERS: R-PEAKS</span>
+                <span>10 MM/MV &middot; 25 MM/S</span>
+              </div>
             </div>
 
             <!-- AI Finding Card -->
@@ -2771,9 +2843,18 @@
             </div>
 
             <!-- Rhythm Strip Canvas in Report -->
-            <div style="background:#FAF8FF; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px; margin-bottom:20px;">
-              <span style="font-size:0.72rem; font-weight:700; color:var(--purple-primary); text-transform:uppercase;">Lead II Rhythm Strip</span>
-              <div id="docReportWaveformChart" style="height:120px; width:100%;"></div>
+            <div style="border:1px solid #c4d7c7; border-radius:var(--radius-md); padding:8px; margin-bottom:20px; background:#f4f9f5;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:0.72rem; font-weight:700; color:#556b5c; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">
+                  <i class="fa-solid fa-wave-square" style="color:#b8402c;"></i> Lead II Rhythm Strip &middot; 25 mm/s &middot; 10 mm/mV
+                </span>
+                <span style="font-size:0.68rem; color:#1e7256; font-weight:700; font-family:'JetBrains Mono', monospace;">
+                  <i class="fa-solid fa-circle" style="font-size:0.5rem;"></i> R-PEAK DETECTIONS
+                </span>
+              </div>
+              <div class="ecg-paper-screen">
+                <div id="docReportWaveformChart" style="height:120px; width:100%;"></div>
+              </div>
             </div>
 
             <!-- Impression & Notes -->
@@ -3992,6 +4073,11 @@
       document.getElementById('scanPatientName').textContent = p.name;
       document.getElementById('scanPatientMeta').innerHTML = 
         `MRN: <strong>${p.mrn}</strong> | Age: ${p.age} | Blood Group: ${p.blood} | Allergies: ${p.allergies} | Conditions: ${p.conditions}`;
+      if (!currentSignal || currentSignal.length === 0) {
+        loadBenchmarkSample('normal');
+      } else {
+        renderScanPreviewWaveformChart();
+      }
     }
 
     async function handleFileUpload(e) {
@@ -4031,7 +4117,10 @@
             if (pill) pill.classList.remove('hidden');
             document.getElementById('fileUploadName').textContent = file.name;
             document.getElementById('fileUploadSize').textContent = `(${(file.size / (1024*1024)).toFixed(1)} MB)`;
-            
+            currentRPeaks = detectRPeaksClient(currentSignal, currentFs);
+            const statusEl = document.getElementById('scanPreviewStatusText');
+            if (statusEl) statusEl.textContent = `File Ingested: ${file.name} · 25 mm/s`;
+            renderScanPreviewWaveformChart();
             showToast(`Ingested ${file.name} successfully (${data.sample_count} pts)`, 'fa-file-circle-check');
             return;
           }
@@ -4067,6 +4156,10 @@
             currentSignal = data.signal;
             currentFs = data.fs || 360.0;
             document.getElementById('scanDropzoneTitle').textContent = `Loaded ${sampleType.toUpperCase()} Reference Waveform`;
+            currentRPeaks = detectRPeaksClient(currentSignal, currentFs);
+            const statusEl = document.getElementById('scanPreviewStatusText');
+            if (statusEl) statusEl.textContent = `Loaded ${sampleType.toUpperCase()} Record · 25 mm/s`;
+            renderScanPreviewWaveformChart();
             showToast(`Loaded ${sampleType.toUpperCase()} ECG trace`, 'fa-wave-square');
             return;
           }
@@ -4079,6 +4172,9 @@
       currentFs = 360.0;
       currentRPeaks = gen.peaks;
       document.getElementById('scanDropzoneTitle').textContent = `Loaded ${sampleType.toUpperCase()} Reference Waveform`;
+      const statusEl = document.getElementById('scanPreviewStatusText');
+      if (statusEl) statusEl.textContent = `Loaded ${sampleType.toUpperCase()} Synthetic · 25 mm/s`;
+      renderScanPreviewWaveformChart();
       showToast(`Loaded ${sampleType.toUpperCase()} reference trace`, 'fa-wave-square');
     }
 
@@ -4200,33 +4296,140 @@
       renderAnalysisWaveformChart();
     }
 
-    function renderAnalysisWaveformChart() {
-      const el = document.getElementById('analysisWaveformChart');
+    // ── High-Precision Client R-Peak Detector ──
+    function detectRPeaksClient(signal, fs = 360.0) {
+      if (!signal || signal.length < 50) return [];
+      const minDistance = Math.round(0.24 * fs);
+      let minVal = Infinity, maxVal = -Infinity;
+      for (let i = 0; i < signal.length; i++) {
+        if (signal[i] < minVal) minVal = signal[i];
+        if (signal[i] > maxVal) maxVal = signal[i];
+      }
+      const threshold = minVal + (maxVal - minVal) * 0.40;
+      const peaks = [];
+      let lastPeak = -minDistance;
+
+      for (let i = 2; i < signal.length - 2; i++) {
+        const val = signal[i];
+        if (val > threshold && val > signal[i-1] && val > signal[i-2] && val >= signal[i+1] && val >= signal[i+2]) {
+          if (i - lastPeak >= minDistance) {
+            peaks.push(i);
+            lastPeak = i;
+          } else if (peaks.length > 0 && val > signal[peaks[peaks.length - 1]]) {
+            peaks[peaks.length - 1] = i;
+            lastPeak = i;
+          }
+        }
+      }
+      return peaks;
+    }
+
+    // ── Unified Authentic Medical Millimeter ECG Waveform Renderer ──
+    function renderEcgWaveformStrip(targetElementId, height = 210, timeWindow = 2.5) {
+      const el = document.getElementById(targetElementId);
       if (!el || typeof Plotly === 'undefined') return;
 
-      const numPoints = Math.min(currentSignal.length, Math.round(currentDisplayWindow * currentFs));
+      if (!currentSignal || currentSignal.length === 0) {
+        const gen = generateSyntheticECG(3.5, 360.0, 72, false);
+        currentSignal = gen.signal;
+        currentFs = 360.0;
+        currentRPeaks = gen.peaks;
+      }
+
+      const numPoints = Math.min(currentSignal.length, Math.round(timeWindow * currentFs));
       const sigSlice = currentSignal.slice(0, numPoints);
       const timeSlice = sigSlice.map((_, i) => i / currentFs);
 
-      const trace = {
+      // Terracotta red ECG trace matching user reference design
+      const traceSignal = {
         x: timeSlice,
         y: sigSlice,
         type: 'scatter',
         mode: 'lines',
-        line: { color: '#6D28D9', width: 2.2 }
+        line: { color: '#b8402c', width: 2.0 },
+        name: 'ECG Lead II',
+        hoverinfo: 'x+y'
       };
+
+      // Detect / retrieve R-peaks
+      let peaks = (currentRPeaks && currentRPeaks.length > 0) ? currentRPeaks : detectRPeaksClient(currentSignal, currentFs);
+
+      const peakX = [];
+      const peakY = [];
+      peaks.forEach(p => {
+        const px = p / currentFs;
+        if (px >= 0 && px <= timeWindow) {
+          peakX.push(px);
+          peakY.push(currentSignal[p] !== undefined ? currentSignal[p] : 1.2);
+        }
+      });
+
+      // Circular green marker dots on R-peaks matching user reference design
+      const tracePeaks = {
+        x: peakX,
+        y: peakY,
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+          color: '#1e7256',
+          size: 6.5,
+          symbol: 'circle',
+          line: { color: '#145a43', width: 1 }
+        },
+        name: 'R-Peaks',
+        hoverinfo: 'x+y'
+      };
+
+      // Calculate dynamic Y range with clean headroom
+      let minVal = Infinity, maxVal = -Infinity;
+      for (let i = 0; i < sigSlice.length; i++) {
+        if (sigSlice[i] < minVal) minVal = sigSlice[i];
+        if (sigSlice[i] > maxVal) maxVal = sigSlice[i];
+      }
+      const minY = Math.min(minVal - 0.25, -1.0);
+      const maxY = Math.max(maxVal + 0.35, 1.5);
 
       const layout = {
-        margin: { t: 8, r: 8, b: 24, l: 30 },
-        height: 200,
+        margin: { t: 14, r: 16, b: 24, l: 36 },
+        height: height,
         autosize: true,
-        paper_bgcolor: '#FFFFFF',
-        plot_bgcolor: '#FAF8FF',
-        xaxis: { showgrid: true, gridcolor: '#EFEAFF', zeroline: false, title: { text: 'Time (seconds)', font: { size: 10 } } },
-        yaxis: { showgrid: true, gridcolor: '#EFEAFF', zeroline: true, zerolinecolor: '#D8C7F8', title: { text: 'mV', font: { size: 10 } } }
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        xaxis: {
+          range: [0, timeWindow],
+          dtick: 0.5,
+          showgrid: true,
+          gridcolor: 'rgba(160, 185, 168, 0.28)',
+          zeroline: true,
+          zerolinecolor: 'rgba(160, 185, 168, 0.5)',
+          tickfont: { color: '#556b5c', size: 10, family: 'JetBrains Mono, monospace' }
+        },
+        yaxis: {
+          range: [minY, maxY],
+          dtick: 0.5,
+          showgrid: true,
+          gridcolor: 'rgba(160, 185, 168, 0.28)',
+          zeroline: true,
+          zerolinecolor: 'rgba(160, 185, 168, 0.5)',
+          tickfont: { color: '#556b5c', size: 10, family: 'JetBrains Mono, monospace' }
+        },
+        showlegend: false
       };
 
-      Plotly.react(el, [trace], layout, { displayModeBar: false, responsive: true });
+      Plotly.react(el, [traceSignal, tracePeaks], layout, { displayModeBar: false, responsive: true });
+    }
+
+    function renderAnalysisWaveformChart() {
+      renderEcgWaveformStrip('analysisWaveformChart', 210, currentDisplayWindow);
+    }
+
+    function renderScanPreviewWaveformChart() {
+      renderEcgWaveformStrip('scanPreviewWaveformChart', 220, currentDisplayWindow);
+      const peaks = (currentRPeaks && currentRPeaks.length > 0) ? currentRPeaks : detectRPeaksClient(currentSignal, currentFs);
+      const numPts = Math.min(currentSignal.length, Math.round(currentDisplayWindow * currentFs));
+      const visPeaks = peaks.filter(p => (p / currentFs) <= currentDisplayWindow).length;
+      const metaEl = document.getElementById('scanWaveformPointsMeta');
+      if (metaEl) metaEl.textContent = `${numPts} SAMPLES · ${visPeaks} BEATS DETECTED`;
     }
 
     function setTimeWindow(win, btn) {
@@ -4234,6 +4437,14 @@
       document.querySelectorAll('.bench-time-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
       renderAnalysisWaveformChart();
+      renderScanPreviewWaveformChart();
+    }
+
+    function setScanTimeWindow(win, btn) {
+      currentDisplayWindow = win;
+      document.querySelectorAll('.scan-time-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderScanPreviewWaveformChart();
     }
 
     function toggleAudioQrs() {
@@ -4295,27 +4506,8 @@
         docFindingEl.style.color = isUnusable ? 'var(--error)' : (finding.toLowerCase().includes('normal') ? 'var(--success)' : 'var(--error)');
       }
 
-      // Render static rhythm strip inside report
-      const el = document.getElementById('docReportWaveformChart');
-      if (el && typeof Plotly !== 'undefined') {
-        const num = Math.min(currentSignal.length, 720);
-        const trace = {
-          x: currentSignal.slice(0, num).map((_, i) => i / currentFs),
-          y: currentSignal.slice(0, num),
-          mode: 'lines',
-          line: { color: '#6D28D9', width: 1.8 }
-        };
-        const layout = {
-          margin: { t: 4, r: 4, b: 16, l: 24 },
-          height: 110,
-          autosize: true,
-          paper_bgcolor: '#FAF8FF',
-          plot_bgcolor: '#FAF8FF',
-          xaxis: { showgrid: true, gridcolor: '#EFEAFF', zeroline: false },
-          yaxis: { showgrid: true, gridcolor: '#EFEAFF', zeroline: false }
-        };
-        Plotly.react(el, [trace], layout, { displayModeBar: false, responsive: true });
-      }
+      // Render static rhythm strip inside report matching millimeter paper style
+      renderEcgWaveformStrip('docReportWaveformChart', 120, 2.5);
     }
 
     function populatePatientReportView() {
