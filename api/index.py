@@ -26,13 +26,13 @@ import json
 import base64
 import uuid
 import numpy as np
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi.responses import Response
 
-from auth.auth_manager import AUTH_MANAGER, UserRole
+from auth.auth_manager import AUTH_MANAGER, UserRole, User
 
 from ecg_core.models import ECGRecording
 from ecg_input.signal_loader import load_any_ecg
@@ -47,7 +47,10 @@ from clinical.recommendation_engine import GLOBAL_CDS_ENGINE
 from clinical.medication_candidate_engine import build_authoritative_clinical_analysis
 from medications.interaction_checker import check_medication_safety
 from report.report_generator import generate_structured_report
-from report.pdf_generator import generate_doctor_report
+from report.pdf_generator import generate_doctor_report, generate_patient_report
+from database.db_manager import DB_MANAGER, PatientRecord
+from database.supabase_client import is_supabase_configured, get_supabase_client
+from audit.audit_logger import AUDIT_LOGGER
 from services import REPORT_PERSISTENCE_SERVICE
 from segmentation import extract_beats
 from feature_extraction import extract_all_features
@@ -118,16 +121,147 @@ class ReviewRequest(BaseModel):
     agreement_status: str  # CONFIRMED, MODIFIED, REJECTED
     clinician_interpretation: str
     clinical_notes: Optional[str] = ""
+    selected_medication: Optional[str] = None
+    medication_dosage: Optional[str] = None
+    treatment_instructions: Optional[str] = None
+    follow_up_instructions: Optional[str] = None
 
 AnalyzeRequest.model_rebuild()
 ReviewRequest.model_rebuild()
 
+
+class PatientCreateRequest(BaseModel):
+    name: str
+    hospital_mrn: Optional[str] = None
+    hospital_id: Optional[str] = "HOSP-APEX"
+    date_of_birth: Optional[str] = None
+    age: Optional[int] = None
+    sex: Optional[str] = "Other"
+    contact: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    blood_group: Optional[str] = "Unknown"
+    known_allergies: Optional[Union[str, List[str]]] = "None"
+    existing_conditions: Optional[Union[str, List[str]]] = "None"
+    current_medications: Optional[Union[str, List[str]]] = "None"
+    previous_cardiac_history: Optional[Union[str, List[str]]] = "None"
+    family_history: Optional[Union[str, List[str]]] = "None"
+    smoking_status: Optional[str] = "Non-Smoker"
+    other_relevant_history: Optional[str] = None
+    past_medical_history: Optional[str] = None
+    other_clinical_information: Optional[str] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    systolic_bp: Optional[float] = None
+    diastolic_bp: Optional[float] = None
+    heart_rate: Optional[float] = None
+    spo2: Optional[float] = None
+
+
+class PatientUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    hospital_mrn: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    age: Optional[int] = None
+    sex: Optional[str] = None
+    contact: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    blood_group: Optional[str] = None
+    known_allergies: Optional[Union[str, List[str]]] = None
+    existing_conditions: Optional[Union[str, List[str]]] = None
+    current_medications: Optional[Union[str, List[str]]] = None
+    previous_cardiac_history: Optional[Union[str, List[str]]] = None
+    family_history: Optional[Union[str, List[str]]] = None
+    smoking_status: Optional[str] = None
+    other_relevant_history: Optional[str] = None
+    past_medical_history: Optional[str] = None
+    other_clinical_information: Optional[str] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    systolic_bp: Optional[float] = None
+    diastolic_bp: Optional[float] = None
+    heart_rate: Optional[float] = None
+    spo2: Optional[float] = None
+
+
+class AuthRegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    role: str = "DOCTOR"
+    hospital_id: Optional[str] = "HOSP-APEX"
+    registration_number: Optional[str] = None
+    patient_code: Optional[str] = None
+
+
+class AuthLoginRequest(BaseModel):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: str
+    role: Optional[str] = None
+    hospital_id: Optional[str] = None
+
+
+def calculate_age_from_dob(dob_str: Optional[str]) -> Optional[int]:
+    """Calculate age from date of birth YYYY-MM-DD string, rejecting future dates."""
+    if not dob_str or not str(dob_str).strip():
+        return None
+    try:
+        from datetime import datetime, date
+        clean_str = str(dob_str).strip()[:10]
+        dob = datetime.strptime(clean_str, "%Y-%m-%d").date()
+        today = date.today()
+        if dob > today:
+            raise ValueError("Date of birth cannot be in the future")
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    except Exception:
+        return None
+
+
+def generate_unique_mrn() -> str:
+    """Generate hospital-standard unique medical record number."""
+    from datetime import datetime
+    year = datetime.now().year
+    suffix = uuid.uuid4().hex[:6].upper()
+    return f"MRN-{year}-{suffix}"
+
+
+PatientCreateRequest.model_rebuild()
+PatientUpdateRequest.model_rebuild()
+AuthRegisterRequest.model_rebuild()
+AuthLoginRequest.model_rebuild()
 
 router = APIRouter()
 
 # Endpoints carrying patient data require the shared API key when one is set.
 # /health and /sample are intentionally left open for liveness probes.
 _protected = Depends(require_api_key)
+
+
+def get_authenticated_user_from_request(
+    request: Request,
+    token: Optional[str] = None,
+) -> Optional[User]:
+    """Extract and validate authenticated clinical or patient user from session token."""
+    tok = token
+    if not tok:
+        auth_hdr = request.headers.get("Authorization") or request.headers.get("authorization")
+        if auth_hdr:
+            parts = auth_hdr.strip().split()
+            if len(parts) == 2 and parts[0].lower() == "bearer":
+                tok = parts[1]
+            elif len(parts) == 1:
+                tok = parts[0]
+    if not tok:
+        tok = request.headers.get("X-Session-Token") or request.headers.get("x-session-token")
+    if not tok:
+        tok = request.query_params.get("token")
+    if tok:
+        return AUTH_MANAGER.validate_session(tok)
+    return None
 
 
 class GoogleAuthRequest(BaseModel):
@@ -208,6 +342,96 @@ def logout_endpoint(token: Optional[str] = None):
     if token and token in AUTH_MANAGER._sessions:
         del AUTH_MANAGER._sessions[token]
     return {"status": "LOGGED_OUT"}
+
+
+@router.post("/auth/register")
+def register_auth_endpoint(req: AuthRegisterRequest):
+    """Secure clinical registration for Doctors & Patients using Supabase / PBKDF2."""
+    email = req.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="A valid email address is required.")
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+
+    role_key = req.role.upper().replace(" ", "_").strip()
+    role_enum = getattr(UserRole, role_key, None)
+    if role_enum is None:
+        role_enum = UserRole.PATIENT if "PATIENT" in role_key else UserRole.DOCTOR
+
+    existing = AUTH_MANAGER.get_user_by_username(email)
+    if existing:
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
+    user = AUTH_MANAGER.register_user(
+        username=email,
+        password=req.password,
+        role=role_enum,
+        full_name=req.full_name.strip() or email.split("@")[0],
+        email=email,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+        registration_number=req.registration_number or req.patient_code,
+    )
+
+    # Supabase profile persistence if configured
+    if is_supabase_configured():
+        try:
+            sb = get_supabase_client(use_service_role=True)
+            if sb:
+                profile_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, user.user_id))
+                sb.table("profiles").upsert({
+                    "id": profile_uuid,
+                    "full_name": user.full_name,
+                    "role": user.role.value,
+                    "hospital_id": user.hospital_id,
+                    "medical_registration_number": user.registration_number,
+                }, on_conflict="id").execute()
+        except Exception:
+            pass
+
+    token = AUTH_MANAGER.create_session(user)
+    return {
+        "status": "AUTHENTICATED",
+        "user": user.to_dict(),
+        "token": token,
+        "message": f"Account successfully created for {user.full_name}",
+    }
+
+
+@router.post("/auth/login")
+def login_auth_endpoint(req: AuthLoginRequest):
+    """Authenticate clinician or patient against credential store with RBAC guards."""
+    identifier = (req.email or req.username or "").strip().lower()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Email or username is required.")
+
+    user = AUTH_MANAGER.authenticate(identifier, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    if req.role:
+        expected = req.role.upper().strip()
+        if expected == "PATIENT" and user.role != UserRole.PATIENT:
+            raise HTTPException(status_code=403, detail="This account does not have patient portal access.")
+        elif expected in ["DOCTOR", "CARDIOLOGIST", "CLINICIAN", "STAFF"] and user.role == UserRole.PATIENT:
+            raise HTTPException(status_code=403, detail="Patient accounts cannot log in to the Physician portal.")
+
+    token = AUTH_MANAGER.create_session(user)
+    return {
+        "status": "AUTHENTICATED",
+        "user": user.to_dict(),
+        "token": token,
+        "message": f"Welcome back, {user.full_name}",
+    }
+
+
+@router.get("/auth/session")
+def check_session_endpoint(token: Optional[str] = None):
+    """Validate active clinical session token."""
+    if token:
+        user = AUTH_MANAGER.validate_session(token)
+        if user:
+            return {"status": "AUTHENTICATED", "user": user.to_dict()}
+    return {"status": "UNAUTHENTICATED", "user": None}
 
 @router.get("/health")
 def health_check():
@@ -421,6 +645,102 @@ def analyze_ecg(req: AnalyzeRequest):
         allergies_str = ", ".join(str(a).strip() for a in raw_allergies if str(a).strip())
     else:
         allergies_str = raw_allergies
+
+    # Retrieve registered patient context if patient_id or patient_mrn was provided
+    pat_context = None
+    if req.patient_id and req.patient_id not in ["PAT-ANON", ""]:
+        pat_context = DB_MANAGER.get_patient(req.patient_id)
+    if not pat_context and req.patient_mrn:
+        pat_context = DB_MANAGER.get_patient_by_mrn(req.patient_mrn)
+
+    eff_patient_id = req.patient_id or "PAT-ANON"
+    eff_patient_mrn = req.patient_mrn
+
+    if pat_context:
+        eff_patient_id = pat_context.patient_id
+        eff_patient_mrn = pat_context.hospital_mrn
+        if not req.patient_name or req.patient_name == "Anonymous":
+            req.patient_name = pat_context.name
+        if eff_age is None:
+            eff_age = pat_context.age
+        if eff_sex is None:
+            eff_sex = pat_context.sex
+        if not req.blood_group:
+            req.blood_group = pat_context.blood_group
+        if (not allergies_str or allergies_str == "None") and pat_context.known_allergies:
+            allergies_str = pat_context.known_allergies
+        if (not existing_cond_str or existing_cond_str == "None") and pat_context.existing_conditions:
+            existing_cond_str = pat_context.existing_conditions
+        if (not curr_meds_str or curr_meds_str == "None") and pat_context.current_medications:
+            curr_meds_str = pat_context.current_medications
+            med_list = [m.strip() for m in curr_meds_str.split(",") if m.strip()]
+        if (not cardiac_hist_str or cardiac_hist_str == "None") and pat_context.previous_cardiac_history:
+            cardiac_hist_str = pat_context.previous_cardiac_history
+
+    # Persist ECG acquisition and analysis record into clinical registry
+    DB_MANAGER.save_ecg_record(
+        record_id=rec.record_id,
+        sampling_rate=req.fs,
+        lead_names=[req.lead],
+        duration_sec=rec.duration,
+        file_hash=f"{sig_hash:06X}",
+        source_format="DIGITAL",
+        hospital_id="HOSP-APEX",
+        patient_id=eff_patient_id,
+        signal_quality=quality_res.category.value,
+        quality_score=quality_res.quality_score,
+        workflow_status="ANALYSIS_COMPLETE",
+    )
+    DB_MANAGER.save_analysis_result(
+        analysis_id=analysis_res.analysis_id,
+        record_id=rec.record_id,
+        model_id=analysis_res.model_id,
+        model_version="1.0.0",
+        prediction=analysis_res.prediction,
+        probabilities=analysis_res.model_probabilities,
+        signal_quality=quality_res.category.value,
+        quality_score=quality_res.quality_score,
+        heart_rate_bpm=analysis_res.heart_rate_bpm,
+        mean_rr_ms=analysis_res.mean_rr_ms,
+        detected_beats_count=analysis_res.detected_beats_count,
+        warnings=quality_res.warnings,
+        limitations=analysis_res.limitations,
+    )
+
+    if is_supabase_configured():
+        try:
+            sb = get_supabase_client(use_service_role=True)
+            if sb:
+                rec_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, rec.record_id))
+                pat_uuid = eff_patient_id if len(eff_patient_id) == 36 else str(uuid.uuid5(uuid.NAMESPACE_DNS, eff_patient_id))
+                sb.table("ecg_recordings").upsert({
+                    "id": rec_uuid,
+                    "patient_id": pat_uuid,
+                    "source_format": "DIGITAL",
+                    "sampling_rate": req.fs,
+                    "lead_names": [req.lead],
+                    "number_of_leads": 1,
+                    "duration_seconds": rec.duration,
+                    "signal_quality": quality_res.category.value,
+                    "signal_quality_score": quality_res.quality_score,
+                    "snr": quality_res.snr_db,
+                    "status": "ANALYSIS_COMPLETE",
+                }, on_conflict="id").execute()
+                sb.table("ecg_measurements").insert({
+                    "ecg_id": rec_uuid,
+                    "heart_rate": analysis_res.heart_rate_bpm,
+                    "mean_rr": analysis_res.mean_rr_ms,
+                    "pr_interval": measurements.pr_interval_ms,
+                    "qrs_duration": measurements.qrs_duration_ms,
+                    "qt_interval": measurements.qt_interval_ms,
+                    "qtc_interval": measurements.qtc_bazett_ms,
+                    "detected_beats": analysis_res.detected_beats_count,
+                    "baseline_drift": quality_res.metrics.get("baseline_wander_detected", False),
+                    "powerline_interference": quality_res.metrics.get("powerline_detected", False),
+                    "motion_artifacts": quality_res.metrics.get("motion_detected", False),
+                }).execute()
+        except Exception:
+            pass
 
     # 4. Multimodal Medication Safety Check
     med_safety = check_medication_safety(
@@ -676,8 +996,8 @@ def analyze_ecg(req: AnalyzeRequest):
 
 
 @router.post("/report/pdf", dependencies=[_protected])
-def generate_pdf_endpoint(req: AnalyzeRequest):
-    """Generate and return publication-grade PDF report."""
+def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
+    """Generate and return publication-grade PDF report (doctor or patient format)."""
     analysis = analyze_ecg(req)
     if analysis.get("status") == "UNUSABLE_SIGNAL":
         raise HTTPException(status_code=422, detail="Signal unusable. PDF report blocked for patient safety.")
@@ -711,13 +1031,19 @@ def generate_pdf_endpoint(req: AnalyzeRequest):
         laboratory_results=req.laboratory_results,
         clinical_analysis=analysis.get("clinical_analysis"),
     )
-    pdf_bytes = generate_doctor_report(report_dict, waveform=sig_arr, fs=req.fs, r_peaks=r_peaks)
+
+    is_patient = str(type).lower() == "patient"
+    if is_patient:
+        pdf_bytes = generate_patient_report(report_dict)
+    else:
+        pdf_bytes = generate_doctor_report(report_dict, waveform=sig_arr, fs=req.fs, r_peaks=r_peaks)
 
     # Persist PDF to storage
     try:
         REPORT_PERSISTENCE_SERVICE.save_report_snapshot(
             report_data=report_dict,
-            pdf_bytes=pdf_bytes,
+            pdf_bytes=None if is_patient else pdf_bytes,
+            patient_pdf_bytes=pdf_bytes if is_patient else None,
             report_id=analysis.get("report_id"),
             report_number=analysis.get("report_number"),
             patient_id=req.patient_id,
@@ -732,8 +1058,408 @@ def generate_pdf_endpoint(req: AnalyzeRequest):
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={rep_num}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename={rep_num}_{type}.pdf"}
     )
+
+
+@router.post("/patients", status_code=201, dependencies=[_protected])
+def create_patient_endpoint(req: PatientCreateRequest):
+    """Register a new patient into hospital clinical registry and Supabase."""
+    name_clean = req.name.strip()
+    if not name_clean:
+        raise HTTPException(status_code=400, detail="Patient full name is required.")
+
+    if req.hospital_mrn and req.hospital_mrn.strip():
+        mrn_clean = req.hospital_mrn.strip().upper()
+        existing = DB_MANAGER.get_patient_by_mrn(mrn_clean)
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Patient with MRN '{mrn_clean}' already exists. Use PUT /api/patients/{existing.patient_id} to edit."
+            )
+    else:
+        mrn_clean = generate_unique_mrn()
+
+    eff_age = req.age
+    if req.date_of_birth:
+        calc_age = calculate_age_from_dob(req.date_of_birth)
+        if calc_age is None and eff_age is None:
+            raise HTTPException(status_code=400, detail="Date of birth cannot be in the future.")
+        if calc_age is not None:
+            eff_age = calc_age
+
+    patient_uuid = str(uuid.uuid4())
+
+    def _to_str(val: Any) -> str:
+        if isinstance(val, list):
+            return ", ".join(str(item).strip() for item in val if str(item).strip()) or "None"
+        return str(val).strip() if val is not None and str(val).strip() else "None"
+
+    allergies_s = _to_str(req.known_allergies)
+    conds_s = _to_str(req.existing_conditions)
+    meds_s = _to_str(req.current_medications)
+    cardiac_s = _to_str(req.previous_cardiac_history)
+    family_s = _to_str(req.family_history)
+
+    pat_rec = DB_MANAGER.create_patient(
+        patient_id=patient_uuid,
+        hospital_mrn=mrn_clean,
+        name=name_clean,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+        age=eff_age,
+        sex=req.sex or "Other",
+        contact=req.contact,
+        date_of_birth=req.date_of_birth,
+        emergency_contact=req.emergency_contact,
+        blood_group=req.blood_group or "Unknown",
+        known_allergies=allergies_s,
+        existing_conditions=conds_s,
+        current_medications=meds_s,
+        previous_cardiac_history=cardiac_s,
+        family_history=family_s,
+        smoking_status=req.smoking_status or "Non-Smoker",
+        other_relevant_history=req.other_relevant_history,
+        past_medical_history=req.past_medical_history,
+        other_clinical_information=req.other_clinical_information,
+    )
+
+    if any(v is not None for v in [req.systolic_bp, req.diastolic_bp, req.heart_rate, req.spo2]):
+        DB_MANAGER.record_vital_signs(
+            vital_id=f"VIT-{uuid.uuid4().hex[:6].upper()}",
+            patient_id=patient_uuid,
+            heart_rate_bpm=req.heart_rate,
+            systolic_bp_mmhg=req.systolic_bp,
+            diastolic_bp_mmhg=req.diastolic_bp,
+            spo2_percent=req.spo2,
+            source="TRIAGE_INTAKE",
+        )
+
+    supabase_synced = False
+    if is_supabase_configured():
+        try:
+            sb = get_supabase_client(use_service_role=True)
+            if sb:
+                sb.table("patients").insert({
+                    "id": patient_uuid,
+                    "patient_code": mrn_clean,
+                    "full_name": name_clean,
+                    "date_of_birth": req.date_of_birth,
+                    "sex": req.sex or "Other",
+                    "blood_group": req.blood_group or "Unknown",
+                    "known_allergies": [a.strip() for a in allergies_s.split(",") if a.strip() and a.strip() != "None"],
+                    "existing_conditions": [c.strip() for c in conds_s.split(",") if c.strip() and c.strip() != "None"],
+                    "cardiac_history": [h.strip() for h in cardiac_s.split(",") if h.strip() and h.strip() != "None"],
+                    "family_history": [f.strip() for f in family_s.split(",") if f.strip() and f.strip() != "None"],
+                    "smoking_status": req.smoking_status or "Non-Smoker",
+                    "hospital_id": req.hospital_id or "HOSP-APEX",
+                }).execute()
+                supabase_synced = True
+        except Exception as sb_err:
+            AUDIT_LOGGER.log_event(
+                event_type="SUPABASE_PERSISTENCE_ERROR",
+                user_id="SYSTEM",
+                username="System",
+                user_role="SYSTEM",
+                action=f"Failed to persist patient to Supabase: {sb_err}",
+                record_id=patient_uuid,
+            )
+
+    AUDIT_LOGGER.log_event(
+        event_type="PATIENT_CREATED",
+        user_id="SYSTEM",
+        username="System",
+        user_role="SYSTEM",
+        action=f"Registered patient {name_clean} (MRN: {mrn_clean})",
+        record_id=patient_uuid,
+        details={"mrn": mrn_clean, "supabase_synced": supabase_synced},
+    )
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Patient '{name_clean}' registered successfully.",
+        "patient": pat_rec.to_dict(),
+        "supabase_synced": supabase_synced,
+    }
+
+
+@router.get("/patients", dependencies=[_protected])
+def list_patients_endpoint(
+    request: Request,
+    search: Optional[str] = None,
+    hospital_id: Optional[str] = None,
+    limit: int = 100,
+    token: Optional[str] = None,
+):
+    """List registered patients with search filtering and clinical summaries, scoped by tenancy and role."""
+    user = get_authenticated_user_from_request(request, token)
+    effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else "HOSP-APEX")
+    if user and user.role != UserRole.PATIENT and user.hospital_id:
+        effective_hosp = user.hospital_id
+
+    patients = DB_MANAGER.list_patients(hospital_id=effective_hosp, limit=limit)
+
+    # If authenticated user is a patient, strictly restrict to their own record
+    if user and user.role == UserRole.PATIENT:
+        pat_code = (user.registration_number or "").strip().lower()
+        user_email = (user.email or "").strip().lower()
+        user_name = (user.full_name or "").strip().lower()
+        scoped_patients = []
+        for p in patients:
+            if (
+                (pat_code and pat_code in (p.hospital_mrn or "").lower())
+                or (user_email and user_email == (p.contact or "").lower())
+                or (user_name and user_name == (p.name or "").lower())
+                or (user.user_id == p.patient_id)
+            ):
+                scoped_patients.append(p)
+        patients = scoped_patients
+
+    res_list = []
+    q = (search or "").strip().lower()
+
+    for p in patients:
+        p_dict = p.to_dict()
+        if q:
+            match = (
+                q in str(p_dict.get("name", "")).lower()
+                or q in str(p_dict.get("hospital_mrn", "")).lower()
+                or q in str(p_dict.get("contact", "")).lower()
+                or q in str(p_dict.get("existing_conditions", "")).lower()
+            )
+            if not match:
+                continue
+
+        reports = REPORT_PERSISTENCE_SERVICE.get_patient_timeline(p.patient_id)
+        p_dict["report_count"] = len(reports)
+        p_dict["last_report_date"] = reports[0].get("generated_at") if reports else None
+        res_list.append(p_dict)
+
+    return {
+        "status": "SUCCESS",
+        "count": len(res_list),
+        "patients": res_list,
+    }
+
+
+@router.get("/patients/{patient_identifier}", dependencies=[_protected])
+def get_patient_endpoint(patient_identifier: str, request: Request, token: Optional[str] = None):
+    """Get complete patient clinical dossier including vitals history, scans, and reports with tenant isolation."""
+    p = DB_MANAGER.get_patient(patient_identifier)
+    if not p:
+        p = DB_MANAGER.get_patient_by_mrn(patient_identifier)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
+
+    user = get_authenticated_user_from_request(request, token)
+    if user:
+        if user.role == UserRole.PATIENT:
+            pat_code = (user.registration_number or "").strip().lower()
+            user_email = (user.email or "").strip().lower()
+            user_name = (user.full_name or "").strip().lower()
+            is_own = (
+                (pat_code and pat_code in (p.hospital_mrn or "").lower())
+                or (user_email and user_email == (p.contact or "").lower())
+                or (user_name and user_name == (p.name or "").lower())
+                or (user.user_id == p.patient_id)
+            )
+            if not is_own:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: Patient accounts may only access their own clinical records.",
+                )
+        else:
+            if user.hospital_id and p.hospital_id and user.hospital_id != p.hospital_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Access denied: Patient belongs to another hospital facility ({p.hospital_id}).",
+                )
+
+    p_dict = p.to_dict()
+    vitals = DB_MANAGER.get_patient_vitals(p.patient_id)
+    reports = REPORT_PERSISTENCE_SERVICE.get_patient_timeline(p.patient_id)
+    if user and user.role == UserRole.PATIENT:
+        reports = [r for r in reports if r.get("status") in ["SIGNED", "REVIEWED"]]
+    ecgs = DB_MANAGER.list_ecg_records(limit=100)
+    p_ecgs = [e for e in ecgs if str(e.get("patient_id")) == str(p.patient_id)]
+
+    p_dict["vitals_history"] = vitals
+    p_dict["reports"] = reports
+    p_dict["ecg_records"] = p_ecgs
+
+    return {
+        "status": "SUCCESS",
+        "patient": p_dict,
+        "vitals_history": vitals,
+        "reports": reports,
+        "ecg_records": p_ecgs,
+    }
+
+
+@router.put("/patients/{patient_identifier}", dependencies=[_protected])
+def update_patient_endpoint(patient_identifier: str, req: PatientUpdateRequest, request: Request, token: Optional[str] = None):
+    """Update patient record in place without duplicating records."""
+    p = DB_MANAGER.get_patient(patient_identifier)
+    if not p:
+        p = DB_MANAGER.get_patient_by_mrn(patient_identifier)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
+
+    user = get_authenticated_user_from_request(request, token)
+    if user:
+        if user.role == UserRole.PATIENT:
+            pat_code = (user.registration_number or "").strip().lower()
+            user_email = (user.email or "").strip().lower()
+            user_name = (user.full_name or "").strip().lower()
+            is_own = (
+                (pat_code and pat_code in (p.hospital_mrn or "").lower())
+                or (user_email and user_email == (p.contact or "").lower())
+                or (user_name and user_name == (p.name or "").lower())
+                or (user.user_id == p.patient_id)
+            )
+            if not is_own:
+                raise HTTPException(status_code=403, detail="Access denied: Cannot modify another patient's records.")
+        elif user.hospital_id and p.hospital_id and user.hospital_id != p.hospital_id:
+            raise HTTPException(status_code=403, detail=f"Access denied: Patient belongs to another hospital facility ({p.hospital_id}).")
+
+    def _to_str(val: Any) -> Optional[str]:
+        if val is None:
+            return None
+        if isinstance(val, list):
+            return ", ".join(str(item).strip() for item in val if str(item).strip()) or "None"
+        return str(val).strip()
+
+    updates: Dict[str, Any] = {}
+    if req.name is not None:
+        updates["name"] = req.name.strip()
+    if req.date_of_birth is not None:
+        updates["date_of_birth"] = req.date_of_birth
+        calc_age = calculate_age_from_dob(req.date_of_birth)
+        if calc_age is not None:
+            updates["age"] = calc_age
+    elif req.age is not None:
+        updates["age"] = req.age
+
+    if req.sex is not None:
+        updates["sex"] = req.sex
+    if req.contact is not None:
+        updates["contact"] = req.contact
+    if req.emergency_contact is not None:
+        updates["emergency_contact"] = req.emergency_contact
+    if req.blood_group is not None:
+        updates["blood_group"] = req.blood_group
+
+    if req.known_allergies is not None:
+        updates["known_allergies"] = _to_str(req.known_allergies)
+    if req.existing_conditions is not None:
+        updates["existing_conditions"] = _to_str(req.existing_conditions)
+    if req.current_medications is not None:
+        updates["current_medications"] = _to_str(req.current_medications)
+    if req.previous_cardiac_history is not None:
+        updates["previous_cardiac_history"] = _to_str(req.previous_cardiac_history)
+    if req.family_history is not None:
+        updates["family_history"] = _to_str(req.family_history)
+    if req.smoking_status is not None:
+        updates["smoking_status"] = req.smoking_status
+    if req.other_relevant_history is not None:
+        updates["other_relevant_history"] = req.other_relevant_history
+    if req.past_medical_history is not None:
+        updates["past_medical_history"] = req.past_medical_history
+    if req.other_clinical_information is not None:
+        updates["other_clinical_information"] = req.other_clinical_information
+
+    DB_MANAGER.update_patient(p.patient_id, **updates)
+
+    if any(v is not None for v in [req.systolic_bp, req.diastolic_bp, req.heart_rate, req.spo2]):
+        DB_MANAGER.record_vital_signs(
+            vital_id=f"VIT-{uuid.uuid4().hex[:6].upper()}",
+            patient_id=p.patient_id,
+            heart_rate_bpm=req.heart_rate,
+            systolic_bp_mmhg=req.systolic_bp,
+            diastolic_bp_mmhg=req.diastolic_bp,
+            spo2_percent=req.spo2,
+            source="CLINICAL_UPDATE",
+        )
+
+    if is_supabase_configured():
+        try:
+            sb = get_supabase_client(use_service_role=True)
+            if sb:
+                sb_up = {}
+                if "name" in updates:
+                    sb_up["full_name"] = updates["name"]
+                if "date_of_birth" in updates:
+                    sb_up["date_of_birth"] = updates["date_of_birth"]
+                if "sex" in updates:
+                    sb_up["sex"] = updates["sex"]
+                if "blood_group" in updates:
+                    sb_up["blood_group"] = updates["blood_group"]
+                if "known_allergies" in updates:
+                    sb_up["known_allergies"] = [a.strip() for a in updates["known_allergies"].split(",") if a.strip()]
+                if "existing_conditions" in updates:
+                    sb_up["existing_conditions"] = [c.strip() for c in updates["existing_conditions"].split(",") if c.strip()]
+                if "cardiac_history" in updates:
+                    sb_up["cardiac_history"] = [h.strip() for h in updates["cardiac_history"].split(",") if h.strip()]
+                if "smoking_status" in updates:
+                    sb_up["smoking_status"] = updates["smoking_status"]
+                if sb_up:
+                    sb.table("patients").update(sb_up).eq("id", p.patient_id).execute()
+        except Exception:
+            pass
+
+    AUDIT_LOGGER.log_event(
+        event_type="PATIENT_UPDATED",
+        user_id="SYSTEM",
+        username="System",
+        user_role="SYSTEM",
+        action=f"Updated details for patient {p.name} ({p.hospital_mrn})",
+        record_id=p.patient_id,
+        details={"updated_fields": list(updates.keys())},
+    )
+
+    updated_pat = DB_MANAGER.get_patient(p.patient_id)
+    return {
+        "status": "SUCCESS",
+        "message": f"Patient '{p.name}' updated successfully.",
+        "patient": updated_pat.to_dict() if updated_pat else {},
+    }
+
+
+@router.get("/dashboard/stats", dependencies=[_protected])
+def get_dashboard_stats(hospital_id: Optional[str] = "HOSP-APEX"):
+    """Aggregate authoritative metrics for Doctor Dashboard."""
+    hosp = hospital_id or "HOSP-APEX"
+    patients = DB_MANAGER.list_patients(hospital_id=hosp, limit=1000)
+    ecgs = DB_MANAGER.list_ecg_records(hospital_id=hosp, limit=50)
+    reports = REPORT_PERSISTENCE_SERVICE.list_reports(limit=100)
+
+    total_patients = len(patients)
+    total_ecgs = len(ecgs)
+    pending_reviews = sum(1 for r in reports if r.get("status") in ["DRAFT", "PENDING_REVIEW"])
+    completed_reports = sum(1 for r in reports if r.get("status") in ["SIGNED", "REVIEWED"])
+
+    recent_patients = [p.to_dict() for p in patients[:6]]
+    recent_ecgs = ecgs[:6]
+    recent_reports = reports[:6]
+
+    return {
+        "status": "SUCCESS",
+        "stats": {
+            "total_patients": total_patients,
+            "total_ecgs": total_ecgs,
+            "pending_reviews": pending_reviews,
+            "completed_reports": completed_reports,
+            "recent_patients": recent_patients,
+            "recent_ecgs": recent_ecgs,
+            "recent_reports": recent_reports,
+            "system_status": {
+                "regulatory": "CDSCO MDR 2017 Class B SaMD",
+                "iec_standard": "IEC 62304 Class B / ISO 13485",
+                "active_model": ACTIVE_MODEL_ID,
+                "signal_gate": "OPERATIONAL",
+                "persistence": "SUPABASE CLOUD + LOCAL RELATIONAL ENCRYPTED DUAL STORAGE",
+            },
+        },
+    }
 
 
 @router.post("/review", dependencies=[_protected])
@@ -748,6 +1474,10 @@ def record_clinician_review(rev: ReviewRequest):
         agreement_status=rev.agreement_status,
         clinician_interpretation=rev.clinician_interpretation,
         clinical_notes=rev.clinical_notes or "",
+        selected_medication=rev.selected_medication,
+        medication_dosage=rev.medication_dosage,
+        treatment_instructions=rev.treatment_instructions,
+        follow_up_instructions=rev.follow_up_instructions,
     )
     return {
         "review_id": f"REV-{hash(rev.analysis_id) & 0xFFFFFF:06X}",
@@ -760,6 +1490,12 @@ def record_clinician_review(rev: ReviewRequest):
         "agreement_status": rev.agreement_status,
         "clinician_interpretation": rev.clinician_interpretation,
         "clinical_notes": rev.clinical_notes,
+        "treatment_plan": {
+            "selected_medication": rev.selected_medication or "None",
+            "medication_dosage": rev.medication_dosage or "N/A",
+            "treatment_instructions": rev.treatment_instructions or rev.clinical_notes or "Maintain standard cardiovascular care.",
+            "follow_up_instructions": rev.follow_up_instructions or "Routine follow-up in 12 months.",
+        },
         "status": "SEALED",
         "message": "Clinician review recorded and cryptographically sealed in persistent storage.",
     }
@@ -767,10 +1503,12 @@ def record_clinician_review(rev: ReviewRequest):
 
 @router.get("/reports", dependencies=[_protected])
 def list_reports_endpoint(
+    request: Request,
     search: Optional[str] = None,
     status: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    token: Optional[str] = None,
 ):
     """List historical reports with search and status filters (Phase 28 & 29)."""
     reports = REPORT_PERSISTENCE_SERVICE.list_reports(
@@ -779,26 +1517,115 @@ def list_reports_endpoint(
         limit=limit,
         offset=offset,
     )
+    user = get_authenticated_user_from_request(request, token)
+    if user and user.role == UserRole.PATIENT:
+        pat_code = (user.registration_number or "").strip().lower()
+        user_name = (user.full_name or "").strip().lower()
+        reports = [
+            r for r in reports
+            if r.get("status") in ["SIGNED", "REVIEWED"]
+            and (
+                (pat_code and pat_code in str(r.get("hospital_mrn", "")).lower())
+                or (user_name and user_name in str(r.get("patient_name", "")).lower())
+            )
+        ]
+    elif user and user.hospital_id:
+        hosp_patients = {p.patient_id for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=500)}
+        hosp_mrns = {p.hospital_mrn for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=500)}
+        reports = [
+            r for r in reports
+            if not hosp_patients or r.get("patient_id") in hosp_patients or r.get("hospital_mrn") in hosp_mrns
+        ]
     return {"status": "SUCCESS", "count": len(reports), "reports": reports}
 
 
 @router.get("/reports/{report_identifier}", dependencies=[_protected])
-def get_report_endpoint(report_identifier: str):
+def get_report_endpoint(report_identifier: str, request: Request, token: Optional[str] = None):
     """Retrieve full immutable report snapshot by ID or report number without re-running ML (Phase 30 & 31)."""
     rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
     if not rep:
         raise HTTPException(status_code=404, detail="Report not found in persistent registry.")
+
+    user = get_authenticated_user_from_request(request, token)
+    rd = rep.get("report_data") or {}
+    p_info = rd.get("patient_info", {}) if isinstance(rd, dict) else {}
+    rep_pat_id = p_info.get("patient_id") or rep.get("patient_id")
+    rep_mrn = p_info.get("hospital_mrn") or rep.get("hospital_mrn")
+    rep_pat_name = p_info.get("patient_name") or rep.get("patient_name")
+
+    if user:
+        if user.role == UserRole.PATIENT:
+            pat_code = (user.registration_number or "").strip().lower()
+            user_name = (user.full_name or "").strip().lower()
+            is_own = (
+                (pat_code and pat_code in str(rep_mrn or "").lower())
+                or (user_name and user_name in str(rep_pat_name or "").lower())
+                or (rep_pat_id and user.user_id == rep_pat_id)
+            )
+            if not is_own:
+                raise HTTPException(status_code=403, detail="Access denied: Patient may only access their own reports.")
+            if rep.get("status") not in ["SIGNED", "REVIEWED"]:
+                raise HTTPException(status_code=403, detail="Patient access is restricted to signed and approved reports.")
+        else:
+            pat_rec = DB_MANAGER.get_patient(rep_pat_id) if rep_pat_id else None
+            if not pat_rec and rep_mrn:
+                pat_rec = DB_MANAGER.get_patient_by_mrn(rep_mrn)
+            if pat_rec and user.hospital_id and pat_rec.hospital_id and user.hospital_id != pat_rec.hospital_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Access denied: Report patient belongs to another hospital facility ({pat_rec.hospital_id}).",
+                )
+
+    if isinstance(rd, dict):
+        cr = rd.get("clinician_review") or {}
+        if cr and "reviewer_name" not in rep:
+            rep["reviewer_name"] = cr.get("clinician_name")
+            rep["agreement_status"] = cr.get("agreement_status")
     return {"status": "SUCCESS", "report": rep}
 
 
 @router.get("/reports/{report_identifier}/pdf", dependencies=[_protected])
-def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor"):
-    """Download PDF for historical report (Phase 32)."""
+def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor", request: Request = None, token: Optional[str] = None):
+    """Download PDF for historical report with RBAC and tenant protection (Phase 32)."""
+    rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Report not found in persistent registry.")
+
+    if request:
+        user = get_authenticated_user_from_request(request, token)
+        if user:
+            rd = rep.get("report_data") or {}
+            p_info = rd.get("patient_info", {}) if isinstance(rd, dict) else {}
+            rep_pat_id = p_info.get("patient_id") or rep.get("patient_id")
+            rep_mrn = p_info.get("hospital_mrn") or rep.get("hospital_mrn")
+            rep_pat_name = p_info.get("patient_name") or rep.get("patient_name")
+
+            if user.role == UserRole.PATIENT:
+                pat_code = (user.registration_number or "").strip().lower()
+                user_name = (user.full_name or "").strip().lower()
+                is_own = (
+                    (pat_code and pat_code in str(rep_mrn or "").lower())
+                    or (user_name and user_name in str(rep_pat_name or "").lower())
+                    or (rep_pat_id and user.user_id == rep_pat_id)
+                )
+                if not is_own:
+                    raise HTTPException(status_code=403, detail="Access denied: Patient may only access their own reports.")
+                if rep.get("status") not in ["SIGNED", "REVIEWED"]:
+                    raise HTTPException(status_code=403, detail="Patient access is restricted to signed and approved reports.")
+            else:
+                pat_rec = DB_MANAGER.get_patient(rep_pat_id) if rep_pat_id else None
+                if not pat_rec and rep_mrn:
+                    pat_rec = DB_MANAGER.get_patient_by_mrn(rep_mrn)
+                if pat_rec and user.hospital_id and pat_rec.hospital_id and user.hospital_id != pat_rec.hospital_id:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Access denied: Report patient belongs to another hospital facility ({pat_rec.hospital_id}).",
+                    )
+
     pdf_bytes = REPORT_PERSISTENCE_SERVICE.get_report_pdf(report_identifier, report_type=type)
     if not pdf_bytes:
         raise HTTPException(status_code=404, detail="Report or PDF not found.")
 
-    rep = REPORT_PERSISTENCE_SERVICE.get_report(report_identifier)
     rep_num = (rep.get("report_number") if rep else None) or "ecg_report"
     return Response(
         content=pdf_bytes,

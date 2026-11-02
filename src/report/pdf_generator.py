@@ -1050,6 +1050,43 @@ def generate_patient_report(
             story.append(KeepTogether([RLImage(img_buf, width=540, height=75), t_crit_wf_pat]))
             story.append(Spacer(1, 5))
 
+    # 6b. Doctor-Approved Care Directives & Treatment Plan (when signed/reviewed)
+    c_rev = report_data.get("clinician_review") or {}
+    t_plan = report_data.get("approved_treatment_plan") or c_rev.get("treatment_plan") or {}
+    if c_rev or t_plan:
+        doc_name = c_rev.get("clinician_name") or "Attending Physician"
+        doc_reg = c_rev.get("registration_number") or "Verified Clinician"
+        doc_interp = c_rev.get("clinician_interpretation") or "Normal Sinus Rhythm. Clinically stable."
+        doc_notes = c_rev.get("clinical_notes") or t_plan.get("instructions") or "Follow standard cardiovascular lifestyle directives."
+        approved_med = t_plan.get("selected_medication") or t_plan.get("medication") or "None prescribed (Monitoring only)"
+        dosage = t_plan.get("medication_dosage") or t_plan.get("dosage") or "N/A"
+        followup = t_plan.get("follow_up_instructions") or t_plan.get("follow_up") or "Routine follow-up in 6 to 12 months."
+
+        plan_rows = [
+            [Paragraph("<b>Attending Doctor:</b>", body_text), Paragraph(f"<b>{doc_name}</b> (Reg: {doc_reg})", body_text)],
+            [Paragraph("<b>Doctor's Assessment:</b>", body_text), Paragraph(doc_interp, body_text)],
+            [Paragraph("<b>Approved Medication:</b>", body_text), Paragraph(f"{approved_med} — {dosage}", body_text)],
+            [Paragraph("<b>Doctor Directives:</b>", body_text), Paragraph(doc_notes, body_text)],
+            [Paragraph("<b>Recommended Follow-up:</b>", body_text), Paragraph(f"<b>{followup}</b>", body_text)],
+        ]
+        t_plan_tbl = Table(plan_rows, colWidths=[130, 410])
+        t_plan_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0fdf4")),
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#86efac")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#bbf7d0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.append(Paragraph("DOCTOR-APPROVED CARE DIRECTIVES & TREATMENT PLAN", sec_heading))
+        t_crit_plan = _make_pdf_criteria_footer(
+            label="Attestation",
+            criteria=[f"Signed by {doc_name}", "Cryptographically sealed", "Subject to in-person consultation"],
+            width=540,
+        )
+        story.append(KeepTogether([t_plan_tbl, t_crit_plan]))
+        story.append(Spacer(1, 5))
+
     # 7. Helpful Discussion Points For Doctor Consultation
     story.append(Paragraph("5. QUESTIONS TO ASK YOUR DOCTOR", sec_heading))
     disc_points = [

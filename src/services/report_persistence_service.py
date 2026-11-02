@@ -60,6 +60,7 @@ class ReportPersistenceService:
         self,
         report_data: Dict[str, Any],
         pdf_bytes: Optional[bytes] = None,
+        patient_pdf_bytes: Optional[bytes] = None,
         patient_id: Optional[str] = None,
         ecg_id: Optional[str] = None,
         analysis_id: Optional[str] = None,
@@ -92,6 +93,7 @@ class ReportPersistenceService:
                     "report_id": existing.get("id") or existing.get("report_id"),
                     "report_number": existing.get("report_number"),
                     "pdf_storage_path": existing.get("pdf_storage_path"),
+                    "patient_pdf_storage_path": existing.get("patient_pdf_storage_path"),
                     "report": existing,
                     "is_idempotent_duplicate": True,
                 }
@@ -113,14 +115,16 @@ class ReportPersistenceService:
             "generated_at": timestamp_now,
         }
 
-        # 3. Save PDF Binary (Supabase Storage + Local Fallback)
+        # 3. Save PDF Binary (Doctor & Patient Reports)
         pdf_storage_path = None
+        patient_pdf_storage_path = None
         pdf_save_error = None
+
+        # 3A. Doctor PDF Storage
         if pdf_bytes:
-            pdf_path_str = f"reports/{eff_patient_id}/{report_uuid}/report.pdf"
+            pdf_path_str = f"reports/{eff_patient_id}/{report_uuid}/doctor_report.pdf"
             pdf_saved = False
 
-            # Try Supabase Storage first
             if is_supabase_configured():
                 try:
                     sb = get_supabase_client(use_service_role=True)
@@ -135,11 +139,10 @@ class ReportPersistenceService:
                 except Exception as exc:
                     pdf_save_error = str(exc)
 
-            # Local filesystem backup storage
             try:
                 local_dir = self.local_reports_dir / eff_patient_id / report_uuid
                 local_dir.mkdir(parents=True, exist_ok=True)
-                local_pdf_file = local_dir / "report.pdf"
+                local_pdf_file = local_dir / "doctor_report.pdf"
                 with open(local_pdf_file, "wb") as f:
                     f.write(pdf_bytes)
                 if not pdf_storage_path:
@@ -148,6 +151,43 @@ class ReportPersistenceService:
             except Exception as exc:
                 if not pdf_saved:
                     pdf_save_error = str(exc)
+
+        # 3B. Patient PDF Storage
+        if patient_pdf_bytes:
+            pat_pdf_path_str = f"reports/{eff_patient_id}/{report_uuid}/patient_summary.pdf"
+            pat_saved = False
+
+            if is_supabase_configured():
+                try:
+                    sb = get_supabase_client(use_service_role=True)
+                    if sb:
+                        sb.storage.from_("ecg-reports").upload(
+                            path=pat_pdf_path_str,
+                            file=patient_pdf_bytes,
+                            file_options={"content-type": "application/pdf", "upsert": "true"},
+                        )
+                        patient_pdf_storage_path = f"supabase://ecg-reports/{pat_pdf_path_str}"
+                        pat_saved = True
+                except Exception:
+                    pass
+
+            try:
+                local_dir = self.local_reports_dir / eff_patient_id / report_uuid
+                local_dir.mkdir(parents=True, exist_ok=True)
+                local_pat_file = local_dir / "patient_summary.pdf"
+                with open(local_pat_file, "wb") as f:
+                    f.write(patient_pdf_bytes)
+                if not patient_pdf_storage_path:
+                    patient_pdf_storage_path = str(local_pat_file)
+            except Exception:
+                pass
+
+        if pdf_storage_path:
+            enriched_report_data["report_meta"]["pdf_storage_path"] = pdf_storage_path
+            enriched_report_data["pdf_storage_path"] = pdf_storage_path
+        if patient_pdf_storage_path:
+            enriched_report_data["report_meta"]["patient_pdf_storage_path"] = patient_pdf_storage_path
+            enriched_report_data["patient_pdf_storage_path"] = patient_pdf_storage_path
 
         # Compute SHA-256 integrity hash of report snapshot
         snapshot_bytes = json.dumps(enriched_report_data, sort_keys=True).encode("utf-8")
@@ -456,6 +496,10 @@ class ReportPersistenceService:
         clinician_interpretation: str,
         clinical_notes: str,
         signed_pdf_bytes: Optional[bytes] = None,
+        selected_medication: Optional[str] = None,
+        medication_dosage: Optional[str] = None,
+        treatment_instructions: Optional[str] = None,
+        follow_up_instructions: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Record physician sign-off, freeze the report snapshot, update status to SIGNED,
@@ -476,6 +520,15 @@ class ReportPersistenceService:
             except Exception:
                 report_data = {}
 
+        treatment_plan = {
+            "selected_medication": selected_medication or "None",
+            "medication_dosage": medication_dosage or "N/A",
+            "instructions": treatment_instructions or clinical_notes or "Maintain standard cardiovascular care.",
+            "follow_up_instructions": follow_up_instructions or "Routine follow-up in 12 months.",
+            "approved_by": clinician_name,
+            "approved_at": now_ts,
+        }
+
         # Update doctor review section in immutable snapshot
         report_data["clinician_review"] = {
             "review_id": review_id,
@@ -486,9 +539,12 @@ class ReportPersistenceService:
             "agreement_status": agreement_status,
             "clinician_interpretation": clinician_interpretation,
             "clinical_notes": clinical_notes,
+            "treatment_plan": treatment_plan,
             "reviewed_at": now_ts,
             "status": "SIGNED",
         }
+        report_data["approved_treatment_plan"] = treatment_plan
+
         if "report_meta" in report_data:
             report_data["report_meta"]["report_status"] = "SIGNED"
             report_data["report_meta"]["signed_at"] = now_ts
@@ -538,24 +594,30 @@ class ReportPersistenceService:
         if not rep:
             return None
 
-        pdf_path = rep.get("pdf_storage_path")
+        is_patient = str(report_type).lower() == "patient"
+        target_path = rep.get("patient_pdf_storage_path") if is_patient else rep.get("pdf_storage_path")
+        if not target_path:
+            rd = rep.get("report_data") or {}
+            if isinstance(rd, dict):
+                target_path = rd.get("patient_pdf_storage_path") if is_patient else rd.get("pdf_storage_path")
+
         pdf_bytes = None
 
         # Check local file
-        if pdf_path and not str(pdf_path).startswith("supabase://") and os.path.exists(pdf_path):
+        if target_path and not str(target_path).startswith("supabase://") and os.path.exists(target_path):
             try:
-                with open(pdf_path, "rb") as f:
+                with open(target_path, "rb") as f:
                     pdf_bytes = f.read()
             except Exception:
                 pass
 
         # Check Supabase Storage
-        if not pdf_bytes and pdf_path and str(pdf_path).startswith("supabase://"):
+        if not pdf_bytes and target_path and str(target_path).startswith("supabase://"):
             if is_supabase_configured():
                 try:
                     sb = get_supabase_client(use_service_role=True)
                     if sb:
-                        storage_file_path = str(pdf_path).replace("supabase://ecg-reports/", "")
+                        storage_file_path = str(target_path).replace("supabase://ecg-reports/", "")
                         pdf_bytes = sb.storage.from_("ecg-reports").download(storage_file_path)
                 except Exception:
                     pass
@@ -570,7 +632,7 @@ class ReportPersistenceService:
                         report_data = json.loads(report_data)
                     except Exception:
                         report_data = {}
-                if report_type == "patient":
+                if is_patient:
                     pdf_bytes = generate_patient_report(report_data)
                 else:
                     pdf_bytes = generate_doctor_report(report_data)
