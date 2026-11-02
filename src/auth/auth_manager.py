@@ -246,8 +246,14 @@ class AuthManager:
         return u
 
     def authenticate(self, username: str, password: str) -> Optional[User]:
-        """Authenticate user against credential store."""
-        user = self._users.get(username.strip().lower())
+        """Authenticate user against credential store by username or email."""
+        ident = username.strip().lower()
+        user = self._users.get(ident)
+        if user is None:
+            for u in self._users.values():
+                if u.email and u.email.strip().lower() == ident:
+                    user = u
+                    break
         if user is None or not user.is_active:
             return None
         if verify_password(password, user.password_hash, user.salt):
@@ -343,3 +349,10 @@ class AuthManager:
 
 # Global singleton instance
 AUTH_MANAGER = AuthManager()
+
+# Ensure module unification between 'auth.auth_manager' and 'src.auth.auth_manager'
+import sys as _sys
+if "auth.auth_manager" not in _sys.modules:
+    _sys.modules["auth.auth_manager"] = _sys.modules[__name__]
+if "src.auth.auth_manager" not in _sys.modules:
+    _sys.modules["src.auth.auth_manager"] = _sys.modules[__name__]

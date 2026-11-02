@@ -21,9 +21,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from database.db_manager import DB_MANAGER
-from database.supabase_client import get_supabase_client, is_supabase_configured
-from audit.audit_logger import AUDIT_LOGGER
+try:
+    from database.db_manager import DB_MANAGER
+    from database.supabase_client import get_supabase_client, is_supabase_configured
+    from audit.audit_logger import AUDIT_LOGGER
+except ImportError:
+    from src.database.db_manager import DB_MANAGER
+    from src.database.supabase_client import get_supabase_client, is_supabase_configured
+    from src.audit.audit_logger import AUDIT_LOGGER
 
 
 class PersistenceStatus(str, Enum):
@@ -494,7 +499,7 @@ class ReportPersistenceService:
         registration_number: str,
         agreement_status: str,
         clinician_interpretation: str,
-        clinical_notes: str,
+        clinical_notes: str = "",
         signed_pdf_bytes: Optional[bytes] = None,
         selected_medication: Optional[str] = None,
         medication_dosage: Optional[str] = None,
@@ -625,7 +630,10 @@ class ReportPersistenceService:
         # If not on disk/cloud, synthesize from report_data snapshot
         if not pdf_bytes:
             try:
-                from report.pdf_generator import generate_doctor_report, generate_patient_report
+                try:
+                    from report.pdf_generator import generate_doctor_report, generate_patient_report
+                except ImportError:
+                    from src.report.pdf_generator import generate_doctor_report, generate_patient_report
                 report_data = rep.get("report_data") or {}
                 if isinstance(report_data, str):
                     try:

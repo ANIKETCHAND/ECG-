@@ -1227,6 +1227,9 @@
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       z-index: 99;
+      display: none;
+    }
+
     /* Notification Drawer Panel */
     .notification-drawer-backdrop {
       position: fixed;
@@ -2943,7 +2946,7 @@
           <!-- Search & Filter Controls -->
           <div class="history-filter-bar">
             <div class="history-search-input">
-              <input type="text" class="form-input" id="historySearchInput" placeholder="Search by Patient Name or MRN..." onkeyup="filterReportHistory()" />
+              <input type="text" class="form-input" id="historySearchInput" placeholder="Search by Patient Name or MRN..." oninput="filterReportHistory()" onkeyup="filterReportHistory()" />
             </div>
 
             <div style="display:flex; gap:10px;">
@@ -3605,6 +3608,7 @@
       showToast('Signed out of clinical session', 'fa-right-from-bracket');
       navigateTo('landing');
     }
+    window.logoutUser = signOutUser;
 
     function openLoginFormForRole(role) {
       authRoleMode = role;
@@ -3677,6 +3681,8 @@
           const data = await res.json();
           if (data && data.user) {
             currentUser = data.user;
+            currentUser.name = data.user.full_name || data.user.name || 'User';
+            currentUser.mrn = data.user.registration_number || data.user.patient_code || '';
             currentUser.initials = (data.user.full_name || 'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
             localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
             if (data.token) localStorage.setItem('ecg_guardian_token', data.token);
@@ -3690,8 +3696,8 @@
           alert(err.detail || 'Authentication failed. Please verify email and password.');
         }
       } catch (err) {
-        console.warn('Auth request failed, applying local session:', err);
-        quickLoginUser(authRoleMode === 'DOCTOR' ? 'dr_aniket' : 'raj_verma');
+        console.warn('Auth request failed:', err);
+        showToast('Network error during authentication.', 'fa-circle-exclamation');
       }
     }
 
@@ -3787,11 +3793,14 @@
       try {
         const token = localStorage.getItem('ecg_guardian_token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE}/api/patients/MRN-5F2298`, { headers });
+        const patId = (currentUser && (currentUser.registration_number || currentUser.patient_code || currentUser.mrn || currentUser.user_id)) || 'MRN-5F2298';
+        const res = await fetch(`${API_BASE}/api/patients/${encodeURIComponent(patId)}`, { headers });
         if (res.ok) {
           const data = await res.json();
           if (data && data.patient) {
             currentPatient.name = data.patient.name || currentPatient.name;
+            currentPatient.mrn = data.patient.hospital_mrn || currentPatient.mrn;
+            currentPatient.id = data.patient.patient_id || currentPatient.id;
           }
         }
       } catch (e) {}
@@ -4126,31 +4135,57 @@
           if (data.detected_r_peaks) currentRPeaks = data.detected_r_peaks;
 
           updateAnalysisUiWithData(data);
-          showToast('AI ECG Analysis Complete', 'fa-circle-check');
+          if (data.status === 'UNUSABLE_SIGNAL' || data.can_run_ai === false) {
+            showToast('Signal Unusable: Analysis halted for patient safety', 'fa-triangle-exclamation');
+          } else {
+            showToast('AI ECG Analysis Complete', 'fa-circle-check');
+          }
+          return;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToast(errData.detail || 'Analysis request failed: ' + res.statusText, 'fa-circle-exclamation');
           return;
         }
       } catch (e) {
-        console.warn('Analyze endpoint fallback:', e);
+        console.warn('Analyze endpoint error:', e);
+        showToast('Network error: Unable to reach clinical API.', 'fa-circle-exclamation');
+        return;
       }
-
-      // Local authoritative fallback matching screen 8
-      updateAnalysisUiWithData({
-        ai_classification: { prediction: 'Normal Sinus Rhythm', probabilities: { 'Normal': 0.968, 'PVC': 0.021, 'Other': 0.011 } },
-        cardiac_parameters: { heart_rate_bpm: 72, pr_interval_ms: 160, qrs_duration_ms: 88, qt_interval_ms: 392, qtc_bazett_ms: 429 },
-        clinical_decision_support: { finding: 'Normal Sinus Rhythm', urgency: 'ROUTINE REVIEW' }
-      });
-      showToast('AI Analysis Complete', 'fa-circle-check');
     }
 
     function updateAnalysisUiWithData(data) {
-      const pred = (data.ai_classification && data.ai_classification.prediction) || 'Normal Sinus Rhythm';
+      if (!data) return;
+
+      // Handle Signal Quality Gatekeeper Rejection
+      if (data.status === 'UNUSABLE_SIGNAL' || data.can_run_ai === false) {
+        document.getElementById('aiPrimaryPrediction').textContent = 'NO RESULT — SIGNAL UNUSABLE';
+        document.getElementById('resultPatientName').textContent = currentPatient.name;
+        document.getElementById('resultPatientMeta').innerHTML = 
+          `MRN: <strong>${currentPatient.mrn}</strong> | Signal Quality: <span style="color:var(--error); font-weight:bold;">${data.quality_category || 'UNUSABLE'}</span>`;
+        document.getElementById('aiConfidenceText').innerHTML = `Confidence: <strong>0.0% (Signal Rejected)</strong>`;
+
+        document.getElementById('measHr').innerHTML = `— <span style="font-size:0.75rem; font-weight:normal;">bpm</span>`;
+        document.getElementById('measPr').innerHTML = `— <span style="font-size:0.75rem; font-weight:normal;">ms</span>`;
+        document.getElementById('measQrs').innerHTML = `— <span style="font-size:0.75rem; font-weight:normal;">ms</span>`;
+        document.getElementById('measQt').innerHTML = `— <span style="font-size:0.75rem; font-weight:normal;">ms</span>`;
+        document.getElementById('measQtc').innerHTML = `— <span style="font-size:0.75rem; font-weight:normal;">ms</span>`;
+
+        renderAnalysisWaveformChart();
+        return;
+      }
+
+      const pred = (data.ai_classification && data.ai_classification.prediction) || data.prediction || 'Normal Sinus Rhythm';
       document.getElementById('aiPrimaryPrediction').textContent = pred;
       document.getElementById('resultPatientName').textContent = currentPatient.name;
       document.getElementById('resultPatientMeta').innerHTML = 
         `MRN: <strong>${currentPatient.mrn}</strong> | Scan: 31 Oct 2026, 10:24 AM`;
 
-      const conf = data.ai_classification && data.ai_classification.probabilities ? 
-        Math.round((data.ai_classification.probabilities['Normal'] || 0.968) * 1000) / 10 : 96.8;
+      let conf = 95.0;
+      if (data.ai_classification && data.ai_classification.probabilities) {
+        const probs = data.ai_classification.probabilities;
+        const topProb = Math.max(...Object.values(probs));
+        conf = Math.round(topProb * 1000) / 10;
+      }
       document.getElementById('aiConfidenceText').innerHTML = `Confidence: <strong>${conf}%</strong>`;
 
       if (data.cardiac_parameters) {
@@ -4244,8 +4279,21 @@
       document.getElementById('docRepPatAgeSex').textContent = `${p.age} years / ${p.sex}`;
       document.getElementById('docRepPatBlood').textContent = p.blood;
 
-      const finding = (lastAnalysisResult && lastAnalysisResult.ai_classification && lastAnalysisResult.ai_classification.prediction) || 'Normal Sinus Rhythm';
-      document.getElementById('docRepFinding').textContent = finding;
+      let finding = 'Normal Sinus Rhythm';
+      let isUnusable = false;
+      if (lastAnalysisResult) {
+        if (lastAnalysisResult.status === 'UNUSABLE_SIGNAL' || lastAnalysisResult.can_run_ai === false || lastAnalysisResult.prediction === 'NO_RESULT_SIGNAL_UNUSABLE') {
+          finding = 'NO RESULT — SIGNAL UNUSABLE';
+          isUnusable = true;
+        } else {
+          finding = (lastAnalysisResult.ai_classification && lastAnalysisResult.ai_classification.prediction) || lastAnalysisResult.prediction || 'Normal Sinus Rhythm';
+        }
+      }
+      const docFindingEl = document.getElementById('docRepFinding');
+      if (docFindingEl) {
+        docFindingEl.textContent = finding;
+        docFindingEl.style.color = isUnusable ? 'var(--error)' : (finding.toLowerCase().includes('normal') ? 'var(--success)' : 'var(--error)');
+      }
 
       // Render static rhythm strip inside report
       const el = document.getElementById('docReportWaveformChart');
@@ -4273,21 +4321,40 @@
     function populatePatientReportView() {
       const p = currentPatient;
       document.getElementById('patRepGreeting').textContent = `Hello ${p.name},`;
-      const finding = (lastAnalysisResult && lastAnalysisResult.ai_classification && lastAnalysisResult.ai_classification.prediction) || 'Normal Sinus Rhythm';
-      const isNormal = finding.toLowerCase().includes('normal');
+      
+      let finding = 'Normal Sinus Rhythm';
+      let isUnusable = false;
+      if (lastAnalysisResult) {
+        if (lastAnalysisResult.status === 'UNUSABLE_SIGNAL' || lastAnalysisResult.can_run_ai === false || lastAnalysisResult.prediction === 'NO_RESULT_SIGNAL_UNUSABLE') {
+          finding = 'NO RESULT — SIGNAL UNUSABLE';
+          isUnusable = true;
+        } else {
+          finding = (lastAnalysisResult.ai_classification && lastAnalysisResult.ai_classification.prediction) || lastAnalysisResult.prediction || 'Normal Sinus Rhythm';
+        }
+      }
+      const isNormal = !isUnusable && finding.toLowerCase().includes('normal');
       
       const resH = document.getElementById('patRepResultHeader');
       const resD = document.getElementById('patRepResultDesc');
       if (resH) {
-        resH.innerHTML = isNormal 
-          ? '<i class="fa-solid fa-circle-check"></i> Overall Result: Normal'
-          : '<i class="fa-solid fa-triangle-exclamation"></i> Overall Result: Abnormal (Review Recommended)';
-        resH.style.color = isNormal ? 'var(--success)' : 'var(--error)';
+        if (isUnusable) {
+          resH.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Overall Result: Inconclusive (Signal Unusable)';
+          resH.style.color = 'var(--error)';
+        } else {
+          resH.innerHTML = isNormal 
+            ? '<i class="fa-solid fa-circle-check"></i> Overall Result: Normal'
+            : '<i class="fa-solid fa-triangle-exclamation"></i> Overall Result: Abnormal (Review Recommended)';
+          resH.style.color = isNormal ? 'var(--success)' : 'var(--error)';
+        }
       }
       if (resD) {
-        resD.textContent = isNormal
-          ? 'Your heart rhythm is normal and no major problem was found.'
-          : `Findings detected: ${finding}. Your doctor will provide tailored clinical follow-up.`;
+        if (isUnusable) {
+          resD.textContent = 'The ECG recording quality was insufficient or unusable. Please contact your clinician for a repeat scan.';
+        } else {
+          resD.textContent = isNormal
+            ? 'Your heart rhythm is normal and no major problem was found.'
+            : `Findings detected: ${finding}. Your doctor will provide tailored clinical follow-up.`;
+        }
       }
 
       const adv1 = document.getElementById('patRepAdvice1');
@@ -4362,7 +4429,13 @@
           const data = await res.json();
           let reports = data.reports || [];
           if (isPatient) {
-            reports = reports.filter(r => (r.patient_name || '').toLowerCase() === (currentUser.name || 'Raj Verma').toLowerCase() || (r.hospital_mrn || '') === (currentUser.mrn || 'MRN-5F2298'));
+            const patName = (currentUser.name || currentUser.full_name || '').toLowerCase();
+            const patMrn = (currentUser.mrn || currentUser.registration_number || '').toLowerCase();
+            reports = reports.filter(r => {
+              const rName = (r.patient_name || '').toLowerCase();
+              const rMrn = (r.hospital_mrn || '').toLowerCase();
+              return (patName && rName === patName) || (patMrn && rMrn === patMrn);
+            });
           }
           if (reports.length > 0) {
             renderHistoryRows(reports);
@@ -4376,9 +4449,12 @@
       // If patient, restrict visible rows in default table
       const rows = document.querySelectorAll('#tblReportHistoryBody tr');
       if (isPatient) {
+        const patName = (currentUser.name || currentUser.full_name || '').toLowerCase();
+        const patMrn = (currentUser.mrn || currentUser.registration_number || '').toLowerCase();
         rows.forEach(r => {
           const text = r.innerText.toLowerCase();
-          r.style.display = text.includes((currentUser.name || 'raj verma').toLowerCase()) ? '' : 'none';
+          const match = (patName && text.includes(patName)) || (patMrn && text.includes(patMrn));
+          r.style.display = match ? '' : 'none';
         });
       }
     }

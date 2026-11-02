@@ -51,3 +51,6 @@ data/datasets/**/metadata/*.json
 reports/MRN-*/
 reports/PAT-*/
 .env*
+ 
+scratch/
+Msec/

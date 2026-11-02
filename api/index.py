@@ -32,7 +32,10 @@ from pydantic import BaseModel
 
 from fastapi.responses import Response
 
-from auth.auth_manager import AUTH_MANAGER, UserRole, User
+try:
+    from src.auth.auth_manager import AUTH_MANAGER, UserRole, User
+except ImportError:
+    from auth.auth_manager import AUTH_MANAGER, UserRole, User
 
 from ecg_core.models import ECGRecording
 from ecg_input.signal_loader import load_any_ecg
@@ -325,12 +328,11 @@ def google_auth_endpoint(req: GoogleAuthRequest):
     }
 
 @router.get("/auth/me")
-def get_current_user_endpoint(token: Optional[str] = None):
+def get_current_user_endpoint(request: Request, token: Optional[str] = None):
     """Get active authenticated clinician profile."""
-    if token:
-        user = AUTH_MANAGER.validate_session(token)
-        if user:
-            return {"status": "AUTHENTICATED", "user": user.to_dict()}
+    user = get_authenticated_user_from_request(request, token)
+    if user:
+        return {"status": "AUTHENTICATED", "user": user.to_dict()}
     cardiologist = AUTH_MANAGER.get_user_by_username("cardiologist")
     if cardiologist:
         return {"status": "DEFAULT", "user": cardiologist.to_dict()}
@@ -980,7 +982,7 @@ def analyze_ecg(req: AnalyzeRequest):
     # Persist immutable report snapshot to Supabase / Local storage
     persist_res = REPORT_PERSISTENCE_SERVICE.save_report_snapshot(
         report_data=report_dict,
-        patient_id=req.patient_id,
+        patient_id=eff_patient_id,
         ecg_id=rec.record_id,
         analysis_id=analysis_res.analysis_id,
         status="PENDING_REVIEW",
@@ -1186,6 +1188,7 @@ def create_patient_endpoint(req: PatientCreateRequest):
 def list_patients_endpoint(
     request: Request,
     search: Optional[str] = None,
+    q: Optional[str] = None,
     hospital_id: Optional[str] = None,
     limit: int = 100,
     token: Optional[str] = None,
@@ -1215,16 +1218,16 @@ def list_patients_endpoint(
         patients = scoped_patients
 
     res_list = []
-    q = (search or "").strip().lower()
+    query_str = (search or q or "").strip().lower()
 
     for p in patients:
         p_dict = p.to_dict()
-        if q:
+        if query_str:
             match = (
-                q in str(p_dict.get("name", "")).lower()
-                or q in str(p_dict.get("hospital_mrn", "")).lower()
-                or q in str(p_dict.get("contact", "")).lower()
-                or q in str(p_dict.get("existing_conditions", "")).lower()
+                query_str in str(p_dict.get("name", "")).lower()
+                or query_str in str(p_dict.get("hospital_mrn", "")).lower()
+                or query_str in str(p_dict.get("contact", "")).lower()
+                or query_str in str(p_dict.get("existing_conditions", "")).lower()
             )
             if not match:
                 continue
@@ -1496,6 +1499,14 @@ def record_clinician_review(rev: ReviewRequest):
             "treatment_instructions": rev.treatment_instructions or rev.clinical_notes or "Maintain standard cardiovascular care.",
             "follow_up_instructions": rev.follow_up_instructions or "Routine follow-up in 12 months.",
         },
+        "review_details": {
+            "agreement_status": rev.agreement_status,
+            "clinician_name": rev.clinician_name,
+            "clinician_role": rev.clinician_role,
+            "registration_number": rev.registration_number,
+            "clinician_interpretation": rev.clinician_interpretation,
+            "clinical_notes": rev.clinical_notes,
+        },
         "status": "SEALED",
         "message": "Clinician review recorded and cryptographically sealed in persistent storage.",
     }
@@ -1548,10 +1559,18 @@ def get_report_endpoint(report_identifier: str, request: Request, token: Optiona
 
     user = get_authenticated_user_from_request(request, token)
     rd = rep.get("report_data") or {}
+    if isinstance(rd, str):
+        try:
+            rd = json.loads(rd)
+        except Exception:
+            rd = {}
     p_info = rd.get("patient_info", {}) if isinstance(rd, dict) else {}
     rep_pat_id = p_info.get("patient_id") or rep.get("patient_id")
-    rep_mrn = p_info.get("hospital_mrn") or rep.get("hospital_mrn")
-    rep_pat_name = p_info.get("patient_name") or rep.get("patient_name")
+    rep_mrn = p_info.get("hospital_mrn") or p_info.get("mrn") or rep.get("hospital_mrn")
+    rep_pat_name = p_info.get("patient_name") or p_info.get("name") or rep.get("patient_name")
+    rep["patient_name"] = rep_pat_name
+    rep["hospital_mrn"] = rep_mrn
+    rep["patient_id"] = rep_pat_id
 
     if user:
         if user.role == UserRole.PATIENT:
@@ -1595,10 +1614,15 @@ def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor", reques
         user = get_authenticated_user_from_request(request, token)
         if user:
             rd = rep.get("report_data") or {}
+            if isinstance(rd, str):
+                try:
+                    rd = json.loads(rd)
+                except Exception:
+                    rd = {}
             p_info = rd.get("patient_info", {}) if isinstance(rd, dict) else {}
             rep_pat_id = p_info.get("patient_id") or rep.get("patient_id")
-            rep_mrn = p_info.get("hospital_mrn") or rep.get("hospital_mrn")
-            rep_pat_name = p_info.get("patient_name") or rep.get("patient_name")
+            rep_mrn = p_info.get("hospital_mrn") or p_info.get("mrn") or rep.get("hospital_mrn")
+            rep_pat_name = p_info.get("patient_name") or p_info.get("name") or rep.get("patient_name")
 
             if user.role == UserRole.PATIENT:
                 pat_code = (user.registration_number or "").strip().lower()
@@ -1810,7 +1834,14 @@ PUBLIC_DIR = BASE_DIR / "public"
 def serve_index():
     index_file = PUBLIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(
+            index_file,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return health_check()
 
 @app.get("/api")

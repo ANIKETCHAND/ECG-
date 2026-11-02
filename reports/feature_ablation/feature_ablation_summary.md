@@ -10,15 +10,15 @@
 
 | Configuration | Total Features | Weighted F1 | AUROC | ECE | Delta vs. ECG-Only | Empirical Value |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. ECG Only** | 28 | 0.9445 | 0.9769 | 0.0446 | +0.0000 | POSITIVE |
-| **2. ECG + Demographics** | 32 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **3. ECG + Symptoms** | 32 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **4. ECG + Vital Signs** | 34 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **5. ECG + Medical History** | 33 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **6. ECG + Labs** | 34 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **7. ECG + Medications** | 32 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
-| **8. ECG + Blood Group (Empirical Test)** | 33 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | NEUTRAL / NO DIRECT PREDICTIVE VALUE |
-| **9. ECG + All Permitted Clinical Features** | 57 | 0.9465 | 0.9768 | 0.0321 | +0.0020 | POSITIVE |
+| **1. ECG Only** | 28 | 0.9120 | 0.9756 | 0.0332 | +0.0000 | POSITIVE |
+| **2. ECG + Demographics** | 32 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **3. ECG + Symptoms** | 32 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **4. ECG + Vital Signs** | 34 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **5. ECG + Medical History** | 33 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **6. ECG + Labs** | 34 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **7. ECG + Medications** | 32 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
+| **8. ECG + Blood Group (Empirical Test)** | 33 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NEUTRAL / NO DIRECT PREDICTIVE VALUE |
+| **9. ECG + All Permitted Clinical Features** | 57 | 0.9078 | 0.9726 | 0.0749 | -0.0042 | NOISE |
 
 ---
 

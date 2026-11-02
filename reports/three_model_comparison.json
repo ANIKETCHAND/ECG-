@@ -1,5 +1,5 @@
 {
-  "evaluation_timestamp": "2026-09-24T17:54:12.283751",
+  "evaluation_timestamp": "2026-11-02T14:37:47.577315",
   "patient_split_isolated": true,
   "classes": [
     "Normal",
@@ -7,101 +7,101 @@
     "PVC"
   ],
   "model_a_ecg_only": {
-    "accuracy": 0.9517,
-    "balanced_accuracy": 0.7887,
-    "weighted_f1": 0.9445,
-    "macro_f1": 0.8279,
-    "precision": 0.9491,
-    "recall": 0.9517,
-    "auroc": 0.9769,
-    "auprc": 0.9722,
-    "ece": 0.0446,
+    "accuracy": 0.9086,
+    "balanced_accuracy": 0.8752,
+    "weighted_f1": 0.912,
+    "macro_f1": 0.8348,
+    "precision": 0.9187,
+    "recall": 0.9086,
+    "auroc": 0.9756,
+    "auprc": 0.9726,
+    "ece": 0.0332,
     "per_class": {
       "Normal": {
-        "sensitivity": 0.987,
-        "specificity": 0.8345,
-        "precision": 0.9519,
-        "support": 461
+        "sensitivity": 0.9258,
+        "specificity": 0.8896,
+        "precision": 0.9665,
+        "support": 25142
       },
       "Other": {
-        "sensitivity": 0.3889,
-        "specificity": 0.9965,
-        "precision": 0.875,
-        "support": 36
+        "sensitivity": 0.8482,
+        "specificity": 0.9683,
+        "precision": 0.821,
+        "support": 4742
       },
       "PVC": {
-        "sensitivity": 0.9903,
-        "specificity": 0.992,
-        "precision": 0.9623,
-        "support": 103
+        "sensitivity": 0.8517,
+        "specificity": 0.9571,
+        "precision": 0.6299,
+        "support": 2562
       }
     }
   },
   "model_b_clinical_only": {
-    "accuracy": 0.7683,
+    "accuracy": 0.7749,
     "balanced_accuracy": 0.3333,
-    "weighted_f1": 0.6677,
-    "macro_f1": 0.2897,
-    "precision": 0.5903,
-    "recall": 0.7683,
+    "weighted_f1": 0.6766,
+    "macro_f1": 0.2911,
+    "precision": 0.6005,
+    "recall": 0.7749,
     "auroc": 0.5,
-    "auprc": 0.6234,
-    "ece": 0.0263,
+    "auprc": 0.628,
+    "ece": 0.0741,
     "per_class": {
       "Normal": {
         "sensitivity": 1.0,
         "specificity": 0.0,
-        "precision": 0.7683,
-        "support": 461
+        "precision": 0.7749,
+        "support": 25142
       },
       "Other": {
         "sensitivity": 0.0,
         "specificity": 1.0,
         "precision": 0.0,
-        "support": 36
+        "support": 4742
       },
       "PVC": {
         "sensitivity": 0.0,
         "specificity": 1.0,
         "precision": 0.0,
-        "support": 103
+        "support": 2562
       }
     }
   },
   "model_c_multimodal_fusion": {
-    "accuracy": 0.9517,
-    "balanced_accuracy": 0.8083,
-    "weighted_f1": 0.9465,
-    "macro_f1": 0.8371,
-    "precision": 0.9467,
-    "recall": 0.9517,
-    "auroc": 0.9768,
-    "auprc": 0.9712,
-    "ece": 0.0321,
+    "accuracy": 0.9041,
+    "balanced_accuracy": 0.8712,
+    "weighted_f1": 0.9078,
+    "macro_f1": 0.8282,
+    "precision": 0.9153,
+    "recall": 0.9041,
+    "auroc": 0.9726,
+    "auprc": 0.9688,
+    "ece": 0.0749,
     "per_class": {
       "Normal": {
-        "sensitivity": 0.9805,
-        "specificity": 0.8561,
-        "precision": 0.9576,
-        "support": 461
+        "sensitivity": 0.9209,
+        "specificity": 0.8865,
+        "precision": 0.9654,
+        "support": 25142
       },
       "Other": {
-        "sensitivity": 0.4444,
-        "specificity": 0.9911,
-        "precision": 0.7619,
-        "support": 36
+        "sensitivity": 0.8454,
+        "specificity": 0.966,
+        "precision": 0.8097,
+        "support": 4742
       },
       "PVC": {
-        "sensitivity": 1.0,
-        "specificity": 0.992,
-        "precision": 0.9626,
-        "support": 103
+        "sensitivity": 0.8474,
+        "specificity": 0.9551,
+        "precision": 0.6182,
+        "support": 2562
       }
     }
   },
   "delta_c_vs_a": {
-    "f1_delta": 0.002,
-    "auroc_delta": -0.0001,
-    "ece_delta": -0.0125
+    "f1_delta": -0.0042,
+    "auroc_delta": -0.003,
+    "ece_delta": 0.0417
   }
 }
