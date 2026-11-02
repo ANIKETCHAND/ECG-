@@ -425,6 +425,41 @@ class DatabaseManager:
                     VALUES ('DOC-002', 'HOSP-APEX', 'USR-01', 'Dr. Ananya Roy', 'cardiologist@apexheart.org', '+91-9820044556', 'Electrophysiology & Intervention', 'MCI-CARD-4421', 'Electrophysiology', 'CARDIOLOGIST', 'ACTIVE', ?)
                     """, (datetime.now().isoformat(),))
 
+                cursor.execute("SELECT 1 FROM doctors WHERE doctor_id = 'DOC-003'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO doctors (doctor_id, hospital_id, user_id, name, email, phone, specialization, license_number, department, role, status, created_at)
+                    VALUES ('DOC-003', 'HOSP-APEX', 'USR-ANIKET', 'Dr. Aniket Chandra', 'dr.aniket@hospital.org', '+91-9876500001', 'Cardiology & Electrophysiology', 'MD/34667', 'Cardiology Department', 'DOCTOR', 'ACTIVE', ?)
+                    """, (datetime.now().isoformat(),))
+
+                cursor.execute("SELECT 1 FROM patients WHERE hospital_mrn = 'MRN-5F2298'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO patients (patient_id, hospital_mrn, name, hospital_id, age, sex, date_of_birth, contact, blood_group, known_allergies, existing_conditions, current_medications, previous_cardiac_history, smoking_status, created_at)
+                    VALUES ('PAT-RAJ', 'MRN-5F2298', 'Raj Verma', 'HOSP-APEX', 15, 'Male', '2011-03-12', '+91 98765 43210', 'A+', 'None', 'None', 'None', 'None', 'Non-Smoker', ?)
+                    """, (datetime.now().isoformat(),))
+
+                cursor.execute("SELECT 1 FROM patients WHERE hospital_mrn = 'MRN-5F2297'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO patients (patient_id, hospital_mrn, name, hospital_id, age, sex, date_of_birth, contact, blood_group, known_allergies, existing_conditions, current_medications, previous_cardiac_history, smoking_status, created_at)
+                    VALUES ('PAT-PRIYA', 'MRN-5F2297', 'Priya Sharma', 'HOSP-APEX', 42, 'Female', '1984-07-22', '+91 98765 11223', 'B+', 'Penicillin', 'Mild Hypertension', 'Amlodipine 5mg', 'None', 'Non-Smoker', ?)
+                    """, (datetime.now().isoformat(),))
+
+                cursor.execute("SELECT 1 FROM patients WHERE hospital_mrn = 'MRN-5F2296'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO patients (patient_id, hospital_mrn, name, hospital_id, age, sex, date_of_birth, contact, blood_group, known_allergies, existing_conditions, current_medications, previous_cardiac_history, smoking_status, created_at)
+                    VALUES ('PAT-AMAN', 'MRN-5F2296', 'Aman Singh', 'HOSP-APEX', 58, 'Male', '1968-11-05', '+91 98765 33445', 'O+', 'None', 'Type 2 Diabetes', 'Metformin 500mg', 'None', 'Former Smoker', ?)
+                    """, (datetime.now().isoformat(),))
+
+                cursor.execute("SELECT 1 FROM patients WHERE hospital_mrn = 'MRN-5F2295'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO patients (patient_id, hospital_mrn, name, hospital_id, age, sex, date_of_birth, contact, blood_group, known_allergies, existing_conditions, current_medications, previous_cardiac_history, smoking_status, created_at)
+                    VALUES ('PAT-NEHA', 'MRN-5F2295', 'Neha Gupta', 'HOSP-APEX', 36, 'Female', '1990-04-18', '+91 98765 55667', 'AB+', 'Sulfa Drugs', 'Palpitations', 'None', 'None', 'Non-Smoker', ?)
+                    """, (datetime.now().isoformat(),))
+
                 conn.commit()
 
     # --- Hospital Multi-Tenant Operations ---

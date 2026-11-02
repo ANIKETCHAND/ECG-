@@ -191,6 +191,8 @@ class AuthManager:
     def _init_default_clinical_users(self):
         """Seed initial hospital user accounts with strong hashed credentials."""
         defaults = [
+            ("aniket", "Doctor@Hospital2026", UserRole.DOCTOR, "Dr. Aniket Chandra, MD", "dr.aniket@hospital.org", "MD/34667", "HOSP-APEX"),
+            ("raj", "Patient@Hospital2026", UserRole.PATIENT, "Raj Verma", "rajverma@gmail.com", "MRN-5F2298", "HOSP-APEX"),
             ("admin", "Admin@Hospital2026", UserRole.ADMIN, "Dr. Rajesh Verma (Chief Medical IT)", "admin@hospital.org", "MCI-ADM-01", "HOSP-APEX"),
             ("cardiologist", "Cardio@Hospital2026", UserRole.CARDIOLOGIST, "Dr. Ananya Roy, MD DM (Cardiology)", "ananya.roy@hospital.org", "MCI-CARD-4421", "HOSP-APEX"),
             ("doctor", "Doctor@Hospital2026", UserRole.DOCTOR, "Dr. Vikram Patel, MD (Internal Med)", "vikram.patel@hospital.org", "MCI-DOC-8921", "HOSP-APEX"),
