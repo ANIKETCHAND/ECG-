@@ -279,7 +279,7 @@
     /* ═════════════════════════════════════════════════════════════════ */
     /* LAYOUT 1: PUBLIC LAYOUT (LANDING & AUTH)                          */
     /* ═════════════════════════════════════════════════════════════════ */
-    #publicNavbar {
+    #publicNavbar { display: none !important; 
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-color);
@@ -1422,7 +1422,7 @@
       .measurements-5-grid { grid-template-columns: repeat(2, 1fr); }
       .cds-grid-2x2 { grid-template-columns: 1fr; }
       .role-cards-grid { grid-template-columns: 1fr; }
-      #publicNavbar { padding: 0 20px; }
+      #publicNavbar { display: none !important;  padding: 0 20px; }
       .public-nav-links { display: none; }
       #pageViewWrapper { padding: 18px 16px 40px 16px; }
       #appTopHeader { padding: 0 16px; }
@@ -1809,7 +1809,7 @@
       border: 1px solid var(--border-color) !important;
       color: var(--text-main) !important;
     }
-    #publicNavbar {
+    #publicNavbar { display: none !important; 
       background: #0E1626 !important;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
@@ -1852,6 +1852,27 @@
       .central-nav-tabs-bar {
         padding-bottom: 6px;
       }
+    }
+
+  
+    .workspace-role-switch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38BDF8;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .workspace-role-switch-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38BDF8;
+      transform: translateY(-1px);
     }
 
   </style>
@@ -1925,6 +1946,11 @@
         </div>
 
         <div class="workspace-user-controls">
+          <button class="workspace-role-switch-btn" id="btnRoleSwitcher" onclick="switchUserRole()" title="Switch between Doctor and Patient Portal">
+            <i class="fa-solid fa-repeat"></i>
+            <span id="workspaceRoleSwitchText">Switch to Patient</span>
+          </button>
+
           <div class="workspace-date-badge" id="workspaceHeaderDateBadge">
             <i class="fa-regular fa-calendar"></i>
             <span id="workspaceHeaderDateText">Wed, 31 Oct 2026</span>
@@ -1938,7 +1964,7 @@
             </div>
           </div>
 
-          <button class="workspace-signout-btn" onclick="signOutUser()" title="Sign Out">
+          <button class="workspace-signout-btn" onclick="signOutUser()" title="Sign Out / Switch Role">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -4239,21 +4265,17 @@
 
         // ── Application View Router ──
     function navigateTo(viewId, params = {}) {
+      // If landing is requested, redirect to role dashboard inside the central workspace
+      if (viewId === 'landing') {
+        viewId = (currentUser && currentUser.role === 'PATIENT') ? 'patientDashboard' : 'doctorDashboard';
+      }
+
       currentView = viewId;
 
-      // Handle Public vs Authenticated Layout
-      const isPublic = (viewId === 'landing' || viewId === 'auth');
-      const publicNav = document.getElementById('publicNavbar');
+      // Always show the central authenticated workspace
       const authShell = document.getElementById('authenticatedShell');
-
-      if (isPublic) {
-        if (publicNav) publicNav.classList.remove('hidden');
-        if (authShell) authShell.classList.add('hidden');
-      } else {
-        if (publicNav) publicNav.classList.add('hidden');
-        if (authShell) authShell.classList.remove('hidden');
-        renderCentralTabs();
-      }
+      if (authShell) authShell.classList.remove('hidden');
+      renderCentralTabs();
 
       // Hide all view pages
       document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
@@ -4335,6 +4357,20 @@
       }
     }
 
+        function switchUserRole() {
+      const isPatient = (currentUser && currentUser.role === 'PATIENT');
+      if (isPatient) {
+        quickLoginUser('dr_aniket', true);
+      } else {
+        quickLoginUser('raj_verma', true);
+      }
+    }
+
+    function signOutUser() {
+      switchUserRole();
+    }
+    window.logoutUser = signOutUser;
+
     function navigateHomeRoleBased() {
       const isPatient = (currentUser && currentUser.role === 'PATIENT');
       navigateTo(isPatient ? 'patientDashboard' : 'doctorDashboard');
@@ -4393,6 +4429,11 @@
         if (un) un.textContent = currentUser.name || (isPatient ? 'Raj Verma' : 'Dr. Aniket Chandra');
         if (ur) ur.textContent = isPatient ? 'Patient • MRN-5F2298' : 'Cardiologist • Apex Hospital';
         if (sub) sub.textContent = isPatient ? 'Apex Heart & Vascular Institute • Patient Telemetry Portal' : 'Apex Heart & Vascular Institute • Cardiology Suite';
+
+        const switchBtn = document.getElementById('workspaceRoleSwitchText');
+        if (switchBtn) {
+          switchBtn.textContent = isPatient ? 'Switch to Doctor' : 'Switch to Patient';
+        }
       }
 
       // DOCTOR tabs: 1. Overview, 2. Patients, 3. ECG Scanner, 4. Reports, 5. History, 6. Profile
@@ -6852,7 +6893,8 @@
       initUserSession();
       loadBenchmarkSample('normal');
       setupDragAndDrop();
-      navigateTo('landing');
+      const target = (currentUser && currentUser.role === 'PATIENT') ? 'patientDashboard' : 'doctorDashboard';
+      navigateTo(target);
     });
   </script>
 </body>
