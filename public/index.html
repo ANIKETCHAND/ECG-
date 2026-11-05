@@ -22,44 +22,54 @@
     /* ═════════════════════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
-    :root {
-      /* Colors strictly matching requirements */
-      --bg-primary: #FFFFFF;
-      --bg-secondary: #F8F6FF;
-      --bg-tertiary: #F3EEFF;
+        :root {
+      /* Dark Reference Theme strictly matching user requirement */
+      --bg-primary: #111827;
+      --bg-secondary: #080C14;
+      --bg-tertiary: #162035;
+      --bg-container: #0E1626;
       
-      --purple-primary: #6D28D9;
-      --purple-secondary: #7C3AED;
-      --purple-deep: #4C1D95;
+      --accent-blue: #38BDF8;
+      --accent-blue-deep: #0284C7;
+      --accent-blue-glow: rgba(56, 189, 248, 0.16);
       
-      --sidebar-bg: #24113F;
-      --sidebar-hover: #321956;
-      --sidebar-active: #3C1F69;
-      --sidebar-active-border: #7C3AED;
-      --sidebar-text: #E9E3F5;
-      --sidebar-muted: #9F97B6;
+      --purple-primary: #38BDF8;
+      --purple-secondary: #0EA5E9;
+      --purple-deep: #0284C7;
       
-      --text-main: #17152B;
-      --text-secondary: #77738B;
-      --text-muted: #9F9CB2;
-      --border-color: #E9E3F5;
-      --border-light: #F2EEFA;
+      --sidebar-bg: #0E1626;
+      --sidebar-hover: rgba(255, 255, 255, 0.05);
+      --sidebar-active: rgba(14, 165, 233, 0.12);
+      --sidebar-active-border: #38BDF8;
+      --sidebar-text: #F8FAFC;
+      --sidebar-muted: #94A3B8;
       
-      --success: #16A34A;
-      --success-bg: #F0FDF4;
-      --success-border: #BBF7D0;
+      --text-main: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.05);
+      --border-active: rgba(56, 189, 248, 0.4);
+      
+      --card-bg: #111827;
+      --card-bg-elevated: #162035;
+      --card-border: rgba(255, 255, 255, 0.08);
+      
+      --success: #10B981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --success-border: rgba(16, 185, 129, 0.3);
       
       --warning: #F59E0B;
-      --warning-bg: #FFFBEB;
-      --warning-border: #FDE68A;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --warning-border: rgba(245, 158, 11, 0.3);
       
-      --error: #DC2626;
-      --error-bg: #FEF2F2;
-      --error-border: #FECACA;
+      --error: #EF4444;
+      --error-bg: rgba(239, 68, 68, 0.12);
+      --error-border: rgba(239, 68, 68, 0.3);
       
-      --info: #2563EB;
-      --info-bg: #EFF6FF;
-      --info-border: #BFDBFE;
+      --info: #38BDF8;
+      --info-bg: rgba(56, 189, 248, 0.12);
+      --info-border: rgba(56, 189, 248, 0.3);
       
       /* Typography */
       --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -69,19 +79,22 @@
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
-      --radius-xl: 22px;
+      --radius-xl: 20px;
       --radius-full: 9999px;
       
       /* Shadows */
-      --shadow-sm: 0 1px 3px rgba(36, 17, 63, 0.05);
-      --shadow-md: 0 4px 14px rgba(36, 17, 63, 0.06);
-      --shadow-lg: 0 10px 25px rgba(36, 17, 63, 0.08);
-      --shadow-xl: 0 18px 36px rgba(36, 17, 63, 0.12);
-      --shadow-purple: 0 8px 20px rgba(109, 40, 217, 0.25);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+      --shadow-xl: 0 25px 60px rgba(0, 0, 0, 0.65);
+      --shadow-purple: 0 8px 24px rgba(2, 132, 199, 0.28);
     }
 
     body {
       background-color: var(--bg-secondary);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.05) 0%, transparent 60%),
+        radial-gradient(circle at 100% 50%, rgba(37, 99, 235, 0.03) 0%, transparent 50%);
       color: var(--text-main);
       font-family: var(--font-sans);
       font-size: 14px;
@@ -1414,6 +1427,433 @@
       #pageViewWrapper { padding: 18px 16px 40px 16px; }
       #appTopHeader { padding: 0 16px; }
     }
+  
+    /* ═════════════════════════════════════════════════════════════════ */
+    /* EXACT REFERENCE LAYOUT — CENTERED CONTAINER & WORKSPACE TABS    */
+    /* ═════════════════════════════════════════════════════════════════ */
+    
+    #appSidebar { display: none !important; }
+    #appTopHeader { display: none !important; }
+    #mobileDrawerBackdrop { display: none !important; }
+    
+    #authenticatedShell {
+      width: 100%;
+      max-width: 1280px;
+      margin: 28px auto;
+      padding: 0 20px 40px 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .central-workspace-card {
+      width: 100%;
+      background: var(--bg-container);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-xl);
+      padding: 24px 28px 28px 28px;
+      box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-height: calc(100vh - 56px);
+    }
+
+    /* 1. Branding & User Info inside Container Header */
+    .central-workspace-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .workspace-brand-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .workspace-brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284C7 0%, #2563EB 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+
+    .workspace-brand-name {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #F8FAFC;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .workspace-brand-tagline {
+      font-size: 0.76rem;
+      color: #94A3B8;
+      margin: 2px 0 0 0;
+    }
+
+    .workspace-user-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .workspace-date-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #94A3B8;
+      font-size: 0.78rem;
+    }
+
+    .workspace-user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 12px 5px 6px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .workspace-user-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .workspace-user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0EA5E9, #2563EB);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .workspace-user-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .workspace-user-fullname {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #F8FAFC;
+      line-height: 1.1;
+    }
+
+    .workspace-user-role-badge {
+      font-size: 0.68rem;
+      color: #38BDF8;
+      font-weight: 500;
+    }
+
+    .workspace-signout-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .workspace-signout-btn:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #EF4444;
+    }
+
+    /* 2. Horizontal Navigation Tabs within the container */
+    .central-nav-tabs-container {
+      width: 100%;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 0 0 0;
+      margin-bottom: 24px;
+    }
+
+    .central-nav-tabs-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 4px 12px 4px;
+    }
+    .central-nav-tabs-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .central-tab-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #94A3B8;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      user-select: none;
+      outline: none;
+    }
+
+    .central-tab-item:hover {
+      color: #F1F5F9;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .central-tab-item.active {
+      color: #38BDF8;
+      background: rgba(14, 165, 233, 0.12);
+      border-color: rgba(56, 189, 248, 0.4);
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .central-tab-item i {
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+
+    .central-tab-item.active i {
+      color: #38BDF8;
+      opacity: 1;
+    }
+
+    /* 3. Large Main Content Panel */
+    .central-main-content-panel {
+      flex: 1;
+      width: 100%;
+      position: relative;
+    }
+
+    #pageViewWrapper {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 4. Footer Telemetry & System Status */
+    .workspace-footer-telemetry {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: #64748B;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-telemetry-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .telemetry-dot-live {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+      display: inline-block;
+      animation: liveDotPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes liveDotPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Dark theme overrides for internal view cards */
+    .card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .stat-metric-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .patient-hero-report-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .patient-profile-header-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .measurement-pill-card {
+      background: var(--card-bg-elevated) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .compact-selected-patient-bar {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .upload-dropzone-box {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 2px dashed rgba(56, 189, 248, 0.35) !important;
+      color: var(--text-main) !important;
+    }
+    .reports-history-table {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .reports-history-table th {
+      background: #0E1626 !important;
+      color: var(--text-secondary) !important;
+      border-bottom: 1px solid var(--border-color) !important;
+    }
+    .reports-history-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      color: var(--text-main) !important;
+    }
+    .recent-activity-table th {
+      background: #0E1626 !important;
+      color: var(--text-secondary) !important;
+      border-bottom: 1px solid var(--border-color) !important;
+    }
+    .recent-activity-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      color: var(--text-main) !important;
+    }
+    .report-paper-container {
+      background: #111827 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: var(--text-main) !important;
+    }
+    .form-input, .form-select, .form-textarea {
+      background: #0B111E !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #F8FAFC !important;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: #38BDF8 !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+    }
+    .modal-dialog {
+      background: #111827 !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .notification-drawer {
+      background: #111827 !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .notif-purple {
+      background: rgba(56, 189, 248, 0.08) !important;
+    }
+    .patient-action-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .auth-form-card {
+      background: #111827 !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    .landing-hero-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main) !important;
+    }
+    #publicNavbar {
+      background: #0E1626 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    @media (max-width: 992px) {
+      #authenticatedShell {
+        padding: 0 12px 24px 12px;
+        margin: 16px auto;
+      }
+      .central-workspace-card {
+        padding: 18px 18px 24px 18px;
+        border-radius: 16px;
+      }
+      .central-tab-item {
+        padding: 8px 14px;
+        font-size: 0.82rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #authenticatedShell {
+        padding: 0;
+        margin: 0;
+        width: 100%;
+      }
+      .central-workspace-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        padding: 16px 14px 24px 14px;
+      }
+      .central-workspace-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .workspace-user-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .central-nav-tabs-bar {
+        padding-bottom: 6px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1470,73 +1910,50 @@
   <!-- ═════════════════════════════════════════════════════════════════ -->
   <div id="authenticatedShell">
     
-    <!-- Mobile Backdrop -->
-    <div id="mobileDrawerBackdrop" onclick="toggleMobileSidebar()"></div>
-
-    <!-- LEFT SIDEBAR (DARK PURPLE #24113F) -->
-    <aside id="appSidebar">
-      <div class="sidebar-header">
-        <div class="brand-logo-wrap" onclick="navigateTo('doctorDashboard')">
-          <div class="brand-icon-box" style="width:34px; height:34px; font-size:1rem;">
+    <div class="central-workspace-card">
+      
+      <!-- 1. Application branding and user information area inside the container -->
+      <header class="central-workspace-header">
+        <div class="workspace-brand-area" onclick="navigateHomeRoleBased()">
+          <div class="workspace-brand-logo">
             <i class="fa-solid fa-heart-pulse"></i>
           </div>
-          <div class="sidebar-brand-title">ECG Guardian</div>
-        </div>
-      </div>
-
-      <!-- Navigation links dynamically adapted to Doctor vs Patient -->
-      <nav class="sidebar-nav" id="sidebarNavContent">
-        <!-- Injected via JS based on user role -->
-      </nav>
-
-      <!-- Sidebar Logged-In User Information at Bottom -->
-      <div class="sidebar-footer">
-        <div class="sidebar-user-info">
-          <div class="sidebar-avatar" id="sidebarAvatar">AC</div>
-          <div class="sidebar-user-text">
-            <span class="sidebar-user-name" id="sidebarUserName">Dr. Aniket Chandra</span>
-            <span class="sidebar-user-role" id="sidebarUserRole">Cardiologist</span>
-          </div>
-        </div>
-        <button class="sidebar-logout-btn" onclick="signOutUser()" title="Sign Out">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
-        </button>
-      </div>
-    </aside>
-
-    <!-- MAIN APP CONTENT CONTAINER -->
-    <main id="appMainContainer">
-      <!-- TOP HEADER -->
-      <header id="appTopHeader">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <button class="icon-circle-btn" id="btnMobileMenu" onclick="toggleMobileSidebar()" style="display:none;" title="Menu">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div class="header-left-title">
-            <h2 id="topHeaderGreeting">Welcome, Dr. Aniket 👋</h2>
-            <p id="topHeaderSubtitle">Cardiology Department</p>
+          <div class="workspace-brand-titles">
+            <h1 class="workspace-brand-name">ECG GUARDIAN</h1>
+            <p class="workspace-brand-tagline" id="workspaceHeaderSubtitle">Apex Heart &amp; Vascular Institute • Clinical Suite</p>
           </div>
         </div>
 
-        <div class="header-right-tools">
-          <div class="date-pill" id="headerDatePill">
+        <div class="workspace-user-controls">
+          <div class="workspace-date-badge" id="workspaceHeaderDateBadge">
             <i class="fa-regular fa-calendar"></i>
-            <span id="headerCurrentDateText">Wed, 31 Oct 2026</span>
+            <span id="workspaceHeaderDateText">Wed, 31 Oct 2026</span>
           </div>
 
-          <div class="icon-circle-btn" onclick="toggleNotificationPanel()" title="Notifications">
-            <i class="fa-regular fa-bell"></i>
-            <span class="bell-notification-dot"></span>
+          <div class="workspace-user-pill" id="workspaceUserPill" onclick="navigateToProfileRoleBased()" title="View Profile">
+            <div class="workspace-user-avatar" id="workspaceAvatarPill">AC</div>
+            <div class="workspace-user-meta">
+              <span class="workspace-user-fullname" id="workspaceHeaderUserName">Dr. Aniket Chandra</span>
+              <span class="workspace-user-role-badge" id="workspaceHeaderUserRole">Cardiologist</span>
+            </div>
           </div>
 
-          <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="navigateTo('settings')">
-            <div class="sidebar-avatar" id="headerAvatarPill" style="width:34px; height:34px; font-size:0.8rem;">AC</div>
-          </div>
+          <button class="workspace-signout-btn" onclick="signOutUser()" title="Sign Out">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
         </div>
       </header>
 
-      <!-- PAGE VIEWS CONTAINER -->
-      <div id="pageViewWrapper">
+      <!-- 2. Horizontal tab navigation within the container -->
+      <div class="central-nav-tabs-container">
+        <nav class="central-nav-tabs-bar" id="centralNavTabs" role="tablist">
+          <!-- Populated dynamically by renderCentralTabs() based on DOCTOR vs PATIENT -->
+        </nav>
+      </div>
+
+      <!-- 3. Large main content panel below the tabs -->
+      <main class="central-main-content-panel" id="centralMainPanel">
+        <div id="pageViewWrapper">
 
         <!-- ───────────────────────────────────────────────────────────── -->
         <!-- SCREEN 1: LANDING PAGE                                        -->
@@ -3571,9 +3988,22 @@
           </div>
         </section>
 
-      </div>
-    </main>
-  </div>
+        </div> <!-- /#pageViewWrapper -->
+      </main> <!-- /.central-main-content-panel -->
+
+      <!-- 4. Additional telemetry / system info panel below the main content -->
+      <footer class="workspace-footer-telemetry">
+        <div class="footer-telemetry-left">
+          <span class="telemetry-dot-live"></span>
+          <span id="workspaceFooterTelemetry">Signal Trust Copilot: Active • Inference Engine: ECG-RF-1.0.0</span>
+        </div>
+        <div class="footer-telemetry-right">
+          <span>Facility: HOSP-APEX • Verified Clinical Decision Support</span>
+        </div>
+      </footer>
+
+    </div> <!-- /.central-workspace-card -->
+  </div> <!-- /#authenticatedShell -->
 
   <!-- ═════════════════════════════════════════════════════════════════ -->
   <!-- MODALS: PATIENT PICKER & IMMUTABLE REPORT SNAPSHOT                -->
@@ -3807,7 +4237,7 @@
       }
     };
 
-    // ── Application View Router ──
+        // ── Application View Router ──
     function navigateTo(viewId, params = {}) {
       currentView = viewId;
 
@@ -3817,14 +4247,12 @@
       const authShell = document.getElementById('authenticatedShell');
 
       if (isPublic) {
-        publicNav.classList.remove('hidden');
-        document.getElementById('appSidebar').classList.add('hidden');
-        document.getElementById('appTopHeader').classList.add('hidden');
+        if (publicNav) publicNav.classList.remove('hidden');
+        if (authShell) authShell.classList.add('hidden');
       } else {
-        publicNav.classList.add('hidden');
-        document.getElementById('appSidebar').classList.remove('hidden');
-        document.getElementById('appTopHeader').classList.remove('hidden');
-        renderSidebarNav();
+        if (publicNav) publicNav.classList.add('hidden');
+        if (authShell) authShell.classList.remove('hidden');
+        renderCentralTabs();
       }
 
       // Hide all view pages
@@ -3876,105 +4304,136 @@
       } else if (viewId === 'patientReport') {
         populatePatientReportView();
       } else if (viewId === 'reportHistory') {
-        fetchHistoryReports();
+        if (typeof fetchHistoryReports === 'function') fetchHistoryReports();
       } else if (viewId === 'patientsManagement') {
-        fetchPatientsDirectory();
+        if (typeof fetchPatientsDirectory === 'function') fetchPatientsDirectory();
+      } else if (viewId === 'settings') {
+        populateSettingsView();
       } else if (viewId === 'appointments') {
-        loadAppointmentsList();
+        if (typeof loadAppointmentsList === 'function') loadAppointmentsList();
       }
 
+      // Re-update tabs state
+      renderCentralTabs();
+
+      // Scroll to top of central workspace
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function updateHeaderGreetings(viewId) {
       const greetingEl = document.getElementById('topHeaderGreeting');
       const subtitleEl = document.getElementById('topHeaderSubtitle');
-      if (!greetingEl || !subtitleEl) return;
-
-      if (currentUser && currentUser.role === 'PATIENT') {
-        greetingEl.textContent = `Welcome, ${currentUser.name || 'Raj Verma'} 👋`;
-        subtitleEl.textContent = 'Your Heart Health at a Glance';
-      } else {
-        const docName = currentUser ? (currentUser.name || 'Dr. Aniket Chandra') : 'Dr. Aniket';
-        greetingEl.textContent = `Welcome, ${docName.split(' ')[0] || 'Dr. Aniket'} 👋`;
-        subtitleEl.textContent = 'Cardiology Department';
+      if (greetingEl && subtitleEl) {
+        if (currentUser && currentUser.role === 'PATIENT') {
+          greetingEl.textContent = `Welcome, ${currentUser.name || 'Raj Verma'} 👋`;
+          subtitleEl.textContent = 'Your Heart Health at a Glance';
+        } else {
+          const docName = currentUser ? (currentUser.name || 'Dr. Aniket Chandra') : 'Dr. Aniket';
+          greetingEl.textContent = `Welcome, ${docName.split(' ')[0] || 'Dr. Aniket'} 👋`;
+          subtitleEl.textContent = 'Cardiology Department';
+        }
       }
     }
 
-    // ── Sidebar Builder based on Role ──
-    function renderSidebarNav() {
-      const nav = document.getElementById('sidebarNavContent');
-      if (!nav) return;
+    function navigateHomeRoleBased() {
+      const isPatient = (currentUser && currentUser.role === 'PATIENT');
+      navigateTo(isPatient ? 'patientDashboard' : 'doctorDashboard');
+    }
+
+    function navigateToProfileRoleBased() {
+      const isPatient = (currentUser && currentUser.role === 'PATIENT');
+      navigateTo(isPatient ? 'patientProfile' : 'settings');
+    }
+
+    function getActiveTabKey(viewId, isPatient) {
+      if (isPatient) {
+        if (viewId === 'patientDashboard') return 'overview';
+        if (viewId === 'patientProfile') return 'myProfile';
+        if (['ecgScan', 'analysis', 'cds'].includes(viewId)) return 'ecgScanner';
+        if (['patientReport', 'doctorReport'].includes(viewId)) return 'myReports';
+        if (viewId === 'reportHistory') return 'medicalHistory';
+        return 'overview';
+      } else {
+        if (viewId === 'doctorDashboard') return 'overview';
+        if (['patientsManagement', 'patientRegistration'].includes(viewId)) return 'patients';
+        if (['ecgScan', 'analysis', 'cds'].includes(viewId)) return 'ecgScanner';
+        if (['doctorReport', 'patientReport'].includes(viewId)) return 'reports';
+        if (viewId === 'reportHistory') return 'history';
+        if (['settings', 'patientProfile'].includes(viewId)) return 'profile';
+        return 'overview';
+      }
+    }
+
+    // ── Horizontal Central Tabs Builder strictly adhering to Reference Layout ──
+    function renderCentralTabs() {
+      const container = document.getElementById('centralNavTabs');
+      if (!container) return;
 
       const isPatient = (currentUser && currentUser.role === 'PATIENT');
+      const activeKey = getActiveTabKey(currentView, isPatient);
 
-      if (isPatient) {
-        nav.innerHTML = `
-          <div class="sidebar-section-title">PATIENT PORTAL</div>
-          <a class="sidebar-item ${currentView === 'patientDashboard' ? 'active' : ''}" onclick="navigateTo('patientDashboard')">
-            <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
-            <i class="fa-solid fa-file-medical"></i> <span>My Reports</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'patientProfile' ? 'active' : ''}" onclick="navigateTo('patientProfile')">
-            <i class="fa-solid fa-id-card"></i> <span>Medical Profile</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
-            <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
-          </a>
-          <a class="sidebar-item" onclick="openHelpSupportModal()">
-            <i class="fa-solid fa-circle-question"></i> <span>Help & Support</span>
-          </a>
-        `;
-      } else {
-        nav.innerHTML = `
-          <div class="sidebar-section-title">CLINICAL SUITE</div>
-          <a class="sidebar-item ${currentView === 'doctorDashboard' ? 'active' : ''}" onclick="navigateTo('doctorDashboard')">
-            <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'patientsManagement' ? 'active' : ''}" onclick="navigateTo('patientsManagement')">
-            <i class="fa-solid fa-users"></i> <span>Patients</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'patientRegistration' ? 'active' : ''}" onclick="navigateTo('patientRegistration')">
-            <i class="fa-solid fa-user-plus"></i> <span>Register Patient</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'ecgScan' ? 'active' : ''}" onclick="navigateTo('ecgScan')">
-            <i class="fa-solid fa-wave-square"></i> <span>Scan ECG</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'doctorReport' ? 'active' : ''}" onclick="navigateTo('doctorReport')">
-            <i class="fa-solid fa-file-invoice"></i> <span>Reports</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
-            <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
-            <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
-            <i class="fa-solid fa-gear"></i> <span>Settings</span>
-          </a>
-        `;
+      // Update Container Header Info
+      const av = document.getElementById('workspaceAvatarPill');
+      const un = document.getElementById('workspaceHeaderUserName');
+      const ur = document.getElementById('workspaceHeaderUserRole');
+      const sub = document.getElementById('workspaceHeaderSubtitle');
+      const dt = document.getElementById('workspaceHeaderDateText');
+
+      if (dt) {
+        const now = new Date();
+        dt.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       }
-
-      // Update sidebar avatar and user block
-      const av = document.getElementById('sidebarAvatar');
-      const un = document.getElementById('sidebarUserName');
-      const ur = document.getElementById('sidebarUserRole');
-      const hav = document.getElementById('headerAvatarPill');
 
       if (currentUser) {
         if (currentUser.picture) {
           if (av) av.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
-          if (hav) hav.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
         } else {
-          if (av) av.textContent = currentUser.initials || 'AC';
-          if (hav) hav.textContent = currentUser.initials || 'AC';
+          if (av) av.textContent = currentUser.initials || (currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : (isPatient ? 'RV' : 'AC'));
         }
-        if (un) un.textContent = currentUser.name || 'Dr. Aniket Chandra';
-        if (ur) ur.textContent = (currentUser.role === 'DOCTOR' || currentUser.role === 'CARDIOLOGIST') ? 'Cardiologist' : 'Patient';
+        if (un) un.textContent = currentUser.name || (isPatient ? 'Raj Verma' : 'Dr. Aniket Chandra');
+        if (ur) ur.textContent = isPatient ? 'Patient • MRN-5F2298' : 'Cardiologist • Apex Hospital';
+        if (sub) sub.textContent = isPatient ? 'Apex Heart & Vascular Institute • Patient Telemetry Portal' : 'Apex Heart & Vascular Institute • Cardiology Suite';
       }
+
+      // DOCTOR tabs: 1. Overview, 2. Patients, 3. ECG Scanner, 4. Reports, 5. History, 6. Profile
+      // PATIENT tabs: 1. Overview, 2. My Profile, 3. ECG Scanner, 4. My Reports, 5. Medical History
+      const doctorTabs = [
+        { key: 'overview', label: 'Overview', icon: 'fa-solid fa-gauge-high', targetView: 'doctorDashboard' },
+        { key: 'patients', label: 'Patients', icon: 'fa-solid fa-users', targetView: 'patientsManagement' },
+        { key: 'ecgScanner', label: 'ECG Scanner', icon: 'fa-solid fa-wave-square', targetView: 'ecgScan' },
+        { key: 'reports', label: 'Reports', icon: 'fa-solid fa-file-invoice', targetView: 'doctorReport' },
+        { key: 'history', label: 'History', icon: 'fa-solid fa-clock-rotate-left', targetView: 'reportHistory' },
+        { key: 'profile', label: 'Profile', icon: 'fa-solid fa-user-doctor', targetView: 'settings' }
+      ];
+
+      const patientTabs = [
+        { key: 'overview', label: 'Overview', icon: 'fa-solid fa-gauge-high', targetView: 'patientDashboard' },
+        { key: 'myProfile', label: 'My Profile', icon: 'fa-solid fa-id-card', targetView: 'patientProfile' },
+        { key: 'ecgScanner', label: 'ECG Scanner', icon: 'fa-solid fa-wave-square', targetView: 'ecgScan' },
+        { key: 'myReports', label: 'My Reports', icon: 'fa-solid fa-file-medical', targetView: 'patientReport' },
+        { key: 'medicalHistory', label: 'Medical History', icon: 'fa-solid fa-clock-rotate-left', targetView: 'reportHistory' }
+      ];
+
+      const tabs = isPatient ? patientTabs : doctorTabs;
+
+      container.innerHTML = tabs.map(tab => {
+        const isActive = (tab.key === activeKey);
+        return `
+          <button type="button" 
+                  role="tab" 
+                  aria-selected="${isActive}" 
+                  class="central-tab-item ${isActive ? 'active' : ''}" 
+                  data-tab="${tab.key}" 
+                  onclick="navigateTo('${tab.targetView}')">
+            <i class="${tab.icon}"></i>
+            <span>${tab.label}</span>
+          </button>
+        `;
+      }).join('');
     }
+
+    // Backwards compatibility alias
+    const renderSidebarNav = renderCentralTabs;
 
     // ── Google Identity Services (OAuth2 Client) ──
     const GOOGLE_CLIENT_ID = "583335952268-td9qvc3m82makbl3d6lq3h7u5obnlnh4.apps.googleusercontent.com";
