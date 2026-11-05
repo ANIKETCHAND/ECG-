@@ -13,6 +13,7 @@
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
   <!-- Google Identity Services (GSI) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
@@ -4733,9 +4734,86 @@
       }
     }
 
-    async function downloadCurrentReportPdf(type) {
-      const repId = (lastAnalysisResult && (lastAnalysisResult.report_id || lastAnalysisResult.id)) || 'sample_raj';
-      downloadReportPdf(repId, type);
+    async function downloadCurrentReportPdf(type = 'doctor') {
+      showToast(`Generating publication ${type.toUpperCase()} PDF...`, 'fa-spinner fa-spin');
+      try {
+        const token = localStorage.getItem('ecg_guardian_token');
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+
+        const pName = (activePatient && activePatient.name) || (currentUser && currentUser.name) || 'Patient';
+        const pMrn = (activePatient && activePatient.mrn) || (currentUser && (currentUser.registration_number || currentUser.mrn)) || 'MRN-2026';
+        const pAge = (activePatient && activePatient.age) || 30;
+        const pSex = (activePatient && activePatient.sex) || 'Not Specified';
+
+        let finding = 'Normal Sinus Rhythm';
+        if (lastAnalysisResult && lastAnalysisResult.ai_classification && lastAnalysisResult.ai_classification.prediction) {
+          finding = lastAnalysisResult.ai_classification.prediction;
+        } else if (lastAnalysisResult && lastAnalysisResult.primary_prediction) {
+          finding = lastAnalysisResult.primary_prediction;
+        } else {
+          const headerEl = document.getElementById('patRepFindingHeader') || document.getElementById('aiFindingBadge');
+          if (headerEl) finding = headerEl.innerText.replace('Overall Result: ', '').trim();
+        }
+
+        const hr = (lastAnalysisResult && lastAnalysisResult.cardiac_parameters && lastAnalysisResult.cardiac_parameters.heart_rate_bpm) ||
+                   parseFloat(document.getElementById('mHeartRate')?.innerText) || 72;
+
+        const repId = (lastAnalysisResult && (lastAnalysisResult.report_id || lastAnalysisResult.id)) || 'sample_raj';
+
+        const payload = {
+          report_data: (lastAnalysisResult && lastAnalysisResult.full_report) ? lastAnalysisResult.full_report : null,
+          patient_name: pName,
+          patient_mrn: pMrn,
+          patient_age: parseInt(pAge) || 30,
+          patient_sex: pSex,
+          primary_finding: finding,
+          heart_rate_bpm: hr,
+          pr_interval_ms: (lastAnalysisResult && lastAnalysisResult.cardiac_parameters && lastAnalysisResult.cardiac_parameters.pr_interval_ms) || 160,
+          qrs_duration_ms: (lastAnalysisResult && lastAnalysisResult.cardiac_parameters && lastAnalysisResult.cardiac_parameters.qrs_duration_ms) || 88,
+          qt_interval_ms: (lastAnalysisResult && lastAnalysisResult.cardiac_parameters && lastAnalysisResult.cardiac_parameters.qt_interval_ms) || 392,
+          qtc_interval_ms: (lastAnalysisResult && lastAnalysisResult.cardiac_parameters && lastAnalysisResult.cardiac_parameters.qtc_bazett_ms) || 429,
+          report_id: repId,
+          report_type: type,
+          doctor_advice: document.getElementById('patRepAdvice1')?.innerText || document.getElementById('cdsDoctorAdviceInput')?.value || 'Maintain standard cardiovascular follow-up.',
+          signal: (currentEcgSignal && currentEcgSignal.length > 50) ? currentEcgSignal.slice(0, 1000) : null
+        };
+
+        // Priority 1: On-Demand Dynamic PDF compilation
+        let res = await fetch(`${API_BASE}/api/reports/render-pdf?type=${type}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        // Priority 2: Fall back to persistent endpoint
+        if (!res.ok) {
+          res = await fetch(`${API_BASE}/api/reports/${encodeURIComponent(repId)}/pdf?type=${type}`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+        }
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `ECG_Guardian_${type.toUpperCase()}_Report_${pName.replace(/\s+/g, '_')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+          showToast(`Downloaded ${type.toUpperCase()} PDF successfully!`, 'fa-circle-check');
+          return;
+        }
+      } catch (err) {
+        console.warn('PDF download error:', err);
+      }
+
+      // Priority 3: Client-side html2pdf generator
+      triggerClientSidePdfDownload(type);
     }
 
     async function downloadReportPdf(reportId, type = 'doctor') {
@@ -4743,7 +4821,22 @@
       try {
         const token = localStorage.getItem('ecg_guardian_token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE}/api/reports/${encodeURIComponent(reportId)}/pdf?type=${type}`, { headers });
+
+        // 1. Try GET /api/reports/{id}/pdf
+        let res = await fetch(`${API_BASE}/api/reports/${encodeURIComponent(reportId)}/pdf?type=${type}`, { headers });
+
+        // 2. If non-OK, try POST /api/reports/render-pdf
+        if (!res.ok) {
+          res = await fetch(`${API_BASE}/api/reports/render-pdf?type=${type}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...headers
+            },
+            body: JSON.stringify({ report_id: reportId, report_type: type })
+          });
+        }
+
         if (res.ok) {
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
@@ -4753,14 +4846,38 @@
           document.body.appendChild(a);
           a.click();
           a.remove();
+          setTimeout(() => window.URL.revokeObjectURL(url), 1000);
           showToast(`Downloaded ${type.toUpperCase()} PDF successfully!`, 'fa-circle-check');
           return;
         }
       } catch (e) {
         console.warn('PDF endpoint download error:', e);
       }
-      alert(`Report PDF generated. In browser test mode: printing ${type.toUpperCase()} report window.`);
-      window.print();
+      triggerClientSidePdfDownload(type);
+    }
+
+    function triggerClientSidePdfDownload(type = 'doctor') {
+      showToast(`Compiling downloadable ${type.toUpperCase()} PDF...`, 'fa-file-pdf');
+      const targetId = (type === 'patient') ? 'viewPatientReport' : 'viewDoctorReport';
+      const container = document.getElementById(targetId) || document.querySelector('.report-paper-container');
+
+      if (typeof html2pdf !== 'undefined' && container) {
+        const opt = {
+          margin: 10,
+          filename: `ECG_Guardian_${type.toUpperCase()}_Report.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(container).save().then(() => {
+          showToast(`Downloaded ${type.toUpperCase()} PDF successfully!`, 'fa-circle-check');
+        }).catch(err => {
+          console.warn('html2pdf fallback error:', err);
+          window.print();
+        });
+      } else {
+        window.print();
+      }
     }
 
     function saveActiveReportSnapshot() {
