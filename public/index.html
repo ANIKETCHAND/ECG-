@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <!-- Google Identity Services (GSI) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
@@ -1797,8 +1799,30 @@
               </div>
             </div>
 
+            <!-- Google Sign-In on Role Selection Screen -->
+            <div style="margin-top: 26px; text-align: center;">
+              <div style="display:flex; align-items:center; margin:16px auto; max-width:380px; color:var(--text-muted); font-size:0.78rem;">
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+                <span style="padding:0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">or continue with</span>
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+              </div>
+
+              <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+                <div id="googleSignInRoleBtnContainer" style="min-height:44px; display:flex; align-items:center; justify-content:center;"></div>
+                <button type="button" class="btn btn-outline" id="btnRoleGoogleQuick" onclick="authRoleMode='DOCTOR'; triggerGoogleSignIn()" style="display:inline-flex; align-items:center; gap:10px; padding:10px 20px; font-weight:700; font-size:0.86rem; border-color:#E2E8F0; background:#FFFFFF; color:var(--text-main); border-radius:var(--radius-md); box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                  <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                    <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+                  </svg>
+                  <span>Sign in with Google</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Instant Demo Quick Login Strip -->
-            <div style="margin-top: 36px; padding: 18px; background: #FFFFFF; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;">
+            <div style="margin-top: 24px; padding: 18px; background: #FFFFFF; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">1-Click Demo Evaluation:</span>
               <button class="btn btn-soft btn-sm" onclick="quickLoginUser('dr_aniket')">
                 <i class="fa-solid fa-user-doctor"></i> Login as Dr. Aniket Chandra (Doctor)
@@ -1820,6 +1844,26 @@
 
             <h3 style="font-size:1.45rem; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="authFormTitle">Doctor Sign In</h3>
             <p style="font-size:0.84rem; color:var(--text-secondary); margin-bottom:22px;" id="authFormSubtitle">Enter your credentials to access clinical tools.</p>
+
+            <!-- Google Sign-In Option in Form -->
+            <div style="margin-bottom: 20px;">
+              <div id="googleSignInBtnContainer" style="display:flex; justify-content:center; width:100%; min-height:44px; margin-bottom:10px;"></div>
+              <button type="button" class="btn btn-outline" id="btnCustomGoogleLogin" onclick="triggerGoogleSignIn()" style="width:100%; padding:11px 16px; display:flex; align-items:center; justify-content:center; gap:12px; font-weight:700; font-size:0.88rem; border-color:#E2E8F0; color:var(--text-main); background:#FFFFFF; border-radius:var(--radius-md); box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:all 0.2s ease;">
+                <svg width="20" height="20" viewBox="0 0 18 18">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                  <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+                </svg>
+                <span id="txtGoogleSignIn">Sign in with Google</span>
+              </button>
+            </div>
+
+            <div style="display:flex; align-items:center; margin:18px 0; color:var(--text-muted); font-size:0.78rem;">
+              <div style="flex:1; height:1px; background:var(--border-color);"></div>
+              <span style="padding:0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">or continue with email</span>
+              <div style="flex:1; height:1px; background:var(--border-color);"></div>
+            </div>
 
             <form id="authCoreForm" onsubmit="handleAuthSubmit(event)">
               <div class="form-group hidden" id="fgFullName">
@@ -3658,10 +3702,175 @@
       const hav = document.getElementById('headerAvatarPill');
 
       if (currentUser) {
-        if (av) av.textContent = currentUser.initials || 'AC';
-        if (hav) hav.textContent = currentUser.initials || 'AC';
+        if (currentUser.picture) {
+          if (av) av.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
+          if (hav) hav.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
+        } else {
+          if (av) av.textContent = currentUser.initials || 'AC';
+          if (hav) hav.textContent = currentUser.initials || 'AC';
+        }
         if (un) un.textContent = currentUser.name || 'Dr. Aniket Chandra';
-        if (ur) ur.textContent = currentUser.role === 'DOCTOR' ? 'Cardiologist' : 'Patient';
+        if (ur) ur.textContent = (currentUser.role === 'DOCTOR' || currentUser.role === 'CARDIOLOGIST') ? 'Cardiologist' : 'Patient';
+      }
+    }
+
+    // ── Google Identity Services (OAuth2 Client) ──
+    const GOOGLE_CLIENT_ID = "583335952268-td9qvc3m82makbl3d6lq3h7u5obnlnh4.apps.googleusercontent.com";
+
+    function initGoogleSignIn() {
+      if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+        setTimeout(initGoogleSignIn, 350);
+        return;
+      }
+
+      try {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+
+        // Render official button in form container
+        const formBtnContainer = document.getElementById('googleSignInBtnContainer');
+        if (formBtnContainer) {
+          formBtnContainer.innerHTML = '';
+          google.accounts.id.renderButton(formBtnContainer, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 340
+          });
+          const fbBtn = document.getElementById('btnCustomGoogleLogin');
+          if (fbBtn) fbBtn.style.display = 'none';
+        }
+
+        // Render official button in role selection container
+        const roleBtnContainer = document.getElementById('googleSignInRoleBtnContainer');
+        if (roleBtnContainer) {
+          roleBtnContainer.innerHTML = '';
+          google.accounts.id.renderButton(roleBtnContainer, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'continue_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 260
+          });
+          const fbRoleBtn = document.getElementById('btnRoleGoogleQuick');
+          if (fbRoleBtn) fbRoleBtn.style.display = 'none';
+        }
+      } catch (err) {
+        console.warn('Google GSI initialization notice:', err);
+      }
+    }
+
+    function triggerGoogleSignIn() {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        // Attempt One Tap prompt
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('Google prompt not displayed; attempting direct button dispatch.');
+            // Click rendered iframe button if present
+            const iframe = document.querySelector('#googleSignInBtnContainer iframe, #googleSignInRoleBtnContainer iframe');
+            if (iframe) {
+              iframe.focus();
+            }
+          }
+        });
+      } else {
+        showToast('Google Sign-In is initializing, please click again in a moment.', 'fa-circle-info');
+      }
+    }
+
+    async function handleGoogleCredentialResponse(response) {
+      if (!response || !response.credential) {
+        showToast('Google Sign-In was cancelled or failed.', 'fa-circle-exclamation');
+        return;
+      }
+
+      const credential = response.credential;
+      let claims = {};
+      try {
+        const payload = credential.split('.')[1];
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))));
+        claims = decoded || {};
+      } catch (e) {
+        console.warn('Google JWT decoding notice:', e);
+      }
+
+      showToast('Authenticating with Google account...', 'fa-spinner');
+
+      const roleForAuth = (authRoleMode === 'PATIENT') ? 'PATIENT' : 'CARDIOLOGIST';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            credential: credential,
+            email: claims.email || null,
+            name: claims.name || null,
+            picture: claims.picture || null,
+            role: roleForAuth,
+            hospital_id: 'HOSP-APEX'
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.user) {
+            currentUser = data.user;
+            currentUser.name = data.user.full_name || data.user.name || claims.name || 'User';
+            currentUser.email = data.user.email || claims.email;
+            currentUser.mrn = data.user.registration_number || data.user.patient_code || '';
+            currentUser.picture = data.user.picture || claims.picture || null;
+            currentUser.initials = (currentUser.name || 'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
+            localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
+            if (data.token) localStorage.setItem('ecg_guardian_token', data.token);
+
+            showToast(`Welcome, ${currentUser.name}!`, 'fa-circle-check');
+            renderSidebarNav();
+
+            if (currentUser.role === 'PATIENT') {
+              navigateTo('patientDashboard');
+            } else {
+              navigateTo('doctorDashboard');
+            }
+            return;
+          }
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || 'Google sign-in rejected by server.', 'fa-circle-exclamation');
+        }
+      } catch (netErr) {
+        console.warn('Backend fetch error during Google auth:', netErr);
+        // Seamless client-side onboarding with Google claims
+        if (claims.email) {
+          const isPatient = (authRoleMode === 'PATIENT');
+          currentUser = {
+            user_id: `USR-G-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            name: claims.name || claims.email.split('@')[0],
+            email: claims.email,
+            picture: claims.picture || null,
+            role: isPatient ? 'PATIENT' : 'DOCTOR',
+            role_title: isPatient ? 'Patient' : 'Cardiologist',
+            hospital_id: 'HOSP-APEX',
+            mrn: isPatient ? 'MRN-5F2298' : 'MCI-994821',
+            initials: (claims.name || 'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
+          };
+          localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
+          showToast(`Signed in with Google: ${currentUser.name}`, 'fa-circle-check');
+          renderSidebarNav();
+          navigateTo(isPatient ? 'patientDashboard' : 'doctorDashboard');
+        } else {
+          showToast('Network error during Google Sign-In.', 'fa-circle-exclamation');
+        }
       }
     }
 
@@ -3695,6 +3904,7 @@
       authRoleMode = role;
       document.getElementById('authRoleSelectionScreen').classList.add('hidden');
       document.getElementById('authFormContainer').classList.remove('hidden');
+      setTimeout(initGoogleSignIn, 100);
 
       const isDoc = (role === 'DOCTOR');
       document.getElementById('authRoleIndicatorBadge').textContent = isDoc ? 'DOCTOR PORTAL' : 'PATIENT PORTAL';

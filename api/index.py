@@ -9,6 +9,7 @@ Endpoints for Vercel deployment:
 - POST /api/review: Clinician review sign-off and sealing
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -266,6 +267,21 @@ def get_authenticated_user_from_request(
         return AUTH_MANAGER.validate_session(tok)
     return None
 
+
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    "583335952268-td9qvc3m82makbl3d6lq3h7u5obnlnh4.apps.googleusercontent.com"
+)
+
+@router.get("/auth/config")
+def get_auth_config_endpoint():
+    """Return public authentication provider configuration."""
+    return {
+        "status": "OK",
+        "google_client_id": GOOGLE_CLIENT_ID,
+        "supabase_enabled": bool(os.getenv("SUPABASE_URL")),
+        "default_hospital": "HOSP-APEX"
+    }
 
 class GoogleAuthRequest(BaseModel):
     credential: Optional[str] = None
