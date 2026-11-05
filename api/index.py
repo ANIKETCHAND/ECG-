@@ -2269,6 +2269,75 @@ async def upload_ecg_file(
     raise HTTPException(status_code=400, detail=f"Unsupported file format '{Path(filename).suffix}'. Supported: CSV, TXT, NPY, JSON, JPG, PNG, PDF.")
 
 
+# ── Appointments & Consultations Endpoints ─────────────────────────
+DEFAULT_APPOINTMENTS: List[Dict[str, Any]] = [
+    {
+        "appointment_id": "APT-2026-0891",
+        "patient_id": "USR-RAJ_VERMA",
+        "patient_mrn": "MRN-5F2298",
+        "patient_name": "Raj Verma",
+        "doctor_name": "Dr. Aniket Chandra, MD (Cardiology)",
+        "appointment_date": "2026-11-15",
+        "appointment_time": "10:30 AM",
+        "consultation_type": "In-Person Hospital Visit",
+        "location": "Apex Heart & Vascular Hospital, Consultation Room 402",
+        "reason": "Routine Post-ECG Follow-Up & Medication Review",
+        "notes": "Follow-up after baseline 12-lead ECG analysis. Evaluate blood pressure trends and lipid profile.",
+        "status": "CONFIRMED",
+        "created_at": "2026-10-31T10:30:00Z"
+    }
+]
+
+class CreateAppointmentRequest(BaseModel):
+    patient_id: Optional[str] = "USR-RAJ_VERMA"
+    patient_mrn: Optional[str] = "MRN-5F2298"
+    patient_name: Optional[str] = "Raj Verma"
+    doctor_name: Optional[str] = "Dr. Aniket Chandra, MD (Cardiology)"
+    appointment_date: str
+    appointment_time: str
+    consultation_type: Optional[str] = "In-Person Hospital Visit"
+    location: Optional[str] = "Apex Heart & Vascular Hospital, Consultation Room 402"
+    reason: Optional[str] = "Routine Post-ECG Follow-Up & Medication Review"
+    notes: Optional[str] = ""
+
+@router.get("/appointments", dependencies=[_protected])
+def list_appointments(patient_id: Optional[str] = None):
+    """Retrieve scheduled patient appointments."""
+    if patient_id and patient_id not in ["ALL", ""]:
+        res = [a for a in DEFAULT_APPOINTMENTS if a.get("patient_id") == patient_id]
+        return res if res else DEFAULT_APPOINTMENTS
+    return DEFAULT_APPOINTMENTS
+
+@router.post("/appointments", dependencies=[_protected])
+def create_appointment(req: CreateAppointmentRequest):
+    """Book a new clinical consultation."""
+    new_id = f"APT-{datetime.now().year}-{uuid.uuid4().hex[:4].upper()}"
+    apt = {
+        "appointment_id": new_id,
+        "patient_id": req.patient_id or "USR-RAJ_VERMA",
+        "patient_mrn": req.patient_mrn or "MRN-5F2298",
+        "patient_name": req.patient_name or "Raj Verma",
+        "doctor_name": req.doctor_name or "Dr. Aniket Chandra, MD (Cardiology)",
+        "appointment_date": req.appointment_date,
+        "appointment_time": req.appointment_time,
+        "consultation_type": req.consultation_type or "In-Person Hospital Visit",
+        "location": req.location or "Apex Heart & Vascular Hospital, Consultation Room 402",
+        "reason": req.reason or "Cardiology Consultation",
+        "notes": req.notes or "",
+        "status": "CONFIRMED",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    DEFAULT_APPOINTMENTS.insert(0, apt)
+    return {"status": "SUCCESS", "appointment": apt, "message": "Appointment booked successfully."}
+
+@router.delete("/appointments/{appointment_id}", dependencies=[_protected])
+def cancel_appointment(appointment_id: str):
+    """Cancel an appointment by ID."""
+    global DEFAULT_APPOINTMENTS
+    DEFAULT_APPOINTMENTS = [a for a in DEFAULT_APPOINTMENTS if a.get("appointment_id") != appointment_id]
+    return {"status": "SUCCESS", "message": f"Appointment {appointment_id} cancelled."}
+
+
 
 # Register routes both with and without /api prefix to guarantee route matching across Vercel environments
 app.include_router(router, prefix="/api")

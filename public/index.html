@@ -2119,7 +2119,7 @@
                 </div>
               </div>
 
-              <div class="patient-action-card" onclick="alert('Follow-up appointment requested with Dr. Aniket Chandra.')">
+              <div class="patient-action-card" onclick="navigateTo('appointments')">
                 <div class="patient-action-icon">
                   <i class="fa-solid fa-calendar-check"></i>
                 </div>
@@ -3398,6 +3398,179 @@
           </div>
         </section>
 
+        <!-- ───────────────────────────────────────────────────────────── -->
+        <!-- VIEW: APPOINTMENTS & CLINICAL CONSULTATION SCHEDULER          -->
+        <!-- ───────────────────────────────────────────────────────────── -->
+        <section id="viewAppointments" class="view-page hidden">
+          <!-- Page Header -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">
+                <span style="cursor:pointer;" onclick="navigateTo((currentUser && currentUser.role === 'PATIENT') ? 'patientDashboard' : 'doctorDashboard')">Dashboard</span> &nbsp;/&nbsp; <strong style="color:var(--purple-primary);">Appointments</strong>
+              </div>
+              <h2 style="font-size:1.6rem; font-weight:800; color:var(--text-main);">Appointments &amp; Consultations</h2>
+              <p style="font-size:0.88rem; color:var(--text-secondary); margin-top:2px;">
+                Schedule clinical follow-ups, review booked cardiology appointments, and manage telehealth sessions.
+              </p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline" onclick="loadAppointmentsList()">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+              </button>
+              <button class="btn btn-primary" onclick="toggleAppointmentBookingForm(true)">
+                <i class="fa-solid fa-calendar-plus"></i> + Book New Appointment
+              </button>
+            </div>
+          </div>
+
+          <!-- Top Stat / Summary Cards -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px; margin-bottom:24px;">
+            <div class="card" style="display:flex; align-items:center; gap:16px;">
+              <div style="width:48px; height:48px; border-radius:var(--radius-lg); background:#F3EEFF; color:var(--purple-primary); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Next Scheduled Visit</span>
+                <h4 style="font-size:1.15rem; font-weight:800; margin-top:2px;" id="aptNextDate">15 Nov 2026, 10:30 AM</h4>
+                <span style="font-size:0.75rem; color:var(--purple-primary);" id="aptNextDoctor">With Dr. Aniket Chandra, MD</span>
+              </div>
+            </div>
+
+            <div class="card" style="display:flex; align-items:center; gap:16px;">
+              <div style="width:48px; height:48px; border-radius:var(--radius-lg); background:#F0FDF4; color:var(--success); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                <i class="fa-solid fa-shield-heart"></i>
+              </div>
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Status &amp; Verification</span>
+                <h4 style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">Confirmed</h4>
+                <span style="font-size:0.75rem; color:var(--text-secondary);">Telemetry Record Linked</span>
+              </div>
+            </div>
+
+            <div class="card" style="display:flex; align-items:center; gap:16px;">
+              <div style="width:48px; height:48px; border-radius:var(--radius-lg); background:#EFF6FF; color:var(--info); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                <i class="fa-solid fa-hospital-user"></i>
+              </div>
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Hospital Location</span>
+                <h4 style="font-size:1.15rem; font-weight:800; margin-top:2px;">Apex Heart Hospital</h4>
+                <span style="font-size:0.75rem; color:var(--text-secondary);">Cardiology OPD &middot; Room 402</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collapsible / Interactive Appointment Booking Card -->
+          <div id="appointmentBookingCard" class="card hidden" style="margin-bottom:24px; border:2px solid var(--purple-secondary); background:#FFFFFF; box-shadow:var(--shadow-lg);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+              <div>
+                <span class="badge badge-purple">NEW CONSULTATION</span>
+                <h3 style="font-size:1.2rem; font-weight:800; margin-top:4px;">Book Cardiology Follow-Up Appointment</h3>
+              </div>
+              <button class="btn btn-soft btn-sm" onclick="toggleAppointmentBookingForm(false)">
+                <i class="fa-solid fa-xmark"></i> Close
+              </button>
+            </div>
+
+            <form id="appointmentBookingForm" onsubmit="handleAppointmentBookingSubmit(event)">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
+                <div class="form-group">
+                  <label class="form-label">Patient Name &amp; MRN</label>
+                  <input type="text" class="form-input" id="aptFormPatientName" readonly style="background:var(--bg-secondary); font-weight:700;" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Attending Cardiologist</label>
+                  <select class="form-input" id="aptFormDoctor">
+                    <option value="Dr. Aniket Chandra, MD (Cardiology)">Dr. Aniket Chandra, MD (Cardiologist &amp; Electrophysiologist)</option>
+                    <option value="Dr. Priya Sharma, MD (Non-Invasive Cardiology)">Dr. Priya Sharma, MD (Cardiologist)</option>
+                    <option value="Dr. Rajesh Gupta, DM (Interventional Cardiology)">Dr. Rajesh Gupta, DM (Interventional Cardiology)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Consultation Mode</label>
+                  <select class="form-input" id="aptFormMode">
+                    <option value="In-Person Hospital Visit">In-Person Hospital Visit (Apex Heart Hospital, Room 402)</option>
+                    <option value="Telehealth Video Consultation">Telehealth Video Consultation (Secure HD Portal)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Preferred Date</label>
+                  <input type="date" class="form-input" id="aptFormDate" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Preferred Time Slot</label>
+                  <select class="form-input" id="aptFormTime">
+                    <option value="09:30 AM">09:30 AM (Morning OPD)</option>
+                    <option value="11:00 AM">11:00 AM (Morning OPD)</option>
+                    <option value="02:30 PM">02:30 PM (Afternoon Clinic)</option>
+                    <option value="04:00 PM">04:00 PM (Evening Telehealth)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Reason for Consultation</label>
+                  <select class="form-input" id="aptFormReason">
+                    <option value="Routine Post-ECG Follow-Up &amp; Medication Review">Routine Post-ECG Follow-Up &amp; Medication Review</option>
+                    <option value="Palpitations or Heart Rhythm Check">Palpitations or Heart Rhythm Check</option>
+                    <option value="Blood Pressure &amp; Anti-Hypertensive Adjustment">Blood Pressure &amp; Anti-Hypertensive Adjustment</option>
+                    <option value="Chest Tightness / Shortness of Breath Review">Chest Tightness / Shortness of Breath Review</option>
+                    <option value="General Preventive Cardiology Checkup">General Preventive Cardiology Checkup</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:14px;">
+                <label class="form-label">Clinical Notes / Symptoms to Discuss (Optional)</label>
+                <textarea class="form-input" id="aptFormNotes" rows="2" placeholder="Describe any current symptoms, recent blood pressure readings, or questions for Dr. Aniket..."></textarea>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:16px;">
+                <button type="button" class="btn btn-outline" onclick="toggleAppointmentBookingForm(false)">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="aptSubmitBtn">
+                  <i class="fa-solid fa-circle-check"></i> Confirm &amp; Book Appointment
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Upcoming Scheduled Appointments List -->
+          <div class="card" style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div>
+                <span class="badge badge-purple">SCHEDULED SESSIONS</span>
+                <h3 style="font-size:1.15rem; font-weight:800; margin-top:4px;">Upcoming Consultations</h3>
+              </div>
+              <span class="badge badge-green" id="aptActiveCountBadge">1 Active</span>
+            </div>
+
+            <div id="aptUpcomingList" style="display:flex; flex-direction:column; gap:14px;">
+              <!-- Dynamic Appointment Cards -->
+            </div>
+          </div>
+
+          <!-- Past Clinical Consultations History -->
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <h3 style="font-size:1.05rem; font-weight:800;">Past Consultation History</h3>
+              <span style="font-size:0.75rem; color:var(--text-secondary);">Showing last 6 months</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="report-table" style="width:100%; font-size:0.84rem;">
+                <thead>
+                  <tr style="background:var(--bg-secondary); border-bottom:1px solid var(--border-color);">
+                    <th style="padding:10px 12px; text-align:left;">Date &amp; Time</th>
+                    <th style="padding:10px 12px; text-align:left;">Physician</th>
+                    <th style="padding:10px 12px; text-align:left;">Type / Location</th>
+                    <th style="padding:10px 12px; text-align:left;">Clinical Summary</th>
+                    <th style="padding:10px 12px; text-align:left;">Linked ECG</th>
+                    <th style="padding:10px 12px; text-align:left;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="aptHistoryTableBody">
+                  <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -3431,6 +3604,58 @@
       </div>
       <div class="modal-body" id="snapModalBody">
         <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Help & Support Modal -->
+  <div id="helpSupportModal" class="modal-overlay hidden">
+    <div class="modal-dialog" style="max-width:600px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-icon-box" style="width:36px; height:36px; font-size:1rem;">
+            <i class="fa-solid fa-circle-question"></i>
+          </div>
+          <div>
+            <h3 style="font-size:1.15rem; font-weight:800;">Help &amp; Patient Support</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary);">Apex Heart &amp; Vascular Hospital Telemetry Assistance</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeHelpSupportModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Emergency Alert Box -->
+        <div style="background:var(--error-bg); border:1px solid var(--error-border); border-radius:var(--radius-md); padding:14px; display:flex; gap:12px; align-items:flex-start;">
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--error); font-size:1.3rem; margin-top:2px;"></i>
+          <div>
+            <strong style="color:var(--error); font-size:0.92rem;">Cardiovascular Emergency Hotline</strong>
+            <p style="font-size:0.82rem; color:var(--text-main); margin-top:2px;">
+              If you or a patient experience acute chest pain, severe shortness of breath, dizziness, or loss of consciousness, dial emergency services immediately:
+            </p>
+            <div style="display:flex; gap:12px; margin-top:6px; font-weight:700; font-size:0.86rem;">
+              <span><i class="fa-solid fa-phone"></i> National EMS: 108</span>
+              <span><i class="fa-solid fa-hospital"></i> Hospital CCU: +91-141-2890-400</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinic & Department Contacts -->
+        <div class="card" style="padding:14px; background:var(--bg-secondary);">
+          <h4 style="font-size:0.88rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase; margin-bottom:8px;">
+            Cardiology Outpatient &amp; Follow-up Desk
+          </h4>
+          <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; font-size:0.84rem; color:var(--text-main);">
+            <li><strong>Department:</strong> Cardiac Electrophysiology &amp; Telemetry Suite</li>
+            <li><strong>Lead Physician:</strong> Dr. Aniket Chandra, MD (Cardiologist)</li>
+            <li><strong>Clinic Hours:</strong> Monday &ndash; Saturday &middot; 08:30 AM &ndash; 05:30 PM</li>
+            <li><strong>Direct Desk Phone:</strong> +91 98765 43210 / +91 141 2890 402</li>
+            <li><strong>Support Email:</strong> <a href="mailto:telemetry@apexheart.org" style="color:var(--purple-primary);">telemetry@apexheart.org</a></li>
+          </ul>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="closeHelpSupportModal()">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3620,7 +3845,8 @@
         patientReport: 'viewPatientReport',
         reportHistory: 'viewReportHistory',
         patientsManagement: 'viewPatientsManagement',
-        settings: 'viewSettings'
+        settings: 'viewSettings',
+        appointments: 'viewAppointments'
       };
 
       const targetId = map[viewId] || 'viewLanding';
@@ -3653,6 +3879,8 @@
         fetchHistoryReports();
       } else if (viewId === 'patientsManagement') {
         fetchPatientsDirectory();
+      } else if (viewId === 'appointments') {
+        loadAppointmentsList();
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3692,10 +3920,10 @@
           <a class="sidebar-item ${currentView === 'patientProfile' ? 'active' : ''}" onclick="navigateTo('patientProfile')">
             <i class="fa-solid fa-id-card"></i> <span>Medical Profile</span>
           </a>
-          <a class="sidebar-item" onclick="alert('Appointments module: You have a follow-up scheduled with Dr. Aniket Chandra in 6 months.')">
+          <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
             <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
           </a>
-          <a class="sidebar-item" onclick="alert('Help & Support: For medical emergencies call 108 or hospital CCU at +91-22-2456-7890.')">
+          <a class="sidebar-item" onclick="openHelpSupportModal()">
             <i class="fa-solid fa-circle-question"></i> <span>Help & Support</span>
           </a>
         `;
@@ -3716,6 +3944,9 @@
           </a>
           <a class="sidebar-item ${currentView === 'doctorReport' ? 'active' : ''}" onclick="navigateTo('doctorReport')">
             <i class="fa-solid fa-file-invoice"></i> <span>Reports</span>
+          </a>
+          <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
+            <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
           </a>
           <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
             <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
@@ -5848,6 +6079,313 @@
         t.style.transition = 'all 0.25s ease';
         setTimeout(() => t.remove(), 260);
       }, 2600);
+    }
+
+    // ═════════════════════════════════════════════════════════════════
+    // APPOINTMENTS MODULE: SCHEDULING, VIEWING & PERSISTENCE
+    // ═════════════════════════════════════════════════════════════════
+    const DEFAULT_APPTS_SEED = [
+      {
+        appointment_id: "APT-2026-0891",
+        patient_id: "USR-RAJ_VERMA",
+        patient_mrn: "MRN-5F2298",
+        patient_name: "Raj Verma",
+        doctor_name: "Dr. Aniket Chandra, MD (Cardiology)",
+        appointment_date: "2026-11-15",
+        appointment_time: "10:30 AM",
+        consultation_type: "In-Person Hospital Visit",
+        location: "Apex Heart & Vascular Hospital, Room 402",
+        reason: "Routine Post-ECG Follow-Up & Medication Review",
+        notes: "Review baseline 12-lead ECG telemetry. Check blood pressure trends and lipid profile.",
+        status: "CONFIRMED"
+      }
+    ];
+
+    function getLocalAppointments() {
+      try {
+        const stored = localStorage.getItem('ecg_guardian_appointments');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+      return DEFAULT_APPTS_SEED;
+    }
+
+    function saveLocalAppointments(appts) {
+      try {
+        localStorage.setItem('ecg_guardian_appointments', JSON.stringify(appts));
+      } catch (e) {}
+    }
+
+    async function loadAppointmentsList() {
+      const container = document.getElementById('aptUpcomingList');
+      const tableBody = document.getElementById('aptHistoryTableBody');
+      const patNameInput = document.getElementById('aptFormPatientName');
+      const dateInput = document.getElementById('aptFormDate');
+
+      const pat = (typeof currentPatient !== 'undefined' && currentPatient) ? currentPatient : {};
+      const activeName = pat.name || (currentUser && currentUser.name) || 'Raj Verma';
+      const activeMrn = pat.mrn || 'MRN-5F2298';
+
+      if (patNameInput) {
+        patNameInput.value = `${activeName} (${activeMrn})`;
+      }
+
+      if (dateInput && !dateInput.value) {
+        // Default appointment date to 10 days from today
+        const d = new Date();
+        d.setDate(d.getDate() + 10);
+        dateInput.value = d.toISOString().split('T')[0];
+      }
+
+      // 1. Fetch appointments from API, with localStorage fallback
+      let appointments = getLocalAppointments();
+      try {
+        const token = localStorage.getItem('ecg_guardian_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`${API_BASE}/api/appointments`, { headers });
+        if (res.ok) {
+          const apiData = await res.json();
+          if (Array.isArray(apiData) && apiData.length > 0) {
+            appointments = apiData;
+            saveLocalAppointments(appointments);
+          }
+        }
+      } catch (err) {
+        console.warn('Using local appointments repository:', err);
+      }
+
+      const activeAppointments = appointments.filter(a => a.status !== 'CANCELLED');
+      const badge = document.getElementById('aptActiveCountBadge');
+      if (badge) badge.textContent = `${activeAppointments.length} Active`;
+
+      // Update Summary stat card
+      if (activeAppointments.length > 0) {
+        const next = activeAppointments[0];
+        const nextDateEl = document.getElementById('aptNextDate');
+        const nextDocEl = document.getElementById('aptNextDoctor');
+        if (nextDateEl) nextDateEl.textContent = `${next.appointment_date}, ${next.appointment_time}`;
+        if (nextDocEl) nextDocEl.textContent = `With ${next.doctor_name}`;
+      } else {
+        const nextDateEl = document.getElementById('aptNextDate');
+        const nextDocEl = document.getElementById('aptNextDoctor');
+        if (nextDateEl) nextDateEl.textContent = 'None Scheduled';
+        if (nextDocEl) nextDocEl.textContent = 'Click Book New Appointment';
+      }
+
+      // Render Upcoming Appointment Cards
+      if (container) {
+        if (activeAppointments.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:30px; color:var(--text-secondary); background:var(--bg-secondary); border-radius:var(--radius-md);">
+              <i class="fa-solid fa-calendar-xmark" style="font-size:2rem; margin-bottom:10px; color:var(--purple-primary);"></i>
+              <p style="font-size:0.95rem; font-weight:700;">No upcoming consultations scheduled.</p>
+              <button class="btn btn-primary btn-sm" onclick="toggleAppointmentBookingForm(true)" style="margin-top:10px;">
+                <i class="fa-solid fa-calendar-plus"></i> Schedule Follow-Up Now
+              </button>
+            </div>
+          `;
+        } else {
+          container.innerHTML = activeAppointments.map(a => `
+            <div style="border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:18px 20px; background:#FFFFFF; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:var(--shadow-sm);">
+              <div style="display:flex; align-items:center; gap:16px;">
+                <div style="background:#F3EEFF; border:1px solid #E9E3F5; border-radius:var(--radius-md); padding:12px 14px; text-align:center; min-width:80px;">
+                  <span style="display:block; font-size:0.7rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase;">DATE</span>
+                  <span style="font-size:1.15rem; font-weight:800; color:var(--purple-deep);">${a.appointment_date}</span>
+                  <span style="display:block; font-size:0.74rem; font-weight:700; color:var(--text-secondary); margin-top:2px;">${a.appointment_time}</span>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <h4 style="font-size:1.05rem; font-weight:800; color:var(--text-main);">${a.doctor_name}</h4>
+                    <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> ${a.status}</span>
+                  </div>
+                  <p style="font-size:0.86rem; color:var(--purple-primary); font-weight:700; margin-top:2px;">
+                    <i class="fa-solid fa-stethoscope"></i> ${a.reason}
+                  </p>
+                  <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">
+                    <i class="fa-solid fa-location-dot"></i> ${a.location || 'Apex Heart & Vascular Hospital, Room 402'} &bull; Mode: <strong>${a.consultation_type}</strong>
+                  </p>
+                  ${a.notes ? `<p style="font-size:0.78rem; color:var(--text-muted); margin-top:4px; font-style:italic;">Notes: ${a.notes}</p>` : ''}
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="downloadAppointmentIcs('${a.appointment_id}')" title="Save to Google Calendar / Apple Calendar">
+                  <i class="fa-solid fa-calendar-arrow-down"></i> Add to Calendar
+                </button>
+                <button class="btn btn-soft btn-sm" onclick="cancelAppointment('${a.appointment_id}')" style="color:var(--error);" title="Cancel consultation">
+                  <i class="fa-solid fa-ban"></i> Cancel
+                </button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Render Past History Table
+      if (tableBody) {
+        tableBody.innerHTML = `
+          <tr style="border-bottom:1px solid var(--border-color);">
+            <td style="padding:10px 12px;"><strong>28 Oct 2026</strong><br/><span style="font-size:0.75rem; color:var(--text-secondary);">11:00 AM</span></td>
+            <td style="padding:10px 12px;">Dr. Aniket Chandra, MD</td>
+            <td style="padding:10px 12px;"><span class="badge badge-purple">In-Person Visit</span><br/><span style="font-size:0.74rem;">Room 402</span></td>
+            <td style="padding:10px 12px; font-size:0.82rem;">Reviewed baseline rhythm strip. Normal sinus rhythm confirmed. Advised sodium reduction & daily walking.</td>
+            <td style="padding:10px 12px;"><a href="#" onclick="navigateTo('doctorReport'); return false;" style="color:var(--purple-primary); font-weight:700; font-size:0.8rem;"><i class="fa-solid fa-file-lines"></i> Report #01045</a></td>
+            <td style="padding:10px 12px;"><span class="badge badge-green">Completed</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border-color);">
+            <td style="padding:10px 12px;"><strong>15 May 2026</strong><br/><span style="font-size:0.75rem; color:var(--text-secondary);">03:30 PM</span></td>
+            <td style="padding:10px 12px;">Dr. Priya Sharma, MD</td>
+            <td style="padding:10px 12px;"><span class="badge badge-purple">Telehealth Video</span></td>
+            <td style="padding:10px 12px; font-size:0.82rem;">Annual cardiac preventive screening. Vitals in target range.</td>
+            <td style="padding:10px 12px; font-size:0.75rem; color:var(--text-secondary);">Baseline Screen</td>
+            <td style="padding:10px 12px;"><span class="badge badge-green">Completed</span></td>
+          </tr>
+        `;
+      }
+    }
+
+    function toggleAppointmentBookingForm(show = true) {
+      const card = document.getElementById('appointmentBookingCard');
+      if (!card) return;
+      card.classList.toggle('hidden', !show);
+      if (show) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    async function handleAppointmentBookingSubmit(e) {
+      if (e) e.preventDefault();
+
+      const pat = (typeof currentPatient !== 'undefined' && currentPatient) ? currentPatient : {};
+      const dateVal = document.getElementById('aptFormDate')?.value;
+      const timeVal = document.getElementById('aptFormTime')?.value || '10:30 AM';
+      const docVal = document.getElementById('aptFormDoctor')?.value || 'Dr. Aniket Chandra, MD (Cardiology)';
+      const modeVal = document.getElementById('aptFormMode')?.value || 'In-Person Hospital Visit';
+      const reasonVal = document.getElementById('aptFormReason')?.value || 'Routine Post-ECG Follow-Up & Medication Review';
+      const notesVal = document.getElementById('aptFormNotes')?.value || '';
+
+      if (!dateVal) {
+        showToast('Please select a preferred appointment date.', 'fa-circle-exclamation');
+        return;
+      }
+
+      const submitBtn = document.getElementById('aptSubmitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Booking...';
+      }
+
+      const newId = `APT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newApt = {
+        appointment_id: newId,
+        patient_id: pat.id || 'USR-RAJ_VERMA',
+        patient_mrn: pat.mrn || 'MRN-5F2298',
+        patient_name: pat.name || 'Raj Verma',
+        doctor_name: docVal,
+        appointment_date: dateVal,
+        appointment_time: timeVal,
+        consultation_type: modeVal,
+        location: modeVal.includes('Hospital') ? 'Apex Heart & Vascular Hospital, Room 402' : 'Secure Telehealth HD Portal',
+        reason: reasonVal,
+        notes: notesVal,
+        status: 'CONFIRMED'
+      };
+
+      // Try server API
+      try {
+        const token = localStorage.getItem('ecg_guardian_token');
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+        await fetch(`${API_BASE}/api/appointments`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(newApt)
+        });
+      } catch (err) {
+        console.warn('API sync fallback for appointments:', err);
+      }
+
+      // Local storage persistence
+      const currentList = getLocalAppointments();
+      currentList.unshift(newApt);
+      saveLocalAppointments(currentList);
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Confirm &amp; Book Appointment';
+      }
+
+      toggleAppointmentBookingForm(false);
+      loadAppointmentsList();
+      showToast(`Appointment confirmed for ${dateVal} with ${docVal.split(',')[0]}!`, 'fa-calendar-check');
+    }
+
+    async function cancelAppointment(aptId) {
+      if (!confirm(`Are you sure you want to cancel appointment ${aptId}?`)) return;
+
+      try {
+        const token = localStorage.getItem('ecg_guardian_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        await fetch(`${API_BASE}/api/appointments/${encodeURIComponent(aptId)}`, {
+          method: 'DELETE',
+          headers
+        });
+      } catch (e) {}
+
+      let list = getLocalAppointments();
+      list = list.filter(a => a.appointment_id !== aptId);
+      saveLocalAppointments(list);
+
+      loadAppointmentsList();
+      showToast(`Appointment ${aptId} has been cancelled.`, 'fa-circle-xmark');
+    }
+
+    function downloadAppointmentIcs(aptId) {
+      const list = getLocalAppointments();
+      const a = list.find(item => item.appointment_id === aptId) || list[0];
+      if (!a) return;
+
+      const title = `Cardiology Consultation with ${a.doctor_name}`;
+      const description = `Reason: ${a.reason}\\nLocation: ${a.location || 'Apex Heart Hospital'}\\nPatient MRN: ${a.patient_mrn}`;
+      const dateClean = (a.appointment_date || '2026-11-15').replace(/-/g, '');
+      const icsData = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Apex Heart Hospital//ECG Guardian//EN",
+        "BEGIN:VEVENT",
+        `UID:${a.appointment_id}@apexheart.org`,
+        `DTSTAMP:${dateClean}T090000Z`,
+        `DTSTART:${dateClean}T103000Z`,
+        `DTEND:${dateClean}T110000Z`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${description}`,
+        `LOCATION:${a.location || 'Apex Heart & Vascular Hospital, Jaipur'}`,
+        "STATUS:CONFIRMED",
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+
+      const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Consultation_${a.appointment_id}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('Calendar invite (.ics) generated and downloaded!', 'fa-calendar-days');
+    }
+
+    // Help & Support Modal Controls
+    function openHelpSupportModal() {
+      const modal = document.getElementById('helpSupportModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeHelpSupportModal() {
+      const modal = document.getElementById('helpSupportModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     // ── Application Initialization ──
