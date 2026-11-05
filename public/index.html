@@ -1302,9 +1302,19 @@
     /* Patient Quick Actions 3-card Grid */
     .patient-quick-actions-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 24px;
+    }
+    @media (max-width: 1200px) {
+      .patient-quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 640px) {
+      .patient-quick-actions-grid {
+        grid-template-columns: 1fr;
+      }
     }
     .patient-action-card {
       background: #FFFFFF;
@@ -2014,20 +2024,11 @@
             </div>
           </div>
 
-          <!-- Quick Actions: 3 Cards Grid Matching Screen 4 -->
+          <!-- Quick Actions: 4 Cards (Update Profile, Scan ECG, View Reports, Book Appointment) -->
           <div style="margin-bottom: 24px;">
             <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px; color:var(--text-main);">Quick Actions</h3>
             <div class="patient-quick-actions-grid">
-              <div class="patient-action-card" onclick="navigateTo('reportHistory')">
-                <div class="patient-action-icon">
-                  <i class="fa-solid fa-file-lines"></i>
-                </div>
-                <div class="patient-action-text">
-                  <h4>View Reports</h4>
-                  <p>Access your past diagnostic summaries</p>
-                </div>
-              </div>
-
+              <!-- 1. Update Profile -->
               <div class="patient-action-card" onclick="navigateTo('patientProfile')">
                 <div class="patient-action-icon">
                   <i class="fa-solid fa-user-pen"></i>
@@ -2038,17 +2039,42 @@
                 </div>
               </div>
 
+              <!-- 2. Scan ECG -->
+              <div class="patient-action-card" onclick="navigateTo('ecgScan')">
+                <div class="patient-action-icon">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div class="patient-action-text">
+                  <h4>Scan ECG</h4>
+                  <p>Upload trace or record live rhythm analysis</p>
+                </div>
+              </div>
+
+              <!-- 3. View Reports -->
+              <div class="patient-action-card" onclick="navigateTo('reportHistory')">
+                <div class="patient-action-icon">
+                  <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div class="patient-action-text">
+                  <h4>View Reports</h4>
+                  <p>Access your past diagnostic summaries</p>
+                </div>
+              </div>
+
+              <!-- 4. Book Appointment -->
               <div class="patient-action-card" onclick="navigateTo('appointments')">
                 <div class="patient-action-icon">
                   <i class="fa-solid fa-calendar-check"></i>
                 </div>
                 <div class="patient-action-text">
-                  <h4>Book Follow-up</h4>
+                  <h4>Book Appointment</h4>
                   <p>Schedule a routine cardiology consultation</p>
                 </div>
               </div>
             </div>
           </div>
+
+
 
           <!-- Doctor Advice & Heart Overview -->
           <div class="card" style="margin-bottom:20px;">
