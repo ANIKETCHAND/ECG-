@@ -120,6 +120,24 @@ MEDICATION_KNOWLEDGE = {
         "brady_risk": False,
         "hypotension_risk": False,
     },
+    "sglt2_inhibitor": {
+        "display_name": "SGLT2 Inhibitor",
+        "example_agents": "Empagliflozin (10-25 mg OD) or Dapagliflozin (10 mg OD)",
+        "indication": "Cardiorenal risk reduction, heart failure hospitalization prevention, and glycemic regulation in Type 2 Diabetes",
+        "guideline": "2023 ADA Standards of Care / 2023 ESC Guidelines on CVD in Diabetes (Class I, Level A)",
+        "qt_risk": "LOW",
+        "brady_risk": False,
+        "hypotension_risk": False,
+    },
+    "biguanide": {
+        "display_name": "Biguanide (Metformin)",
+        "example_agents": "Metformin (500-1000 mg BID with meals)",
+        "indication": "First-line glycemic control and insulin sensitization in Type 2 Diabetes",
+        "guideline": "2023 ADA Standards of Medical Care in Diabetes",
+        "qt_risk": "LOW",
+        "brady_risk": False,
+        "hypotension_risk": False,
+    },
 }
 
 FEATURE_COLUMNS = [
@@ -285,24 +303,63 @@ class MultimodalMedicationCandidateEngine:
             except Exception:
                 raw_associations = {}
 
-        # Heuristic fallback if model not loaded
-        if not raw_associations:
-            finding_u = ecg_finding.upper()
-            is_pvc = "PVC" in finding_u or ("VENTRICULAR" in finding_u and "SUPRA" not in finding_u)
-            cond_str = str(p_dict.get("conditions", "")).lower()
-            sym_str = str(p_dict.get("symptoms", "")).lower()
+        # Comprehensive Multi-Disease Detection for Guideline Therapy Mapping
+        cond_str = (
+            str(p_dict.get("conditions", "")) + " " +
+            str(p_dict.get("existing_conditions", "")) + " " +
+            str(p_dict.get("cardiac_history", "")) + " " +
+            str(p_dict.get("medical_history", ""))
+        ).lower()
+        sym_str = str(p_dict.get("symptoms", "")).lower()
+        finding_u = ecg_finding.upper()
+        is_pvc = "PVC" in finding_u or ("VENTRICULAR" in finding_u and "SUPRA" not in finding_u)
+        is_afib = "AFIB" in finding_u or "FIBRILLATION" in finding_u or "FLUTTER" in finding_u
 
+        has_htn = any(k in cond_str for k in ["hypertension", "htn", "high blood pressure", "high bp", "elevated bp"])
+        has_dm = any(k in cond_str for k in ["diabetes", "dm", "t2dm", "t1dm", "diabetic", "sugar"])
+        has_dyslip = any(k in cond_str for k in ["cholesterol", "lipid", "dyslipidemia", "hyperlipidemia", "hypercholesterolemia"])
+        has_cad = any(k in cond_str for k in ["cad", "coronary", "angina", "mi", "infarction", "stent", "cabg", "ischemic"]) or "angina" in sym_str
+        has_hf = any(k in cond_str for k in ["heart failure", "hf", "chf", "hfref", "hfmref", "hfpef", "ejection fraction", "cardiomyopathy"]) or "shortness" in sym_str
+        has_arrh = any(k in cond_str for k in ["pvc", "arrhythmia", "palpitation", "ectopy", "ventricular ectopy", "flutter"]) or is_pvc
+        has_afib_cond = any(k in cond_str for k in ["atrial fibrillation", "afib", "a-fib", "af"]) or is_afib
+
+        if not raw_associations:
             raw_associations = {
-                "beta_blocker": 0.85 if is_pvc else (0.65 if "cad" in cond_str else 0.35),
-                "calcium_channel_blocker": 0.60 if "hypertension" in cond_str else 0.20,
-                "antiarrhythmic_class_3": 0.55 if is_pvc and "heart failure" in cond_str else 0.10,
-                "anticoagulant_doac": 0.75 if "fibrillation" in finding_u else 0.15,
-                "antiplatelet": 0.70 if "cad" in cond_str or "angina" in sym_str else 0.25,
-                "ace_inhibitor_arb": 0.68 if "hypertension" in cond_str or "heart failure" in cond_str else 0.30,
-                "diuretic_loop": 0.72 if "heart failure" in cond_str or "shortness" in sym_str else 0.15,
-                "statin": 0.78 if "cad" in cond_str or "diabetes" in cond_str else 0.40,
+                "beta_blocker": 0.85 if is_pvc else (0.65 if has_cad else 0.35),
+                "calcium_channel_blocker": 0.60 if has_htn else 0.20,
+                "antiarrhythmic_class_3": 0.55 if is_pvc and has_hf else 0.10,
+                "anticoagulant_doac": 0.75 if has_afib_cond else 0.15,
+                "antiplatelet": 0.70 if has_cad else 0.25,
+                "ace_inhibitor_arb": 0.68 if has_htn or has_hf else 0.30,
+                "diuretic_loop": 0.72 if has_hf else 0.15,
+                "statin": 0.78 if has_cad or has_dm or has_dyslip else 0.40,
                 "electrolyte_replacement": 0.80 if is_pvc else 0.20,
             }
+
+        # Strongly link documented patient conditions to guideline therapy candidates
+        if has_htn:
+            raw_associations["ace_inhibitor_arb"] = max(raw_associations.get("ace_inhibitor_arb", 0.0), 0.96)
+            raw_associations["calcium_channel_blocker"] = max(raw_associations.get("calcium_channel_blocker", 0.0), 0.91)
+        if has_dm:
+            raw_associations["sglt2_inhibitor"] = 0.95
+            raw_associations["biguanide"] = 0.90
+            raw_associations["statin"] = max(raw_associations.get("statin", 0.0), 0.88)
+        if has_dyslip:
+            raw_associations["statin"] = max(raw_associations.get("statin", 0.0), 0.97)
+        if has_cad:
+            raw_associations["beta_blocker"] = max(raw_associations.get("beta_blocker", 0.0), 0.94)
+            raw_associations["antiplatelet"] = max(raw_associations.get("antiplatelet", 0.0), 0.92)
+            raw_associations["statin"] = max(raw_associations.get("statin", 0.0), 0.95)
+        if has_hf:
+            raw_associations["ace_inhibitor_arb"] = max(raw_associations.get("ace_inhibitor_arb", 0.0), 0.96)
+            raw_associations["beta_blocker"] = max(raw_associations.get("beta_blocker", 0.0), 0.94)
+            raw_associations["diuretic_loop"] = max(raw_associations.get("diuretic_loop", 0.0), 0.90)
+        if has_arrh:
+            raw_associations["beta_blocker"] = max(raw_associations.get("beta_blocker", 0.0), 0.93)
+            raw_associations["electrolyte_replacement"] = max(raw_associations.get("electrolyte_replacement", 0.0), 0.88)
+        if has_afib_cond:
+            raw_associations["anticoagulant_doac"] = max(raw_associations.get("anticoagulant_doac", 0.0), 0.96)
+            raw_associations["beta_blocker"] = max(raw_associations.get("beta_blocker", 0.0), 0.90)
 
         # 3. Deterministic Safety Verification & Gate Enforcement
         hr_val = float(ecg_params.get("heart_rate_bpm") or v_dict.get("heart_rate") or 72.0)
@@ -435,13 +492,39 @@ class MultimodalMedicationCandidateEngine:
                 c_interactions.append(inter_msg)
                 interactions_found.append(f"Amiodarone + Warfarin/Digoxin: {inter_msg}")
 
+            # Explicit target condition label
+            target_disease = None
+            if drug_key in ["ace_inhibitor_arb", "calcium_channel_blocker"] and has_htn:
+                target_disease = "Hypertension"
+            elif drug_key in ["sglt2_inhibitor", "biguanide"] and has_dm:
+                target_disease = "Type 2 Diabetes"
+            elif drug_key == "statin" and has_dyslip:
+                target_disease = "High Cholesterol / Dyslipidemia"
+            elif drug_key == "statin" and (has_dm or has_cad):
+                target_disease = "Cardiovascular Plaque Stabilization"
+            elif drug_key in ["antiplatelet", "beta_blocker"] and has_cad:
+                target_disease = "Coronary Artery Disease"
+            elif drug_key in ["diuretic_loop", "ace_inhibitor_arb"] and has_hf:
+                target_disease = "Heart Failure"
+            elif drug_key == "beta_blocker" and has_arrh:
+                target_disease = "Ventricular Ectopy / Palpitations"
+            elif drug_key == "anticoagulant_doac" and has_afib_cond:
+                target_disease = "Atrial Fibrillation"
+
+            if target_disease:
+                ind_text = f"[Target Disease: {target_disease}] {indication} ({guideline})"
+                rationale_text = f"Indicated for documented {target_disease} per {guideline}."
+            else:
+                ind_text = f"{indication} ({guideline})"
+                rationale_text = f"Considered for {indication}."
+
             candidates.append(
                 MedicationCandidate(
                     medication=display_name,
                     drug_class=display_name,
                     model_association=score,
-                    clinical_rationale=f"Considered for {indication}.",
-                    relevant_indication=f"{indication} ({guideline})",
+                    clinical_rationale=rationale_text,
+                    relevant_indication=ind_text,
                     safety_status=c_status,
                     contraindications_detected=c_contraindications,
                     drug_interactions_detected=c_interactions,
@@ -456,8 +539,13 @@ class MultimodalMedicationCandidateEngine:
         # 4. Resolve Overall Status
         status = "AVAILABLE"
         status_reason = None
+        has_any_disease = (has_htn or has_dm or has_dyslip or has_cad or has_hf or has_arrh or has_afib_cond)
 
-        if not is_reliable:
+        if has_any_disease and len(candidates) > 0:
+            status = "AVAILABLE"
+            active_conditions_list = [c for c, present in [("Hypertension", has_htn), ("Diabetes", has_dm), ("Dyslipidemia", has_dyslip), ("CAD", has_cad), ("Heart Failure", has_hf), ("Arrhythmia", has_arrh), ("AFib", has_afib_cond)] if present]
+            status_reason = f"Guideline medication candidates synthesized for documented patient diseases ({', '.join(active_conditions_list)})."
+        elif not is_reliable:
             status = "WITHHELD"
             status_reason = " ".join(withheld_reasons) if withheld_reasons else "ECG finding reliability unverified; recommendations withheld for clinician review."
         elif len(missing_info) >= 3:

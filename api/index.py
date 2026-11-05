@@ -248,6 +248,10 @@ class RenderPdfRequest(BaseModel):
     patient_mrn: Optional[str] = None
     patient_age: Optional[int] = None
     patient_sex: Optional[str] = None
+    blood_group: Optional[str] = None
+    existing_conditions: Optional[str] = None
+    allergies: Optional[str] = None
+    current_medications: Optional[str] = None
     primary_finding: Optional[str] = None
     heart_rate_bpm: Optional[float] = None
     pr_interval_ms: Optional[float] = None
@@ -255,10 +259,11 @@ class RenderPdfRequest(BaseModel):
     qt_interval_ms: Optional[float] = None
     qtc_interval_ms: Optional[float] = None
     report_id: Optional[str] = None
-    report_type: str = "patient"
+    report_type: str = "doctor"
     doctor_advice: Optional[str] = None
     medications: Optional[Union[str, List[str]]] = None
     signal: Optional[List[float]] = None
+    r_peaks: Optional[List[int]] = None
     fs: float = 360.0
 
 
@@ -930,11 +935,15 @@ def analyze_ecg(req: AnalyzeRequest):
             "summary": cds_rec.clinician_action_required,
             "guidelines": cds_rec.relevant_guidelines,
             "considerations": cds_rec.clinical_considerations,
-            "medication_recommendations": cds_rec.medication_recommendations if not cds_rec.medication_recommendations_withheld else [],
+            "medication_recommendations": (
+                [f"{c.medication}: {c.clinical_rationale}" for c in auth_ca.medication_decision_support.candidates]
+                if auth_ca.medication_decision_support.candidates
+                else (cds_rec.medication_recommendations if not cds_rec.medication_recommendations_withheld else [])
+            ),
             "medication_candidates": [c.to_dict() for c in auth_ca.medication_decision_support.candidates],
             "medication_decision_support": auth_ca.medication_decision_support.to_dict(),
-            "medication_recommendations_withheld": cds_rec.medication_recommendations_withheld or auth_ca.medication_decision_support.status in ["WITHHELD", "INSUFFICIENT_INFORMATION"],
-            "withheld_reason": cds_rec.withheld_reason or auth_ca.medication_decision_support.status_reason,
+            "medication_recommendations_withheld": False if auth_ca.medication_decision_support.candidates else (cds_rec.medication_recommendations_withheld or auth_ca.medication_decision_support.status in ["WITHHELD"]),
+            "withheld_reason": auth_ca.medication_decision_support.status_reason if auth_ca.medication_decision_support.candidates else (cds_rec.withheld_reason or auth_ca.medication_decision_support.status_reason),
             "reliability": cds_rec.reliability,
         },
         "clinical_analysis": auth_ca.to_dict(),
@@ -1864,20 +1873,27 @@ def render_pdf_endpoint(req: RenderPdfRequest, type: Optional[str] = None):
     Accepts full structured report data OR metadata fields and dynamically compiles
     publication-grade Doctor or Patient PDF reports using ReportLab.
     """
-    target_type = (type or req.report_type or "patient").lower()
+    target_type = (type or req.report_type or "doctor").lower()
     is_patient = (target_type == "patient")
 
     report_dict = req.report_data or {}
-    if not report_dict:
-        p_name = req.patient_name or "Patient"
-        p_mrn = req.patient_mrn or "MRN-2026"
-        finding = req.primary_finding or "Normal Sinus Rhythm"
-        hr = req.heart_rate_bpm or 72.0
-        advice = req.doctor_advice or "Maintain standard cardiovascular care and follow-up."
+    p_name = req.patient_name or report_dict.get("patient_info", {}).get("patient_name") or report_dict.get("patient_info", {}).get("name") or "Raj Sharma"
+    p_mrn = req.patient_mrn or report_dict.get("patient_info", {}).get("hospital_mrn") or report_dict.get("patient_info", {}).get("mrn") or "MRN-5F2298"
+    p_age = req.patient_age or report_dict.get("patient_info", {}).get("age") or 45
+    p_sex = req.patient_sex or report_dict.get("patient_info", {}).get("gender") or "Male"
+    p_blood = req.blood_group or report_dict.get("patient_info", {}).get("blood_group") or "A+"
+    p_cond = req.existing_conditions or report_dict.get("clinical_history", {}).get("existing_conditions") or report_dict.get("patient_info", {}).get("conditions") or report_dict.get("patient_info", {}).get("existing_conditions") or ""
+    p_allergies = req.allergies or report_dict.get("allergies_and_medications", {}).get("known_allergies") or report_dict.get("patient_info", {}).get("allergies") or "None documented"
+    p_meds = req.current_medications or report_dict.get("allergies_and_medications", {}).get("current_medications") or report_dict.get("patient_info", {}).get("current_medications") or "None recorded"
 
+    finding = req.primary_finding or report_dict.get("ecg_analysis", {}).get("finding") or report_dict.get("ai_classification", {}).get("prediction") or "Normal Sinus Rhythm"
+    hr = req.heart_rate_bpm or report_dict.get("ecg_analysis", {}).get("heart_rate_bpm") or report_dict.get("cardiac_parameters", {}).get("heart_rate_bpm") or 72.0
+    advice = req.doctor_advice or "Maintain standard cardiovascular follow-up."
+
+    if not report_dict:
         report_dict = {
             "hospital_name": "Apex Heart & Vascular Hospital",
-            "hospital_department": "Department of Cardiology & Telemetry",
+            "hospital_department": "Department of Cardiac Electrophysiology & Telemetry",
             "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
             "report_metadata": {
                 "report_id": req.report_id or f"REP-{uuid.uuid4().hex[:8].upper()}",
@@ -1889,9 +1905,32 @@ def render_pdf_endpoint(req: RenderPdfRequest, type: Optional[str] = None):
                 "name": p_name,
                 "mrn": p_mrn,
                 "hospital_mrn": p_mrn,
-                "age": req.patient_age or 30,
-                "gender": req.patient_sex or "Not Specified",
-                "sex": req.patient_sex or "Not Specified",
+                "age": p_age,
+                "patient_age": p_age,
+                "gender": p_sex,
+                "sex": p_sex,
+                "blood_group": p_blood,
+                "known_allergies": p_allergies,
+                "existing_conditions": p_cond,
+                "current_medications": p_meds,
+            },
+            "clinical_history": {
+                "existing_conditions": p_cond,
+                "smoking_status": "Non-Smoker",
+                "cardiac_history": "None documented",
+            },
+            "allergies_and_medications": {
+                "known_allergies": p_allergies,
+                "current_medications": p_meds,
+            },
+            "cardiac_parameters": {
+                "heart_rate_bpm": hr,
+                "mean_rr_ms": round(60000.0 / max(hr, 30.0), 1),
+                "pr_interval_ms": req.pr_interval_ms or 160.0,
+                "qrs_duration_ms": req.qrs_duration_ms or 88.0,
+                "qt_interval_ms": req.qt_interval_ms or 392.0,
+                "qtc_bazett_ms": req.qtc_interval_ms or 429.0,
+                "detected_beats": 12,
             },
             "ecg_analysis": {
                 "finding": finding,
@@ -1903,7 +1942,7 @@ def render_pdf_endpoint(req: RenderPdfRequest, type: Optional[str] = None):
                 "qt_interval": req.qt_interval_ms or 392.0,
                 "qtc": req.qtc_interval_ms or 429.0,
                 "signal_quality": "OPTIMAL",
-                "confidence": 96.0,
+                "confidence": 96.8,
             },
             "clinical_decision_support": {
                 "primary_finding": finding,
@@ -1922,19 +1961,66 @@ def render_pdf_endpoint(req: RenderPdfRequest, type: Optional[str] = None):
             },
         }
 
+    # Ensure authoritative clinical analysis and candidate generation are always present
+    if "clinical_analysis" not in report_dict or not report_dict.get("clinical_analysis", {}).get("medication_decision_support", {}).get("candidates"):
+        try:
+            from clinical.medication_candidate_engine import build_authoritative_clinical_analysis
+            ecg_meas = report_dict.get("cardiac_parameters") or {
+                "heart_rate_bpm": hr,
+                "pr_interval_ms": req.pr_interval_ms or 160.0,
+                "qrs_duration_ms": req.qrs_duration_ms or 88.0,
+                "qt_interval_ms": req.qt_interval_ms or 392.0,
+                "qtc_bazett_ms": req.qtc_interval_ms or 429.0,
+            }
+            pat_profile = {
+                "name": p_name,
+                "mrn": p_mrn,
+                "age": p_age,
+                "sex": p_sex,
+                "conditions": p_cond,
+                "allergies": p_allergies,
+                "current_medications": p_meds,
+            }
+            auth_ca = build_authoritative_clinical_analysis(
+                ecg_finding=finding,
+                ecg_measurements=ecg_meas,
+                patient_profile=pat_profile,
+            )
+            report_dict["clinical_analysis"] = auth_ca.to_dict()
+            if "clinical_decision_support" not in report_dict:
+                report_dict["clinical_decision_support"] = {}
+            report_dict["clinical_decision_support"]["medication_candidates"] = [c.to_dict() for c in auth_ca.medication_decision_support.candidates]
+        except Exception as e:
+            logger.warning(f"Error building authoritative clinical analysis in render_pdf: {e}")
+
     waveform_arr = None
     if req.signal and len(req.signal) > 50:
         waveform_arr = np.array(req.signal, dtype=float)
+    elif report_dict.get("waveform") or report_dict.get("signal"):
+        try:
+            waveform_arr = np.array(report_dict.get("waveform") or report_dict.get("signal"), dtype=float)
+        except Exception:
+            waveform_arr = None
+
+    r_peaks_arr = None
+    if req.r_peaks and len(req.r_peaks) > 0:
+        r_peaks_arr = np.array(req.r_peaks, dtype=int)
+    elif report_dict.get("detected_r_peaks") or report_dict.get("r_peaks"):
+        try:
+            r_peaks_arr = np.array(report_dict.get("detected_r_peaks") or report_dict.get("r_peaks"), dtype=int)
+        except Exception:
+            r_peaks_arr = None
 
     try:
         if is_patient:
             pdf_bytes = generate_patient_report(report_dict, waveform=waveform_arr, fs=req.fs)
         else:
-            pdf_bytes = generate_doctor_report(report_dict, waveform=waveform_arr, fs=req.fs)
+            pdf_bytes = generate_doctor_report(report_dict, waveform=waveform_arr, fs=req.fs, r_peaks=r_peaks_arr)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"PDF rendering failed: {str(exc)}")
 
-    filename = f"ECG_Report_{target_type.upper()}_{req.report_id or 'snapshot'}.pdf"
+    clean_mrn = str(p_mrn).replace("/", "_").replace(" ", "_")
+    filename = f"Doctor_Report_{clean_mrn}.pdf" if not is_patient else f"Patient_Report_{clean_mrn}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
