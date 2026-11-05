@@ -193,7 +193,7 @@ def test_patient_dashboard_elements(page):
 
     assert page.locator("#viewPatientDashboard").is_visible()
     assert page.locator(".patient-hero-report-card").is_visible()
-    assert page.locator(".patient-stats-grid").is_visible()
+    assert page.locator(".patient-quick-actions-grid").is_visible()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
