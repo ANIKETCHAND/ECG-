@@ -163,10 +163,26 @@ def extract_waveform_from_image(
     resampled_x = np.linspace(0, w - 1, target_n_samples)
     final_signal = np.interp(resampled_x, all_x, ecg_inverted)
 
-    # Normalize to approximate mV range
-    # 1 large box (5mm) is 0.5 mV. Assume standard gain where QRS peak is ~1.0-2.0 units
-    max_peak = np.max(np.abs(final_signal))
-    if max_peak > 0:
+    # 6. Medical-Grade Signal Smoothing & Quantization Denoising
+    # Pixel quantization produces high-frequency saw-tooth jitter (> 50 Hz).
+    # We apply a zero-phase 0.5 - 45.0 Hz Butterworth bandpass filter and median baseline removal.
+    try:
+        from scipy import signal as scipy_signal
+        nyq = 0.5 * target_fs
+        low = max(0.5 / nyq, 0.001)
+        high = min(45.0 / nyq, 0.99)
+        b, a = scipy_signal.butter(3, [low, high], btype="bandpass")
+        final_signal = scipy_signal.filtfilt(b, a, final_signal)
+    except Exception:
+        # Robust 5-point moving average smoothing fallback
+        kernel = np.ones(5) / 5.0
+        final_signal = np.convolve(final_signal, kernel, mode="same")
+
+    # Baseline center & scale to standard diagnostic ECG voltage (1.2 to 1.5 mV peak)
+    baseline_val = float(np.median(final_signal))
+    final_signal = final_signal - baseline_val
+    max_peak = float(np.max(np.abs(final_signal)))
+    if max_peak > 1e-4:
         final_signal = (final_signal / max_peak) * 1.5
 
     confidence = min(1.0, round(continuity_ratio * 0.95, 2))
@@ -176,6 +192,6 @@ def extract_waveform_from_image(
         "signal": final_signal,
         "sampling_rate": target_fs,
         "confidence_score": confidence,
-        "message": "Waveform successfully extracted from image.",
+        "message": "Waveform successfully extracted and filtered from image.",
         "trace_mask": clean_trace,
     }

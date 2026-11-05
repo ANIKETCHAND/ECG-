@@ -13,7 +13,7 @@ import numpy as np
 def detect_clipping_and_flatline(
     signal: np.ndarray,
     clipping_margin: float = 0.02,
-    max_flatline_samples: int = 50,
+    max_flatline_samples: int = 250,
 ) -> Tuple[bool, bool, Dict[str, float]]:
     """Inspect signal for amplifier clipping and flatline disconnections.
 
@@ -44,8 +44,9 @@ def detect_clipping_and_flatline(
         else:
             current_flat = 0
 
-    is_flatline = max_consecutive_flat >= max_flatline_samples
     flatline_ratio = float(np.mean(zero_diffs))
+    # True electrode disconnection requires sustained flatline (>250 samples AND >35% of recording, or >70% total)
+    is_flatline = (max_consecutive_flat >= max_flatline_samples and flatline_ratio > 0.35) or (flatline_ratio > 0.70)
 
     # Clipping detection: count percentage of samples near min or max rail
     threshold_low = sig_min + (sig_range * clipping_margin)

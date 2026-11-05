@@ -1105,6 +1105,9 @@
       padding: 44px 48px;
       box-shadow: var(--shadow-lg);
       position: relative;
+      font-family: var(--font-sans);
+      letter-spacing: normal;
+      word-spacing: normal;
     }
     .report-top-badge {
       position: absolute;
@@ -2856,9 +2859,9 @@
             </div>
 
             <h2 style="font-size:1.5rem; font-weight:800; margin-top:14px; margin-bottom:4px;">ECG Analysis Report</h2>
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--text-secondary); margin-bottom:12px; gap:16px; flex-wrap:wrap;">
               <span>Hospital: <strong>ECG Guardian Hospital, Jaipur</strong></span>
-              <span>Date & Time: <strong id="docRepDate">31 Oct 2026, 10:24 AM</strong></span>
+              <span>Date &amp; Time: <strong id="docRepDate">31 Oct 2026, 10:24 AM</strong></span>
               <span>Report ID: <code id="docRepId">ECG-2026-01045</code></span>
             </div>
 
@@ -4940,6 +4943,20 @@
         docFindingEl.style.color = isUnusable ? 'var(--error)' : (finding.toLowerCase().includes('normal') ? 'var(--success)' : 'var(--error)');
       }
 
+      // Update Doctor Impression dynamically based on real finding
+      const impEl = document.getElementById('docRepImpression');
+      if (impEl) {
+        if (isUnusable || finding.includes('UNUSABLE') || finding.includes('POOR_SIGNAL')) {
+          impEl.textContent = 'Inconclusive telemetry recording due to baseline noise or artifact. Diagnostic rhythm classification withheld for clinical safety; clean re-acquisition recommended.';
+        } else if (finding.toLowerCase().includes('ventricular') || finding.toLowerCase().includes('pvc')) {
+          impEl.textContent = 'Premature Ventricular Contractions (PVC) identified with widened ventricular morphology. Recommend clinical correlation, serum electrolyte evaluation, and ambulatory Holter monitoring if symptomatic.';
+        } else if (!finding.toLowerCase().includes('normal')) {
+          impEl.textContent = `Cardiac arrhythmia pattern detected (${finding}). Clinical clinician over-read and confirmatory 12-lead diagnostic tracing recommended.`;
+        } else {
+          impEl.textContent = 'Normal sinus rhythm. Waveform timing and morphology are within expected physiological reference limits. No acute ischemic ST-T abnormalities or dangerous arrhythmias detected.';
+        }
+      }
+
       // Populate Section 7 Medication Decision Support Table in Doctor Report
       const candidates = getGuidelineMedicationsForPatient(p, finding);
       const tbody = document.getElementById('docRepMedTableBody');
@@ -4970,6 +4987,12 @@
         const advVal = document.getElementById('cdsDoctorAdviceInput')?.value;
         if (medVal && medVal !== 'None') {
           noteEl.innerHTML = `<strong>Selected Guideline Therapy:</strong> ${medVal}.<br/>${advVal || 'Continue regular cardiovascular lifestyle and clinic follow-up.'}`;
+        } else if (isUnusable || finding.includes('POOR_SIGNAL')) {
+          noteEl.innerHTML = advVal || 'Re-evaluate patient with repeat 12-lead diagnostic acquisition ensuring proper skin prep.';
+        } else if (!finding.toLowerCase().includes('normal')) {
+          noteEl.innerHTML = advVal || 'Follow up in cardiology clinic for targeted symptom review and management of detected arrhythmia pattern.';
+        } else {
+          noteEl.innerHTML = advVal || 'Routine cardiovascular maintenance. Heart-healthy diet, regular physical exercise, and routine follow-up in 6 months.';
         }
       }
 
@@ -5016,10 +5039,56 @@
         }
       }
 
+      const whatMeanList = document.getElementById('patRepWhatMeanList');
+      if (whatMeanList) {
+        if (isUnusable || finding.includes('POOR_SIGNAL')) {
+          whatMeanList.innerHTML = `
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--error); font-weight:700;">&bull;</span>
+              <span>The ECG recording trace had excessive movement or interference to interpret reliably.</span>
+            </li>
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--error); font-weight:700;">&bull;</span>
+              <span>A repeat test with clean electrode contacts is recommended for accurate evaluation.</span>
+            </li>
+          `;
+        } else if (!isNormal) {
+          whatMeanList.innerHTML = `
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--warning); font-weight:700;">&bull;</span>
+              <span>An abnormal heartbeat rhythm was detected (${finding}).</span>
+            </li>
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--warning); font-weight:700;">&bull;</span>
+              <span>Your cardiologist will review this recording and discuss appropriate follow-up.</span>
+            </li>
+          `;
+        } else {
+          whatMeanList.innerHTML = `
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--purple-primary); font-weight:700;">&bull;</span>
+              <span>Your heart is beating in a regular and healthy rhythm.</span>
+            </li>
+            <li style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--purple-primary); font-weight:700;">&bull;</span>
+              <span>The electrical activity of your heart is within normal range.</span>
+            </li>
+          `;
+        }
+      }
+
       const adv1 = document.getElementById('patRepAdvice1');
       const customAdv = document.getElementById('cdsDoctorAdviceInput')?.value;
-      if (adv1 && customAdv) {
-        adv1.textContent = customAdv;
+      if (adv1) {
+        if (customAdv) {
+          adv1.textContent = customAdv;
+        } else if (isUnusable || finding.includes('POOR_SIGNAL')) {
+          adv1.textContent = 'Please schedule a repeat ECG scan with clinical team.';
+        } else if (!isNormal) {
+          adv1.textContent = 'Cardiology clinical follow-up recommended for tailored management.';
+        } else {
+          adv1.textContent = 'Maintain a balanced diet, stay active, and repeat routine check-up in 6 months.';
+        }
       }
     }
 

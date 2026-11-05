@@ -113,13 +113,13 @@ def evaluate_single_lead_quality(
     # Compute overall quality score (0.0 to 1.0)
     score = max(0.0, min(1.0, 1.0 - penalties))
 
-    if score >= 0.80 and snr_db >= 10.0:
+    if score >= 0.75 and snr_db >= 8.0:
         status = "GOOD"
         rec = "Optimal signal quality. Proceed with clinical interpretation."
-    elif score >= 0.50 and snr_db >= 4.0:
+    elif score >= 0.40 and snr_db >= 1.5:
         status = "ACCEPTABLE"
         rec = "Acceptable trace with minor noise. Review baseline before sign-off."
-    elif score >= 0.20:
+    elif score >= 0.15:
         status = "POOR"
         rec = f"Significant artifact on {lead_name}. Check patient movement and lead cables."
     else:

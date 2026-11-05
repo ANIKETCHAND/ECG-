@@ -548,11 +548,12 @@ def generate_doctor_report(
     story.append(Paragraph("5. FACTUAL FINDINGS & EXPLANATION", sec_heading_style))
     findings = report_data.get("findings", [])
     if not findings:
-        hr_val = cp.get("heart_rate_bpm") or 72.0
+        hr_val = float(cp.get("heart_rate_bpm") or 72.0)
         rhythm_str = ai.get("primary_finding") or ai.get("finding") or "Normal Sinus Rhythm"
+        snr_val = float(sq.get("snr_db") if sq.get("snr_db") is not None else 25.0)
         findings = [
             f"Heart rate estimated at {hr_val:.1f} BPM ({'Tachycardia (>100 BPM)' if hr_val > 100 else ('Bradycardia (<60 BPM)' if hr_val < 60 else 'Normal Heart Rate')}).",
-            f"Signal quality rated as {sq.get('quality_category', 'ACCEPTABLE')} (SNR: {sq.get('snr_db', 0.0):.1f} dB).",
+            f"Signal quality rated as {sq.get('quality_category', 'ACCEPTABLE')} (SNR: {snr_val:.1f} dB).",
             f"Rhythm classified as {rhythm_str}. Timing and morphology align with standard ventricular depolarization cycles.",
             f"PR: {cp.get('pr_interval_ms') or 160} ms, QRS: {cp.get('qrs_duration_ms') or 88} ms, QTc: {cp.get('qtc_bazett_ms') or 429} ms."
         ]

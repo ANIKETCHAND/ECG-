@@ -539,11 +539,21 @@ class MultimodalMedicationCandidateEngine:
         # 4. Resolve Overall Status
         status = "AVAILABLE"
         status_reason = None
-        has_any_disease = (has_htn or has_dm or has_dyslip or has_cad or has_hf or has_arrh or has_afib_cond)
+        has_doc_htn = any(k in cond_str for k in ["hypertension", "htn", "high blood pressure", "high bp", "elevated bp"])
+        has_doc_dm = any(k in cond_str for k in ["diabetes", "dm", "t2dm", "t1dm", "diabetic", "sugar"])
+        has_doc_dyslip = any(k in cond_str for k in ["cholesterol", "lipid", "dyslipidemia", "hyperlipidemia", "hypercholesterolemia"])
+        has_doc_cad = any(k in cond_str for k in ["cad", "coronary", "angina", "mi", "infarction", "stent", "cabg", "ischemic"]) or "angina" in sym_str
+        has_doc_hf = any(k in cond_str for k in ["heart failure", "hf", "chf", "hfref", "hfmref", "hfpef", "ejection fraction", "cardiomyopathy"])
+        has_doc_arrh = any(k in cond_str for k in ["pvc", "arrhythmia", "palpitation", "ectopy", "ventricular ectopy", "flutter"])
+        has_doc_afib = any(k in cond_str for k in ["atrial fibrillation", "afib", "a-fib", "af"])
+        has_documented_history = (has_doc_htn or has_doc_dm or has_doc_dyslip or has_doc_cad or has_doc_hf or has_doc_arrh or has_doc_afib)
 
-        if has_any_disease and len(candidates) > 0:
+        if not is_reliable and not has_documented_history:
+            status = "WITHHELD"
+            status_reason = " ".join(withheld_reasons) if withheld_reasons else "ECG finding reliability unverified; recommendations withheld for clinician review."
+        elif has_documented_history and len(candidates) > 0:
             status = "AVAILABLE"
-            active_conditions_list = [c for c, present in [("Hypertension", has_htn), ("Diabetes", has_dm), ("Dyslipidemia", has_dyslip), ("CAD", has_cad), ("Heart Failure", has_hf), ("Arrhythmia", has_arrh), ("AFib", has_afib_cond)] if present]
+            active_conditions_list = [c for c, present in [("Hypertension", has_doc_htn), ("Diabetes", has_doc_dm), ("Dyslipidemia", has_doc_dyslip), ("CAD", has_doc_cad), ("Heart Failure", has_doc_hf), ("Arrhythmia", has_doc_arrh), ("AFib", has_doc_afib)] if present]
             status_reason = f"Guideline medication candidates synthesized for documented patient diseases ({', '.join(active_conditions_list)})."
         elif not is_reliable:
             status = "WITHHELD"

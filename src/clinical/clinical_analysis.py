@@ -107,6 +107,7 @@ class MedicationCandidate:
     missing_information: List[str] = field(default_factory=list)
     evidence_source: str = "ACC/AHA/ESC Clinical Practice Guidelines & DailyMed"
     clinician_review_required: bool = True
+    action_type: str = "THERAPY_CONSIDERATION"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
