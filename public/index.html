@@ -3840,6 +3840,9 @@
           <a class="sidebar-item ${currentView === 'patientDashboard' ? 'active' : ''}" onclick="navigateTo('patientDashboard')">
             <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
           </a>
+          <a class="sidebar-item ${['ecgScan', 'analysis', 'cds'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('ecgScan')">
+            <i class="fa-solid fa-wave-square"></i> <span>Scan ECG</span>
+          </a>
           <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
             <i class="fa-solid fa-file-medical"></i> <span>My Reports</span>
           </a>
