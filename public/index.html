@@ -747,14 +747,14 @@
       transform: translateY(-1px);
     }
     .btn-hero-secondary {
-      background: #FFFFFF;
-      color: #0F172A;
-      border: 1px solid #E2E8F0;
+      background: transparent !important;
+      color: #F8F1E3 !important;
+      border: 1.5px solid rgba(248, 241, 227, 0.45) !important;
       border-radius: var(--radius-full);
-      padding: 13px 32px;
+      padding: 12px 32px;
       font-size: 0.98rem;
-      font-weight: 600;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      font-weight: 700;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
       transition: all 0.2s ease;
       text-decoration: none;
       cursor: pointer;
@@ -763,11 +763,11 @@
       justify-content: center;
     }
     .btn-hero-secondary:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
+      background: rgba(248, 241, 227, 0.15) !important;
+      border-color: #F8F1E3 !important;
+      color: #FFFFFF !important;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
     .landing-showcase-card {
       background: #FFFFFF;
@@ -779,9 +779,9 @@
       position: relative;
     }
     .hero-badge-pill {
-      background: var(--bg-tertiary);
-      border: 1px solid #DBEAFE;
-      color: var(--purple-primary);
+      background: #E8F5E9;
+      border: 1px solid #A7F3D0;
+      color: #065F46;
       padding: 6px 14px;
       border-radius: var(--radius-full);
       font-size: 0.78rem;
@@ -794,38 +794,43 @@
     .hero-feature-pills {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 14px;
       margin-top: 12px;
     }
     .hero-mini-pill {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
+      gap: 14px;
+      padding: 14px 18px;
+      background: #0E3029 !important;
+      border: 1.5px solid #23564F !important;
       border-radius: var(--radius-md);
       font-size: 0.82rem;
       transition: all 0.15s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
     }
     .hero-mini-pill:hover {
-      background: #FFFFFF;
-      border-color: #BFDBFE;
-      box-shadow: var(--shadow-sm);
+      background: #144038 !important;
+      border-color: #3B7E74 !important;
+      transform: translateY(-1px);
     }
     .hero-mini-pill i {
-      color: var(--purple-primary);
-      font-size: 1.1rem;
+      color: #34D399 !important;
+      font-size: 1.25rem;
     }
     .hero-mini-pill strong {
       display: block;
-      color: var(--text-main);
-      font-size: 0.86rem;
+      color: #F8F1E3 !important;
+      font-size: 0.92rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
     }
     .hero-mini-pill span {
       display: block;
-      color: var(--text-secondary);
-      font-size: 0.74rem;
+      color: #B2D5D0 !important;
+      font-size: 0.78rem;
+      font-weight: 500;
+      margin-top: 2px;
     }
 
     /* ═════════════════════════════════════════════════════════════════ */
@@ -2438,6 +2443,49 @@
     header#appTopHeader.hidden {
       display: none !important;
     }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       HIGH-CONTRAST ACCESSIBILITY & TEXT READABILITY ENHANCEMENTS
+       ═══════════════════════════════════════════════════════════════════ */
+    /* Readonly and Disabled Form Inputs: handsome parchment with dark crisp text */
+    .form-input[readonly],
+    .form-input:disabled,
+    .form-select:disabled,
+    input[readonly] {
+      background: #EAE0CD !important;
+      color: #10342C !important;
+      border: 1.5px solid #C8BA9E !important;
+      font-weight: 700 !important;
+      cursor: not-allowed;
+    }
+    .form-input[readonly]::placeholder,
+    input[readonly]::placeholder {
+      color: #6B563D !important;
+      opacity: 0.85;
+    }
+
+    /* Authoritative High-Contrast Table Headers across all screens */
+    table thead th,
+    .report-table th,
+    .reports-history-table th,
+    .recent-activity-table th {
+      background: #0E3029 !important;
+      color: #F8F1E3 !important;
+      font-weight: 800 !important;
+      font-size: 0.8rem !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      border-bottom: 2px solid #23564F !important;
+      padding: 10px 12px;
+    }
+    table thead tr,
+    .report-table thead tr,
+    .reports-history-table thead tr {
+      background: #0E3029 !important;
+    }
+    table tbody td {
+      color: #1C140D;
+    }
     /* ═══════════════════════════════════════════════════════════════════
        RETRO VINTAGE SIDEBAR CHASSIS & NAVIGATION (EXACT REFERENCE DESIGN)
        ═══════════════════════════════════════════════════════════════════ */
@@ -3746,7 +3794,7 @@
                 <div class="form-grid-3">
                   <div class="form-group">
                     <label class="form-label">MRN <span class="req">*</span></label>
-                    <input type="text" class="form-input" id="pFormMrn" required readonly style="background:var(--bg-secondary); font-family:var(--font-mono);" />
+                    <input type="text" class="form-input" id="pFormMrn" required readonly style="font-family:var(--font-mono);" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Full Name <span class="req">*</span></label>
@@ -3761,7 +3809,7 @@
                 <div class="form-grid-3">
                   <div class="form-group">
                     <label class="form-label">Age (Auto-Calculated)</label>
-                    <input type="number" class="form-input" id="pFormAge" placeholder="15" readonly style="background:var(--bg-secondary);" />
+                    <input type="number" class="form-input" id="pFormAge" placeholder="15" readonly />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Sex <span class="req">*</span></label>
@@ -3838,7 +3886,7 @@
                 <!-- Existing Medical Conditions (Discrete Checkboxes) -->
                 <div class="form-group" style="margin-top:10px;">
                   <label class="form-label">Diagnosed Medical Conditions (Check all that apply)</label>
-                  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:8px; background:var(--bg-secondary); padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:0.86rem;">
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:8px; background:#EFE3CE; color:#1C140D; padding:12px; border-radius:6px; border:1.5px solid #CDBFA2; font-size:0.86rem;">
                     <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="chkDiabetes"> Diabetes Mellitus</label>
                     <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="chkHypertension"> Hypertension</label>
                     <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="chkCad"> Coronary Artery Disease</label>
@@ -3916,7 +3964,7 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label">Body Mass Index (BMI)</label>
-                    <input type="text" class="form-input" id="pFormBmi" readonly style="background:var(--bg-secondary); font-weight:700;" value="19.1 kg/m²" />
+                    <input type="text" class="form-input" id="pFormBmi" readonly style="font-weight:700;" value="19.1 kg/m²" />
                   </div>
                 </div>
 
@@ -3944,10 +3992,10 @@
                 </div>
 
                 <!-- Laboratory Results Grid -->
-                <div style="margin-top:14px; margin-bottom:14px; padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-secondary);">
+                <div style="margin-top:14px; margin-bottom:14px; padding:14px; border:1.5px solid #CDBFA2; border-radius:8px; background:#EFE3CE; color:#1C140D;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:0.88rem; color:var(--text-main);">Laboratory Panels (Where Available)</span>
-                    <span style="font-size:0.75rem; color:var(--text-secondary);">Supports unknown/unavailable values</span>
+                    <span style="font-weight:700; font-size:0.88rem; color:#10342C;">Laboratory Panels (Where Available)</span>
+                    <span style="font-size:0.75rem; color:#6B563D;">Supports unknown/unavailable values</span>
                   </div>
                   <div class="form-grid-3">
                     <div class="form-group">
@@ -4688,12 +4736,12 @@
             <div style="overflow-x:auto;">
               <table class="report-table" style="width:100%; font-size:0.84rem;" id="cdsMedTable">
                 <thead>
-                  <tr style="background:var(--bg-secondary); border-bottom:2px solid var(--border-color);">
-                    <th style="padding:10px 12px; text-align:left;">Drug Class / Agent</th>
-                    <th style="padding:10px 12px; text-align:left;">Target Disease & Clinical Rationale</th>
-                    <th style="padding:10px 12px; text-align:left;">Safety Status & Checks</th>
-                    <th style="padding:10px 12px; text-align:left;">Guideline Citation</th>
-                    <th style="padding:10px 12px; text-align:center;">Doctor Action</th>
+                  <tr style="background:#0E3029 !important; border-bottom:2px solid #23564F;">
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Drug Class / Agent</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Target Disease & Clinical Rationale</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Safety Status & Checks</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Guideline Citation</th>
+                    <th style="padding:10px 12px; text-align:center; color:#F8F1E3 !important; font-weight:800;">Doctor Action</th>
                   </tr>
                 </thead>
                 <tbody id="cdsMedTableBody">
@@ -5134,7 +5182,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Medical Council Reg. No.</label>
-                <input type="text" class="form-input" value="MD/34667" readonly style="background:var(--bg-secondary);" />
+                <input type="text" class="form-input" value="MD/34667" readonly />
               </div>
               <button class="btn btn-primary" onclick="showToast('Profile settings updated successfully', 'fa-circle-check')">Save Profile Changes</button>
             </div>
@@ -5155,8 +5203,8 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Active Login Sessions</label>
-                <div style="font-size:0.84rem; color:var(--text-secondary); background:var(--bg-secondary); padding:10px 14px; border-radius:var(--radius-md);">
-                  <strong style="color:var(--text-main);">Current Session:</strong> Chrome on Windows 11 (Jaipur, India) &bull; <span class="badge badge-green" style="font-size:0.7rem;">Active Now</span>
+                <div style="font-size:0.84rem; color:#1C140D; background:#EFE3CE; border:1.5px solid #CDBFA2; padding:10px 14px; border-radius:var(--radius-md);">
+                  <strong style="color:#0E3029;">Current Session:</strong> Chrome on Windows 11 (Jaipur, India) &bull; <span class="badge badge-green" style="font-size:0.7rem;">Active Now</span>
                 </div>
               </div>
               <button class="btn btn-outline" onclick="showToast('Session preferences updated', 'fa-key')">Update Password & Sessions</button>
@@ -5209,7 +5257,7 @@
                   <input type="checkbox" checked />
                 </label>
               </div>
-              <div style="margin-top:14px; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-sm); font-size:0.75rem; color:var(--text-secondary);">
+              <div style="margin-top:14px; padding:10px; background:#EFE3CE; border:1.5px solid #CDBFA2; border-radius:var(--radius-sm); font-size:0.75rem; color:#1C140D;">
                 Compliant with CDSCO MDR 2017 Class B SaMD Guidelines & ISO 13485 audit trail requirements.
               </div>
             </div>
@@ -5227,11 +5275,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Facility Identifier</label>
-                  <input type="text" class="form-input" value="HOSP-APEX" readonly style="background:var(--bg-secondary);" />
+                  <input type="text" class="form-input" value="HOSP-APEX" readonly />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Database Synchronization</label>
-                  <input type="text" class="form-input" value="Supabase Dual-Persistence (Connected & Syncing)" readonly style="background:var(--bg-secondary); color:var(--success); font-weight:700;" />
+                  <input type="text" class="form-input" value="Supabase Dual-Persistence (Connected & Syncing)" readonly style="color:#047857; font-weight:700;" />
                 </div>
               </div>
               <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
@@ -5319,7 +5367,7 @@
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
                 <div class="form-group">
                   <label class="form-label">Patient Name &amp; MRN</label>
-                  <input type="text" class="form-input" id="aptFormPatientName" readonly style="background:var(--bg-secondary); font-weight:700;" />
+                  <input type="text" class="form-input" id="aptFormPatientName" readonly style="font-weight:700;" />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Attending Cardiologist</label>
@@ -5398,13 +5446,13 @@
             <div style="overflow-x:auto;">
               <table class="report-table" style="width:100%; font-size:0.84rem;">
                 <thead>
-                  <tr style="background:var(--bg-secondary); border-bottom:1px solid var(--border-color);">
-                    <th style="padding:10px 12px; text-align:left;">Date &amp; Time</th>
-                    <th style="padding:10px 12px; text-align:left;">Physician</th>
-                    <th style="padding:10px 12px; text-align:left;">Type / Location</th>
-                    <th style="padding:10px 12px; text-align:left;">Clinical Summary</th>
-                    <th style="padding:10px 12px; text-align:left;">Linked ECG</th>
-                    <th style="padding:10px 12px; text-align:left;">Status</th>
+                  <tr style="background:#0E3029 !important; border-bottom:2px solid #23564F;">
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Date &amp; Time</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Physician</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Type / Location</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Clinical Summary</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Linked ECG</th>
+                    <th style="padding:10px 12px; text-align:left; color:#F8F1E3 !important; font-weight:800;">Status</th>
                   </tr>
                 </thead>
                 <tbody id="aptHistoryTableBody">
@@ -5566,11 +5614,11 @@
         </div>
 
         <!-- Clinic & Department Contacts -->
-        <div class="card" style="padding:14px; background:var(--bg-secondary);">
-          <h4 style="font-size:0.88rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase; margin-bottom:8px;">
+        <div class="card" style="padding:16px; background:#EFE3CE; border:1.5px solid #CDBFA2;">
+          <h4 style="font-size:0.88rem; font-weight:800; color:#8A2D1F; text-transform:uppercase; margin-bottom:8px;">
             Cardiology Outpatient &amp; Follow-up Desk
           </h4>
-          <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; font-size:0.84rem; color:var(--text-main);">
+          <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; font-size:0.84rem; color:#1C140D;">
             <li><strong>Department:</strong> Cardiac Electrophysiology &amp; Telemetry Suite</li>
             <li><strong>Lead Physician:</strong> Dr. Aniket Chandra, MD (Cardiologist)</li>
             <li><strong>Clinic Hours:</strong> Monday &ndash; Saturday &middot; 08:30 AM &ndash; 05:30 PM</li>
