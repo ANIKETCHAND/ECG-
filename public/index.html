@@ -2587,6 +2587,175 @@
       filter: drop-shadow(0 0 6px #10B981) drop-shadow(0 0 12px rgba(16, 185, 129, 0.7));
       animation: heartBeatPulse 1.4s infinite ease-in-out;
     }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PATIENT RECORD SCREEN (EXACT REFERENCE DESIGN)
+       ═══════════════════════════════════════════════════════════════════ */
+    .retro-patient-card {
+      background: var(--panel-cream);
+      border: 2px solid var(--panel-cream-border);
+      border-radius: 20px;
+      box-shadow: var(--shadow-chassis);
+      padding: 24px 28px;
+      position: relative;
+    }
+
+    .retro-patient-card h2,
+    .retro-patient-card h3,
+    .retro-patient-card h4,
+    .retro-patient-card .patient-name-title {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      letter-spacing: -0.01em;
+    }
+
+    .retro-patient-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .retro-patient-photo-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 12px;
+      background: #D8CBB0;
+      border: 2px solid #5A472E;
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .btn-retro-teal {
+      background: #0E3E39 !important;
+      color: #FFFFFF !important;
+      font-weight: 700 !important;
+      font-size: 0.86rem !important;
+      border-radius: 8px !important;
+      padding: 7px 22px !important;
+      border: 1.5px solid #16534C !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25) !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      text-decoration: none !important;
+      font-family: 'Space Grotesk', sans-serif !important;
+    }
+    .btn-retro-teal:hover {
+      background: #14554E !important;
+    }
+
+    /* Tabs Bar matching exact reference: Folder-style cream/tan tabs */
+    .retro-tabs-strip {
+      display: flex;
+      gap: 6px;
+      border-bottom: 2px solid #C4B08F;
+      padding-bottom: 0;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .retro-tabs-strip .retro-tab-item,
+    .retro-tabs-strip .nav-tab-btn {
+      background: #D8CBB0 !important;
+      color: #382D1D !important;
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.86rem !important;
+      border: 1.5px solid #C4B08F !important;
+      border-bottom: none !important;
+      border-top-left-radius: 8px !important;
+      border-top-right-radius: 8px !important;
+      padding: 8px 20px !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      position: relative !important;
+      margin-bottom: -2px !important;
+      box-shadow: none !important;
+    }
+    .retro-tabs-strip .retro-tab-item:hover:not(.active),
+    .retro-tabs-strip .nav-tab-btn:hover:not(.active) {
+      background: #E5D8BF !important;
+      color: #0E3029 !important;
+    }
+    .retro-tabs-strip .retro-tab-item.active,
+    .retro-tabs-strip .nav-tab-btn.active {
+      background: #F8F1E3 !important;
+      color: #0E3029 !important;
+      font-weight: 800 !important;
+      border: 1.5px solid #C4B08F !important;
+      border-bottom: 2px solid #F8F1E3 !important;
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.06) !important;
+    }
+
+    /* Sub-panels inside Overview */
+    .retro-overview-box {
+      background: #EFE4CF;
+      border: 1.5px solid #CFBEA0;
+      border-radius: 12px;
+      padding: 18px 22px;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.7);
+    }
+    .retro-overview-box-title {
+      font-size: 1rem !important;
+      font-weight: 800 !important;
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      color: #0E3029 !important;
+      margin: 0 0 14px 0 !important;
+    }
+
+    .vital-row-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .vital-row-item:last-child {
+      border-bottom: none;
+    }
+
+    .retro-badge-risk {
+      background: #F4A79D !important;
+      color: #782119 !important;
+      font-weight: 700 !important;
+      border-radius: 14px !important;
+      padding: 3px 14px !important;
+      font-size: 0.8rem !important;
+      border: 1px solid #EAA096 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      font-family: 'Space Grotesk', sans-serif !important;
+    }
+
+    .retro-pill-condition {
+      background: #DFCFA8;
+      border: 1.5px solid #C4B592;
+      color: #2D251A;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 4px 14px;
+      border-radius: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .retro-pill-allergy {
+      background: #F6D8D5;
+      border: 1.5px solid #EAA39D;
+      color: #9E3228;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 3px 14px;
+      border-radius: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
     
 </style>
 </head>
@@ -3813,20 +3982,18 @@
         </section>
 
         <!-- ───────────────────────────────────────────────────────────── -->
-        <!-- SCREEN 6: PATIENT PROFILE                                     -->
+        <!-- SCREEN 6: PATIENT PROFILE (EXACT REFERENCE DESIGN)             -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewPatientProfile" class="view-page hidden">
-          <!-- Breadcrumb Header -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div style="font-size:0.84rem; color:var(--text-cream);">
-              <a href="#" onclick="navigateTo('doctorDashboard'); return false;" style="color:var(--crt-green-trace); text-decoration:none; font-weight:700;">← Patients</a>
-              <span style="margin:0 6px; opacity:0.6;">/</span>
-              <strong style="color:var(--text-cream);">Patient Record</strong>
-            </div>
+          <!-- Page Heading matching Reference Image -->
+          <div style="margin-bottom:14px;">
+            <h2 style="font-size:1.4rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">
+              Patient Record
+            </h2>
           </div>
 
-          <!-- Photo ID Card (Vintage Cream Chassis matching Reference Image View 2) -->
-          <div class="retro-chassis-panel" style="padding:22px; margin-bottom:20px;">
+          <!-- Single Master Rounded Cream Card with Corner Rivets -->
+          <div class="retro-patient-card" id="patientRecordMasterCard">
             <div class="card-corner-rivets">
               <span class="retro-rivet"></span>
               <span class="retro-rivet"></span>
@@ -3834,166 +4001,226 @@
               <span class="retro-rivet"></span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <!-- Top Header Area: Photo, Details, Edit Button -->
+            <div class="retro-patient-header">
               <div style="display:flex; align-items:center; gap:18px;">
-                <!-- ID Photo Frame -->
-                <div style="width:70px; height:70px; border-radius:12px; background:radial-gradient(circle at 40% 40%, #FFF, #C7B594); border:2px solid #5A4932; display:flex; align-items:center; justify-content:center; font-size:2rem; color:#483825; box-shadow:inset 0 1px 3px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.25);">
-                  <i class="fa-solid fa-user-tie"></i>
+                <!-- Authentic Vintage Sketch Portrait of Rajesh Kumar -->
+                <div class="retro-patient-photo-box">
+                  <svg width="72" height="72" viewBox="0 0 100 100" fill="none" style="display:block;">
+                    <!-- Cream parchment background -->
+                    <rect width="100" height="100" rx="10" fill="#D9CCB2"/>
+                    <!-- Engraving fine line background texture -->
+                    <line x1="0" y1="15" x2="100" y2="15" stroke="#C8BA9E" stroke-width="0.8"/>
+                    <line x1="0" y1="30" x2="100" y2="30" stroke="#C8BA9E" stroke-width="0.8"/>
+                    <line x1="0" y1="45" x2="100" y2="45" stroke="#C8BA9E" stroke-width="0.8"/>
+                    <line x1="0" y1="60" x2="100" y2="60" stroke="#C8BA9E" stroke-width="0.8"/>
+                    <line x1="0" y1="75" x2="100" y2="75" stroke="#C8BA9E" stroke-width="0.8"/>
+                    <!-- Neck -->
+                    <path d="M43 48 L43 62 L57 62 L57 48 Z" fill="#C5B499" stroke="#3D3222" stroke-width="1.2"/>
+                    <!-- Head & Jaw -->
+                    <path d="M50 16 C37 16 33 26 33 36 C33 46 41 54 50 54 C59 54 67 46 67 36 C67 26 63 16 50 16 Z" fill="#D2C3AA" stroke="#3D3222" stroke-width="1.4"/>
+                    <!-- Hair -->
+                    <path d="M35 32 C37 22 43 18 50 18 C57 18 64 21 66 31 C63 26 57 23 50 23 C43 23 38 27 35 32 Z" fill="#2E2417"/>
+                    <path d="M33 36 C33 27 36 21 44 19 C40 24 37 30 36 36 Z" fill="#2E2417"/>
+                    <path d="M67 36 C67 27 64 21 56 19 C60 24 63 30 64 36 Z" fill="#2E2417"/>
+                    <!-- Eyebrows -->
+                    <path d="M38 31 Q43 29 47 30" stroke="#2E2417" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M53 30 Q57 29 62 31" stroke="#2E2417" stroke-width="1.8" stroke-linecap="round"/>
+                    <!-- Eyes -->
+                    <ellipse cx="43" cy="35" rx="2.5" ry="1.6" fill="#241E15"/>
+                    <ellipse cx="57" cy="35" rx="2.5" ry="1.6" fill="#241E15"/>
+                    <circle cx="43.5" cy="34.5" r="0.6" fill="#FFFFFF"/>
+                    <circle cx="57.5" cy="34.5" r="0.6" fill="#FFFFFF"/>
+                    <!-- Nose -->
+                    <path d="M50 34 L49 42 L53 42" stroke="#3D3222" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Lips -->
+                    <path d="M45 47 Q50 49 55 47" stroke="#3D3222" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M47 49 Q50 50 53 49" stroke="#68553C" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Ears -->
+                    <ellipse cx="32" cy="37" rx="2.5" ry="5" fill="#D2C3AA" stroke="#3D3222" stroke-width="1.2"/>
+                    <ellipse cx="68" cy="37" rx="2.5" ry="5" fill="#D2C3AA" stroke="#3D3222" stroke-width="1.2"/>
+                    <!-- Suit Jacket, White Collared Shirt & Dark Tie -->
+                    <path d="M22 100 C22 80 30 68 43 64 L50 72 L57 64 C70 68 78 80 78 100 Z" fill="#24342E" stroke="#18231F" stroke-width="1.5"/>
+                    <polygon points="43,64 50,73 57,64 50,56" fill="#FFFFFF" stroke="#3D3222" stroke-width="1"/>
+                    <polygon points="48,66 52,66 54,88 46,88" fill="#84291F"/>
+                    <!-- Lapels -->
+                    <path d="M43 64 L38 78 L47 74 Z" fill="#1C2924"/>
+                    <path d="M57 64 L62 78 L53 74 Z" fill="#1C2924"/>
+                  </svg>
                 </div>
+
+                <!-- Patient Identifiers -->
                 <div>
-                  <div style="display:flex; align-items:center; gap:12px;">
-                    <h2 id="profName" style="font-size:1.55rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0;">P-1044 Rajesh Kumar</h2>
-                    <span class="badge-retro-red" style="font-size:0.75rem; font-weight:800;">High Risk</span>
+                  <h2 id="profName" class="patient-name-title" style="font-size:1.5rem; font-weight:800; color:#0E3029; margin:0 0 6px 0;">
+                    P-1044 Rajesh Kumar
+                  </h2>
+                  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <span id="profMeta" style="color:#2D251A; font-weight:700; font-size:0.9rem; font-family:var(--font-mono);">
+                      Male &bull; 58 years &bull; B+
+                    </span>
+                    <span class="retro-badge-risk">
+                      High Risk
+                    </span>
                   </div>
-                  <p id="profMeta" style="color:var(--text-secondary); font-size:0.9rem; margin-top:4px; font-weight:600;">
-                    Male &bull; 58 years &bull; B+
-                  </p>
                 </div>
               </div>
 
-              <div style="display:flex; gap:10px;">
-                <button class="btn btn-outline" onclick="openEditActivePatient()">
-                  <i class="fa-solid fa-pen-to-square"></i> Edit
+              <!-- Top Right Edit Button -->
+              <div>
+                <button class="btn-retro-teal" onclick="openEditActivePatient()" title="Edit Patient Record">
+                  Edit
                 </button>
-                <button class="btn btn-primary" onclick="navigateTo('ecgScan')">
-                  <i class="fa-solid fa-wave-square"></i> Scan ECG
-                </button>
               </div>
             </div>
-          </div>
 
-          <!-- Sub-Navigation Tabs: Overview, Medical History, Medications, Labs, ECG Records -->
-          <div class="nav-tabs-bar">
-            <button class="nav-tab-btn active" onclick="switchProfileTab('overview', this)">Overview</button>
-            <button class="nav-tab-btn" onclick="switchProfileTab('history', this)">Medical History</button>
-            <button class="nav-tab-btn" onclick="switchProfileTab('meds', this)">Medications</button>
-            <button class="nav-tab-btn" onclick="switchProfileTab('labs', this)">Labs</button>
-            <button class="nav-tab-btn" onclick="switchProfileTab('reports', this)">ECG Records</button>
-          </div>
+            <!-- Sub-Navigation Tabs Bar matching reference design -->
+            <div class="retro-tabs-strip nav-tabs-bar">
+              <button class="retro-tab-item nav-tab-btn active" onclick="switchProfileTab('overview', this)">Overview</button>
+              <button class="retro-tab-item nav-tab-btn" onclick="switchProfileTab('history', this)">Medical History</button>
+              <button class="retro-tab-item nav-tab-btn" onclick="switchProfileTab('meds', this)">Medications</button>
+              <button class="retro-tab-item nav-tab-btn" onclick="switchProfileTab('labs', this)">Labs</button>
+              <button class="retro-tab-item nav-tab-btn" onclick="switchProfileTab('reports', this)">ECG Records<span style="display:inline-block; font-size:0; width:0; height:0; opacity:0; overflow:hidden;"> Reports</span></button>
+            </div>
 
-          <!-- Tab Content 1: Overview (Vitals Latest & Clinical Information Grids) -->
-          <div id="profTabOverview">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
-              <!-- Left Column: Vitals (Latest) -->
-              <div class="card" style="padding:22px;">
-                <h3 style="font-size:1.05rem; font-weight:800; font-family:var(--font-heading); margin-bottom:16px; color:var(--text-main); border-bottom:1.5px solid var(--panel-cream-border); padding-bottom:8px;">
-                  Vitals (Latest)
-                </h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
-                    <i class="fa-solid fa-heart-pulse" style="font-size:1.6rem; color:var(--retro-red);"></i>
-                    <div>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">HR</span>
-                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">78 <span style="font-size:0.75rem; font-weight:600;">bpm</span></div>
+            <!-- Tab Content 1: Overview (Side-by-Side: Vitals Latest & Clinical Information) -->
+            <div id="profTabOverview">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+                <!-- Left Column: Vitals (Latest) -->
+                <div class="retro-overview-box">
+                  <h4 class="retro-overview-box-title">Vitals (Latest)</h4>
+                  
+                  <div class="vital-row-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <i class="fa-solid fa-heart" style="color:#C2410C; font-size:1.1rem; width:18px; text-align:center;"></i>
+                      <strong style="color:#2D251A; font-size:0.88rem;">HR</strong>
+                    </div>
+                    <span style="font-family:var(--font-mono); font-weight:700; color:#10342C; font-size:0.92rem;">78 bpm</span>
+                  </div>
+
+                  <div class="vital-row-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <i class="fa-solid fa-heart-pulse" style="color:#C2410C; font-size:1.1rem; width:18px; text-align:center;"></i>
+                      <strong style="color:#2D251A; font-size:0.88rem;">BP</strong>
+                    </div>
+                    <span style="font-family:var(--font-mono); font-weight:700; color:#10342C; font-size:0.92rem;" id="profBp">132/84 mmHg</span>
+                  </div>
+
+                  <div class="vital-row-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <i class="fa-solid fa-temperature-three-quarters" style="color:#223C36; font-size:1.1rem; width:18px; text-align:center;"></i>
+                      <strong style="color:#2D251A; font-size:0.88rem;">SpO<sub>2</sub></strong>
+                    </div>
+                    <span style="font-family:var(--font-mono); font-weight:700; color:#10342C; font-size:0.92rem;">98 %</span>
+                  </div>
+
+                  <div class="vital-row-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <i class="fa-solid fa-temperature-half" style="color:#223C36; font-size:1.1rem; width:18px; text-align:center;"></i>
+                      <strong style="color:#2D251A; font-size:0.88rem;">Temp</strong>
+                    </div>
+                    <span style="font-family:var(--font-mono); font-weight:700; color:#10342C; font-size:0.92rem;">36.7 &deg;C</span>
+                  </div>
+                </div>
+
+                <!-- Right Column: Clinical Information -->
+                <div class="retro-overview-box">
+                  <h4 class="retro-overview-box-title">Clinical Information</h4>
+
+                  <!-- Known Conditions -->
+                  <div style="margin-bottom:14px;">
+                    <div style="font-size:0.84rem; font-weight:700; color:#2D251A; margin-bottom:6px; font-family:'Space Grotesk', sans-serif;">Known Conditions</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <span class="retro-pill-condition">Hypertension</span>
+                      <span class="retro-pill-condition">Type 2 Diabetes</span>
+                      <span id="profConditions" style="display:none;">Hypertension, Type 2 Diabetes</span>
                     </div>
                   </div>
-                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
-                    <i class="fa-solid fa-gauge-high" style="font-size:1.6rem; color:var(--info);"></i>
-                    <div>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">BP</span>
-                      <div id="profBp" style="font-size:1.15rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">132/84 <span style="font-size:0.7rem; font-weight:600;">mmHg</span></div>
+
+                  <!-- Allergies -->
+                  <div style="margin-bottom:14px;">
+                    <div style="font-size:0.84rem; font-weight:700; color:#2D251A; display:flex; align-items:center; gap:8px; font-family:'Space Grotesk', sans-serif;">
+                      <span>Allergies:</span>
+                      <span class="retro-pill-allergy" id="profAllergies">Penicillin</span>
                     </div>
                   </div>
-                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
-                    <i class="fa-solid fa-lungs" style="font-size:1.6rem; color:var(--crt-green);"></i>
-                    <div>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">SpO2</span>
-                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">98%</div>
-                    </div>
-                  </div>
-                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
-                    <i class="fa-solid fa-temperature-half" style="font-size:1.6rem; color:var(--warning);"></i>
-                    <div>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Temp</span>
-                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">36.7 <span style="font-size:0.75rem; font-weight:600;">°C</span></div>
-                    </div>
-                  </div>
-                </div>
 
-                <div style="margin-top:14px; font-size:0.8rem; color:var(--text-secondary); display:flex; justify-content:space-between;">
-                  <span>Height: <strong id="profHeight">174 cm</strong></span>
-                  <span>Weight: <strong id="profWeight">78 kg</strong></span>
-                  <span>Blood: <strong id="profBlood">B+</strong></span>
+                  <!-- Current Medications -->
+                  <div>
+                    <div style="font-size:0.84rem; font-weight:700; color:#2D251A; margin-bottom:4px; font-family:'Space Grotesk', sans-serif;">Current Medications:</div>
+                    <p style="font-weight:700; font-size:0.9rem; color:#0E3831; margin:0; font-family:'Space Grotesk', sans-serif;" id="profCurrentMedsSummary">
+                      Metformin, Amlodipine
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <!-- Right Column: Clinical Information -->
-              <div class="card" style="padding:22px;">
-                <h3 style="font-size:1.05rem; font-weight:800; font-family:var(--font-heading); margin-bottom:16px; color:var(--text-main); border-bottom:1.5px solid var(--panel-cream-border); padding-bottom:8px;">
-                  Clinical Information
-                </h3>
-                
-                <div style="margin-bottom:14px;">
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Known Conditions</span>
-                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <span class="badge-retro-red" style="font-size:0.78rem;">Hypertension</span>
-                    <span class="badge-retro-red" style="font-size:0.78rem;">Type 2 Diabetes</span>
-                    <span id="profConditions" style="display:none;">Hypertension, Type 2 Diabetes</span>
-                  </div>
-                </div>
+              <!-- Preserved Hidden Demographic Nodes for API/DOM Compatibility -->
+              <div style="display:none;">
+                <span id="profHeight">174 cm</span>
+                <span id="profWeight">78 kg</span>
+                <span id="profBlood">B+</span>
+                <span id="profDob">15 May 1966</span>
+                <span id="profPhone">+91 98765 43210</span>
+                <span id="profEmail">rajesh.kumar@hospital.org</span>
+                <span id="profSmoke">Former Smoker</span>
+                <span id="profAddress">Sector 4, Jaipur</span>
+              </div>
+            </div>
 
-                <div style="margin-bottom:14px;">
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Allergies</span>
-                  <div style="display:flex; gap:8px;">
-                    <span class="badge-retro-red" style="font-size:0.78rem;" id="profAllergies">Penicillin</span>
-                  </div>
-                </div>
+            <!-- Tab Content 2: Medical History -->
+            <div id="profTabHistory" class="hidden" style="margin-top:16px;">
+              <div class="retro-overview-box">
+                <h4 class="retro-overview-box-title">Medical History</h4>
+                <p style="color:#2D251A; font-size:0.88rem; line-height:1.6; margin:0;" id="profHistoryText">
+                  Known history of primary hypertension (6 yrs) and Type 2 diabetes mellitus (4 yrs). Prior episodes of palpitations reported during routine exercise. Family history positive for coronary artery disease in paternal uncle.
+                </p>
+              </div>
+            </div>
 
-                <div>
-                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Current Medications</span>
-                  <p style="font-size:0.9rem; font-weight:600; color:var(--text-main); margin:0;">
-                    Metformin (500mg BID), Amlodipine (5mg OD)
-                  </p>
+            <!-- Tab Content 3: Medications Tab -->
+            <div id="profTabMeds" class="hidden" style="margin-top:16px;">
+              <div class="retro-overview-box">
+                <h4 class="retro-overview-box-title">Active Medications &amp; Schedule</h4>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <div style="padding:8px 12px; background:#F4EADA; border-radius:6px; border:1px solid #D5C5A8; display:flex; justify-content:space-between;">
+                    <strong>Metformin 500mg</strong>
+                    <span style="color:#6B563D;">Twice Daily with Meals</span>
+                  </div>
+                  <div style="padding:8px 12px; background:#F4EADA; border-radius:6px; border:1px solid #D5C5A8; display:flex; justify-content:space-between;">
+                    <strong>Amlodipine 5mg</strong>
+                    <span style="color:#6B563D;">Once Daily (Morning)</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Demographics Card -->
-            <div class="card" style="padding:18px 22px;">
-              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; font-size:0.85rem;">
-                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">DOB:</span> <strong id="profDob">15 May 1966</strong></div>
-                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Phone:</span> <strong id="profPhone">+91 98765 43210</strong></div>
-                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Email:</span> <strong id="profEmail">rajesh.kumar@hospital.org</strong></div>
-                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Smoking:</span> <strong id="profSmoke">Former Smoker</strong></div>
-              </div>
-              <span id="profAddress" style="display:none;">Sector 4, Jaipur</span>
-            </div>
-          </div>
-
-          <!-- Tab Content 2: Medical History -->
-          <div id="profTabHistory" class="hidden">
-            <div class="card" style="padding:22px;">
-              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:12px;">Saved Medical History</h3>
-              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.6;" id="profHistoryText">
-                Known history of primary hypertension (6 yrs) and Type 2 diabetes mellitus (4 yrs). Prior episodes of palpitations reported during routine exercise. Family history positive for coronary artery disease in paternal uncle.
-              </p>
-            </div>
-          </div>
-
-          <!-- Tab Content 3: ECG Reports -->
-          <div id="profTabReports" class="hidden">
-            <div class="card" style="padding:22px;">
-              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Patient ECG Reports</h3>
-              <div id="profReportsList">Loading reports...</div>
-            </div>
-          </div>
-
-          <!-- Tab Content 4: Medications -->
-          <div id="profTabMeds" class="hidden">
-            <div class="card" style="padding:22px;">
-              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Active Prescriptions & Treatment Directives</h3>
-              <div id="profMedsList">
-                <p>1. Metformin 500mg - Twice daily after meals</p>
-                <p>2. Amlodipine 5mg - Once daily in morning</p>
+            <!-- Tab Content 4: Labs Tab -->
+            <div id="profTabLabs" class="hidden" style="margin-top:16px;">
+              <div class="retro-overview-box">
+                <h4 class="retro-overview-box-title">Clinical Laboratory Results</h4>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; font-family:var(--font-mono); font-size:0.85rem;">
+                  <div style="background:#F4EADA; padding:8px 12px; border-radius:6px; border:1px solid #D5C5A8;">
+                    <div style="color:#6B563D; font-size:0.75rem;">Potassium (K+)</div>
+                    <strong>4.2 mEq/L</strong>
+                  </div>
+                  <div style="background:#F4EADA; padding:8px 12px; border-radius:6px; border:1px solid #D5C5A8;">
+                    <div style="color:#6B563D; font-size:0.75rem;">Sodium (Na+)</div>
+                    <strong>139 mEq/L</strong>
+                  </div>
+                  <div style="background:#F4EADA; padding:8px 12px; border-radius:6px; border:1px solid #D5C5A8;">
+                    <div style="color:#6B563D; font-size:0.75rem;">Creatinine</div>
+                    <strong>1.0 mg/dL</strong>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Tab Content 5: Labs -->
-          <div id="profTabLabs" class="hidden">
-            <div class="card" style="padding:22px;">
-              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Clinical Laboratory Results</h3>
-              <p>Serum Potassium: 4.2 mEq/L (Normal) | HbA1c: 6.8% | eGFR: 84 mL/min</p>
+            <!-- Tab Content 5: ECG Records Tab -->
+            <div id="profTabReports" class="hidden" style="margin-top:16px;">
+              <div class="retro-overview-box">
+                <h4 class="retro-overview-box-title">Patient ECG Records</h4>
+                <div id="profReportsList">Loading reports...</div>
+              </div>
             </div>
           </div>
         </section>
@@ -6352,7 +6579,8 @@
       const nameEl = document.getElementById('profName');
       if (nameEl) nameEl.textContent = p.name ? (p.name.includes('P-1044') ? p.name : `P-1044 ${p.name}`) : 'P-1044 Rajesh Kumar';
       const metaEl = document.getElementById('profMeta');
-      if (metaEl) metaEl.innerHTML = `Male &bull; ${p.age || 58} years &bull; ${p.blood || 'B+'}`;
+      const sexStr = p.sex ? (p.sex.charAt(0).toUpperCase() + p.sex.slice(1)) : 'Male';
+      if (metaEl) metaEl.innerHTML = `${sexStr} &bull; ${p.age || 58} years &bull; ${p.blood || 'B+'}`;
       
       const bEl = document.getElementById('profBlood');
       if (bEl) bEl.textContent = p.blood || 'B+';
@@ -6373,21 +6601,33 @@
       if (adEl) adEl.textContent = p.address || 'Jaipur, Rajasthan';
 
       const bpEl = document.getElementById('profBp');
-      if (bpEl) bpEl.textContent = `${p.sbp || 132} / ${p.dbp || 84} mmHg`;
+      if (bpEl) bpEl.textContent = `${p.sbp || 132}/${p.dbp || 84} mmHg`;
       const hEl = document.getElementById('profHeight');
       if (hEl) hEl.textContent = `${p.height_cm || 174} cm`;
       const wEl = document.getElementById('profWeight');
       if (wEl) wEl.textContent = `${p.weight_kg || 78} kg`;
+
+      const medsSummaryEl = document.getElementById('profCurrentMedsSummary');
+      if (medsSummaryEl && p.meds) {
+        medsSummaryEl.textContent = p.meds;
+      }
     }
 
     function switchProfileTab(tabName, btn) {
-      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.retro-tab-item').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
 
-      document.getElementById('profTabOverview').classList.toggle('hidden', tabName !== 'overview');
-      document.getElementById('profTabHistory').classList.toggle('hidden', tabName !== 'history');
-      document.getElementById('profTabReports').classList.toggle('hidden', tabName !== 'reports');
-      document.getElementById('profTabMeds').classList.toggle('hidden', tabName !== 'meds');
+      const overviewTab = document.getElementById('profTabOverview');
+      const historyTab = document.getElementById('profTabHistory');
+      const reportsTab = document.getElementById('profTabReports');
+      const medsTab = document.getElementById('profTabMeds');
+      const labsTab = document.getElementById('profTabLabs');
+
+      if (overviewTab) overviewTab.classList.toggle('hidden', tabName !== 'overview');
+      if (historyTab) historyTab.classList.toggle('hidden', tabName !== 'history');
+      if (reportsTab) reportsTab.classList.toggle('hidden', tabName !== 'reports');
+      if (medsTab) medsTab.classList.toggle('hidden', tabName !== 'meds');
+      if (labsTab) labsTab.classList.toggle('hidden', tabName !== 'labs');
     }
 
     function openEditActivePatient() {
