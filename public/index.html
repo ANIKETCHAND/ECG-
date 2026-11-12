@@ -1744,40 +1744,37 @@
                 </div>
               </div>
 
-              <!-- Right: Clinical ECG Live Rhythm & Telemetry Visual -->
-              <div style="background:#0F172A; border-radius:var(--radius-xl); padding:24px; box-shadow:0 20px 40px rgba(15,23,42,0.18); border:1px solid #1E293B;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:10px;">
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10B981; box-shadow:0 0 10px #10B981;"></span>
-                    <strong style="color:#F8FAFC; font-size:0.85rem; letter-spacing:0.5px;">CARDIAC TELEMETRY MONITOR</strong>
+              <!-- Right: Multidisciplinary Cardiology & Clinical Care Team -->
+              <div class="hero-doctors-card" style="position:relative; border-radius:var(--radius-xl); overflow:hidden; box-shadow:0 20px 40px rgba(15,23,42,0.14), 0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--border-color); background:var(--bg-card); display:flex; flex-direction:column;">
+                <div style="position:relative; width:100%; height:320px; overflow:hidden;">
+                  <img src="images/doctors-hero.jpg" alt="Board-Certified Cardiology & Clinical Care Team" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.onerror=null; this.src='doctors-hero.jpg';" />
+                  <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.2) 50%, transparent 100%);"></div>
+                  <div style="position:absolute; top:16px; right:16px;">
+                    <span class="badge" style="background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); color:#F8FAFC; border:1px solid rgba(255,255,255,0.2); font-size:0.75rem; padding:6px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;">
+                      <i class="fa-solid fa-certificate" style="color:#38BDF8;"></i> Board-Certified Team
+                    </span>
                   </div>
-                  <span style="color:#94A3B8; font-size:0.75rem; font-family:monospace;">LEAD II &bull; 25mm/s</span>
+                  <div style="position:absolute; bottom:16px; left:20px; right:20px; color:#FFFFFF;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981; box-shadow:0 0 8px #10B981;"></span>
+                      <span style="font-size:0.75rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#A7F3D0;">Multidisciplinary Clinical Board</span>
+                    </div>
+                    <strong style="font-size:1.15rem; font-weight:800; color:#FFFFFF; display:block;">Cardiologists &bull; Electrophysiologists &bull; Care Specialists</strong>
+                    <span style="font-size:0.8rem; color:#CBD5E1;">Expert-in-the-loop review for hospital-grade ECG decision support</span>
+                  </div>
                 </div>
-                <div style="background:rgba(2,6,23,0.8); border:1px solid #334155; border-radius:var(--radius-md); padding:16px; position:relative; overflow:hidden;">
-                  <!-- ECG Grid Background -->
-                  <svg viewBox="0 0 500 120" style="width:100%; height:120px; display:block;">
-                    <defs>
-                      <pattern id="ecgGridLive" width="20" height="20" patternUnits="userSpaceOnUse">
-                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1E293B" stroke-width="0.8"/>
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#ecgGridLive)" />
-                    <!-- Rhythm Line -->
-                    <path d="M0,60 L40,60 L50,60 L60,40 L70,80 L80,15 L90,105 L100,60 L120,60 L140,45 L155,60 L200,60 L210,60 L220,40 L230,80 L240,15 L250,105 L260,60 L280,60 L300,45 L315,60 L360,60 L370,60 L380,40 L390,80 L400,15 L410,105 L420,60 L440,60 L460,45 L475,60 L500,60" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-top:16px;">
-                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">HEART RATE</div>
-                    <div style="font-size:1.25rem; font-weight:800; color:#38BDF8; font-family:monospace;">72 <span style="font-size:0.75rem; color:#94A3B8;">BPM</span></div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; padding:14px 18px; background:var(--bg-surface); border-top:1px solid var(--border-color);">
+                  <div style="text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700;">EXPERTISE</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:var(--primary); font-family:monospace;">100% <span style="font-size:0.7rem; color:var(--text-secondary);">CLINICAL</span></div>
                   </div>
-                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">PR INTERVAL</div>
-                    <div style="font-size:1.25rem; font-weight:800; color:#93C5FD; font-family:monospace;">160 <span style="font-size:0.75rem; color:#94A3B8;">MS</span></div>
+                  <div style="text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700;">REVIEW GATE</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:var(--color-primary-indigo); font-family:monospace;">DOCTOR <span style="font-size:0.7rem; color:var(--text-secondary);">SIGN-OFF</span></div>
                   </div>
-                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">AI CONFIDENCE</div>
-                    <div style="font-size:1.25rem; font-weight:800; color:#34D399; font-family:monospace;">98.4%</div>
+                  <div style="text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700;">SAFETY LEVEL</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:#10B981; font-family:monospace;">ZERO-TRUST</div>
                   </div>
                 </div>
               </div>

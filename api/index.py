@@ -3373,8 +3373,20 @@ app.include_router(router)
 
 
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 PUBLIC_DIR = BASE_DIR / "public"
+
+# Mount static images directory for local FastAPI / test runner
+if (PUBLIC_DIR / "images").exists():
+    app.mount("/images", StaticFiles(directory=str(PUBLIC_DIR / "images")), name="images")
+
+@app.get("/doctors-hero.jpg")
+def serve_doctors_hero():
+    file_path = PUBLIC_DIR / "doctors-hero.jpg"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Image not found")
 
 @app.get("/")
 def serve_index():
