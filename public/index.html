@@ -1140,30 +1140,33 @@
       margin-bottom: 24px;
     }
     .upload-dropzone-box {
-      background: #FFFFFF;
-      border: 2px dashed var(--purple-secondary);
-      border-radius: var(--radius-xl);
-      padding: 50px 32px;
+      background: var(--panel-cream);
+      border: 2px dashed #9E3E30;
+      border-radius: var(--radius-lg);
+      padding: 36px 24px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
       position: relative;
+      box-shadow: var(--shadow-chassis);
     }
     .upload-dropzone-box:hover, .upload-dropzone-box.dragover {
-      background: var(--bg-tertiary);
-      border-color: var(--purple-deep);
+      background: #DECEAE;
+      border-color: #7D2D20;
     }
     .upload-cloud-icon {
-      width: 72px;
-      height: 72px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      background: var(--bg-tertiary);
-      color: var(--purple-primary);
+      background: radial-gradient(circle at 35% 35%, #FFF, #CBB99E);
+      color: var(--retro-red);
+      border: 2px solid #5A4932;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
-      margin: 0 auto 18px auto;
+      font-size: 1.8rem;
+      margin: 0 auto 14px auto;
     }
 
     /* ═════════════════════════════════════════════════════════════════ */
@@ -1950,6 +1953,239 @@
       font-size: 0.72rem;
       margin-left: 2px;
       letter-spacing: 0.05em;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       VINTAGE MEDICAL CRT TV TELEMETRY MONITOR (EXACT REFERENCE DESIGN)
+       ═══════════════════════════════════════════════════════════════════ */
+    .retro-tv-chassis {
+      background: linear-gradient(145deg, #EFE2CF 0%, #D8C3A4 45%, #C2AA87 85%, #B49A76 100%);
+      border: 3px solid #756146;
+      border-radius: 26px;
+      box-shadow: 
+        0 16px 36px rgba(0, 0, 0, 0.45),
+        inset 0 2px 4px rgba(255, 255, 255, 0.85),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+      padding: 24px;
+      position: relative;
+      margin-top: 24px;
+    }
+
+    /* Inner Dark Recessed Screen Bezel */
+    .retro-tv-bezel {
+      background: #17130E;
+      border: 3px solid #3A2F20;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 
+        inset 0 4px 14px rgba(0, 0, 0, 0.95),
+        0 2px 4px rgba(255, 255, 255, 0.25);
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      position: relative;
+    }
+
+    /* Left CRT Oscilloscope Screen */
+    .retro-tv-crt-viewport {
+      flex: 1;
+      min-width: 0;
+      height: 250px;
+      background: radial-gradient(ellipse at center, #05231B 0%, #031410 75%, #010B07 100%);
+      border: 2px solid #0D3224;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.95), 0 0 16px rgba(16, 185, 129, 0.12);
+    }
+    .retro-tv-crt-viewport::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.32) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.72;
+    }
+
+    /* Right Recessed Digital HR Meter Panel */
+    .retro-tv-hr-panel {
+      width: 130px;
+      background: radial-gradient(ellipse at center, #041C15 0%, #02110D 80%, #010A07 100%);
+      border: 2px solid #0D3224;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 8px;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.95);
+      position: relative;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .retro-tv-hr-label {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #34D399;
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 10px rgba(52, 211, 153, 0.9);
+      margin-bottom: 2px;
+    }
+    .retro-tv-hr-val {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #34D399;
+      text-shadow: 0 0 14px rgba(52, 211, 153, 0.95), 0 0 30px rgba(16, 185, 129, 0.6);
+      margin: 4px 0 2px 0;
+      letter-spacing: -0.02em;
+    }
+    .retro-tv-hr-unit {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #34D399;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 8px rgba(52, 211, 153, 0.85);
+    }
+
+    /* Bottom Control Deck */
+    .retro-tv-deck {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+      padding: 6px 12px 0 12px;
+      user-select: none;
+    }
+
+    /* Left Rotary Knobs Trio */
+    .retro-tv-knobs {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .retro-tv-knob-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .retro-tv-knob-dial {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #F7EFE2 0%, #CBB99E 40%, #87765E 80%, #584732 100%);
+      border: 2px solid #54432C;
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.55),
+        inset 0 2px 3px rgba(255, 255, 255, 0.75),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.6);
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .retro-tv-knob-dial:hover {
+      box-shadow: 0 6px 12px rgba(0,0,0,0.65), inset 0 2px 3px #FFF;
+    }
+    .retro-tv-knob-dial::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: calc(50% - 1.5px);
+      width: 3px;
+      height: 9px;
+      background: #B64A3A;
+      border-radius: 2px;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+    }
+    .retro-tv-knob-subtext {
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: #382D1D;
+      letter-spacing: 0.04em;
+    }
+
+    /* Middle Tuning Slider Slot */
+    .retro-tv-slider-slot {
+      flex: 1;
+      max-width: 260px;
+      height: 12px;
+      margin: 0 24px;
+      background: #17130B;
+      border-radius: 6px;
+      border: 1.5px solid #483925;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.95), 0 1px 1px rgba(255,255,255,0.25);
+      position: relative;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .retro-tv-slider-thumb {
+      position: absolute;
+      left: 45%;
+      width: 24px;
+      height: 18px;
+      background: linear-gradient(180deg, #F3E7D3 0%, #B8A585 100%);
+      border: 1.5px solid #4C3C26;
+      border-radius: 4px;
+      box-shadow: 0 3px 5px rgba(0,0,0,0.6), inset 0 1px 1px #FFF;
+      cursor: grab;
+      transition: left 0.15s ease;
+    }
+    .retro-tv-slider-thumb::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 10px;
+      background: #3B2E1D;
+      border-radius: 1px;
+    }
+
+    /* Right Speaker Louvers / Vent Slits (6 Slits) */
+    .retro-tv-vents {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 4px;
+    }
+    .retro-tv-vent-slit {
+      width: 5px;
+      height: 30px;
+      background: #1C160E;
+      border-radius: 3px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.3);
+    }
+
+    @media (max-width: 768px) {
+      .retro-tv-bezel {
+        flex-direction: column;
+      }
+      .retro-tv-hr-panel {
+        width: 100%;
+        height: 70px;
+        flex-direction: row;
+        gap: 16px;
+      }
+      .retro-tv-deck {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .retro-tv-slider-slot {
+        order: 3;
+        width: 100%;
+        max-width: 100%;
+        margin: 10px 0 0 0;
+      }
     }
 
     /* Buttons & Badges */
@@ -3682,19 +3918,40 @@
             </div>
           </div>
 
-          <!-- ECG Scanner Live Telemetry Display Matching Reference Design -->
-          <div class="card" style="margin-top:20px; padding:18px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <!-- VINTAGE RETRO MEDICAL CRT TV MONITOR CHASSIS MATCHING EXACT REFERENCE DESIGN -->
+          <div class="retro-tv-chassis" id="scanTvMonitorChassis">
+            <div class="card-corner-rivets">
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+            </div>
+
+            <!-- Top TV Header Bar with Controls -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">
-                  <i class="fa-solid fa-heart-pulse" style="color:#b8402c;"></i> ECG Scanner &middot; Continuous Rhythm Strip (Lead II, 360 Hz)
+                <div class="retro-led-strip">
+                  <span class="retro-led green" id="scanTvPowerLed"></span>
+                </div>
+                <span style="font-family:var(--font-mono); font-size:0.8rem; font-weight:700; letter-spacing:0.08em; color:#382D1D;">
+                  CARDIAC TELEMETRY MONITOR // LEAD II SCANNER
                 </span>
-                <span class="ecg-screen-badge" id="scanPreviewStatusBadge">
-                  <i class="fa-solid fa-circle-dot fa-fade"></i> <span id="scanPreviewStatusText">Waveform Active &middot; 25 mm/s</span>
+                <span class="badge-retro-green" id="scanPreviewStatusBadge" style="font-size:0.7rem; padding:3px 10px;">
+                  <i class="fa-solid fa-circle-dot fa-fade"></i> <span id="scanPreviewStatusText">REALTIME SWEEP &middot; 25 mm/s</span>
                 </span>
               </div>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span style="font-size:0.76rem; color:var(--text-secondary); margin-right:4px;">Window:</span>
+
+              <!-- Top TV Controls: Mode Switch, Time Window & Sound -->
+              <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; background:rgba(56, 45, 29, 0.15); border-radius:6px; padding:2px; border:1px solid #756146;">
+                  <button type="button" class="btn btn-sm active" id="btnScanTvModeLive" onclick="setScanDisplayMode('live')" style="padding:3px 9px; font-size:0.72rem; font-weight:700; font-family:var(--font-mono); border:none; background:var(--retro-red); color:#FFF; border-radius:4px; cursor:pointer;">
+                    <i class="fa-solid fa-satellite-dish"></i> LIVE SWEEP
+                  </button>
+                  <button type="button" class="btn btn-sm" id="btnScanTvModeStrip" onclick="setScanDisplayMode('strip')" style="padding:3px 9px; font-size:0.72rem; font-weight:700; font-family:var(--font-mono); border:none; background:transparent; color:#382D1D; border-radius:4px; cursor:pointer;">
+                    <i class="fa-solid fa-chart-line"></i> INGESTED STRIP
+                  </button>
+                </div>
+
                 <button class="btn btn-outline btn-sm bench-time-btn active scan-time-btn" onclick="setScanTimeWindow(2.5, this)">2.5s</button>
                 <button class="btn btn-outline btn-sm bench-time-btn scan-time-btn" onclick="setScanTimeWindow(5.0, this)">5.0s</button>
                 <button class="btn btn-soft btn-sm" onclick="toggleAudioQrs()" id="btnScanAudioToggle">
@@ -3703,13 +3960,63 @@
               </div>
             </div>
 
-            <!-- Authentic Medical Millimeter ECG Grid Container -->
-            <div class="ecg-paper-screen">
-              <div id="scanPreviewWaveformChart" style="height:220px; width:100%;"></div>
+            <!-- Recessed Inner Dark Bezel Enclosing CRT & Digital HR Meter -->
+            <div class="retro-tv-bezel">
+              <!-- Left: Curved Green Oscilloscope CRT Viewport -->
+              <div class="retro-tv-crt-viewport" id="scanCrtViewport">
+                <div class="retro-crt-grid"></div>
+                <!-- Continuous Animated Phosphor Beam Sweep Canvas -->
+                <canvas id="scanCrtCanvas" width="680" height="250" style="width:100%; height:100%; display:block; position:relative; z-index:5;"></canvas>
+                
+                <!-- Interactive High-Fidelity Ingested Waveform Layer -->
+                <div id="scanPreviewWaveformChart" style="display:none; height:250px; width:100%; position:relative; z-index:6;"></div>
+              </div>
+
+              <!-- Right: Recessed Digital HR Meter Panel -->
+              <div class="retro-tv-hr-panel">
+                <span class="retro-tv-hr-label">HR</span>
+                <div class="retro-tv-hr-val" id="scanTvBpmValue">72</div>
+                <span class="retro-tv-hr-unit">bpm</span>
+              </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:0.74rem; color:#556b5c; font-family:'JetBrains Mono', monospace;">
-              <span><i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.6rem;"></i> GREEN MARKERS: DETECTED R-PEAKS</span>
+            <!-- Bottom Control Deck: 3 Rotary Knobs + Center Slider Slot + 6 Speaker Vents -->
+            <div class="retro-tv-deck">
+              <!-- Left: 3 Knurled Brass Rotary Knobs -->
+              <div class="retro-tv-knobs">
+                <div class="retro-tv-knob-wrapper" onclick="toggleTvSpeed()" title="Click to toggle sweep speed (25 / 50 mm/s)">
+                  <div class="retro-tv-knob-dial" id="knobTvSpeed"></div>
+                  <span class="retro-tv-knob-subtext" id="labelTvSpeed">SPEED 25mm/s</span>
+                </div>
+                <div class="retro-tv-knob-wrapper" onclick="toggleTvGain()" title="Click to toggle signal gain (10 / 20 mm/mV)">
+                  <div class="retro-tv-knob-dial" id="knobTvGain"></div>
+                  <span class="retro-tv-knob-subtext" id="labelTvGain">GAIN 10mm/mV</span>
+                </div>
+                <div class="retro-tv-knob-wrapper" onclick="toggleTvFilter()" title="Click to toggle bandpass filter">
+                  <div class="retro-tv-knob-dial" id="knobTvFilter"></div>
+                  <span class="retro-tv-knob-subtext" id="labelTvFilter">FILTER 0.05-150Hz</span>
+                </div>
+              </div>
+
+              <!-- Center: Horizontal Recessed Tuning Slider Slot -->
+              <div class="retro-tv-slider-slot" id="scanTvSliderTrack" onclick="handleTvSliderClick(event)" title="Click or drag to calibrate window">
+                <div class="retro-tv-slider-thumb" id="scanTvSliderThumb"></div>
+              </div>
+
+              <!-- Right: 6 Vertical Capsule Speaker Vents -->
+              <div class="retro-tv-vents">
+                <div class="retro-tv-vent-slit"></div>
+                <div class="retro-tv-vent-slit"></div>
+                <div class="retro-tv-vent-slit"></div>
+                <div class="retro-tv-vent-slit"></div>
+                <div class="retro-tv-vent-slit"></div>
+                <div class="retro-tv-vent-slit"></div>
+              </div>
+            </div>
+
+            <!-- Bottom Calibration Meta Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:0.74rem; color:#4E3C27; font-family:var(--font-mono); font-weight:700;">
+              <span><i class="fa-solid fa-circle" style="color:var(--crt-green); font-size:0.6rem;"></i> GREEN PHOSPHOR TRACE // REALTIME FIDELITY</span>
               <span id="scanWaveformPointsMeta">900 SAMPLES &middot; 3 BEATS DETECTED</span>
               <span>CALIBRATION: 10 MM/MV &middot; 25 MM/S</span>
             </div>
@@ -5086,6 +5393,7 @@
         renderPatientProfileView();
       } else if (viewId === 'ecgScan') {
         renderEcgScanContext();
+        setTimeout(initRetroTelemetryMonitors, 40);
       } else if (viewId === 'analysis') {
         renderAnalysisWaveformChart();
       } else if (viewId === 'cds') {
@@ -6006,6 +6314,10 @@
     }
 
     async function loadBenchmarkSample(sampleType, showNotification = true) {
+      const bpmMap = { normal: '72', pvc: '88', afib: '114' };
+      const bpmEl = document.getElementById('scanTvBpmValue');
+      if (bpmEl && bpmMap[sampleType]) bpmEl.textContent = bpmMap[sampleType];
+
       try {
         const res = await fetch(`${API_BASE}/api/sample?sample_type=${sampleType}`);
         if (res.ok) {
@@ -6285,13 +6597,107 @@
       renderEcgWaveformStrip('analysisWaveformChart', 210, currentDisplayWindow);
     }
 
+    let scanTvDisplayMode = 'live'; // 'live' or 'strip'
+    let tvSpeedState = 25; // 25 or 50
+    let tvGainState = 10;  // 10 or 20
+    let tvFilterState = 0; // 0: 0.05-150Hz, 1: 0.5-40Hz
+
+    function setScanDisplayMode(mode) {
+      scanTvDisplayMode = mode;
+      const cv = document.getElementById('scanCrtCanvas');
+      const ch = document.getElementById('scanPreviewWaveformChart');
+      const btnLive = document.getElementById('btnScanTvModeLive');
+      const btnStrip = document.getElementById('btnScanTvModeStrip');
+      const badgeText = document.getElementById('scanPreviewStatusText');
+      if (mode === 'live') {
+        if (cv) cv.style.display = 'block';
+        if (ch) ch.style.display = 'none';
+        if (btnLive) { btnLive.style.background = 'var(--retro-red)'; btnLive.style.color = '#FFF'; }
+        if (btnStrip) { btnStrip.style.background = 'transparent'; btnStrip.style.color = '#382D1D'; }
+        if (badgeText) badgeText.textContent = `REALTIME SWEEP · ${tvSpeedState} mm/s`;
+      } else {
+        if (cv) cv.style.display = 'none';
+        if (ch) {
+          ch.style.display = 'block';
+          renderScanPreviewWaveformChart();
+        }
+        if (btnStrip) { btnStrip.style.background = 'var(--retro-red)'; btnStrip.style.color = '#FFF'; }
+        if (btnLive) { btnLive.style.background = 'transparent'; btnLive.style.color = '#382D1D'; }
+        if (badgeText) badgeText.textContent = `INGESTED STRIP · ${tvSpeedState} mm/s`;
+      }
+    }
+
+    function toggleTvSpeed() {
+      const knob = document.getElementById('knobTvSpeed');
+      const label = document.getElementById('labelTvSpeed');
+      tvSpeedState = tvSpeedState === 25 ? 50 : 25;
+      if (knob) knob.style.transform = tvSpeedState === 50 ? 'rotate(50deg)' : 'rotate(0deg)';
+      if (label) label.textContent = `SPEED ${tvSpeedState}mm/s`;
+      const badgeText = document.getElementById('scanPreviewStatusText');
+      if (badgeText) {
+        badgeText.textContent = `${scanTvDisplayMode === 'live' ? 'REALTIME SWEEP' : 'INGESTED STRIP'} · ${tvSpeedState} mm/s`;
+      }
+      showToast(`Oscilloscope speed set to ${tvSpeedState} mm/s`, 'fa-gauge-high');
+    }
+
+    function toggleTvGain() {
+      const knob = document.getElementById('knobTvGain');
+      const label = document.getElementById('labelTvGain');
+      tvGainState = tvGainState === 10 ? 20 : 10;
+      if (knob) knob.style.transform = tvGainState === 20 ? 'rotate(50deg)' : 'rotate(0deg)';
+      if (label) label.textContent = `GAIN ${tvGainState}mm/mV`;
+      showToast(`Signal amplification set to ${tvGainState} mm/mV`, 'fa-arrows-up-down');
+    }
+
+    function toggleTvFilter() {
+      const knob = document.getElementById('knobTvFilter');
+      const label = document.getElementById('labelTvFilter');
+      tvFilterState = tvFilterState === 0 ? 1 : 0;
+      if (knob) knob.style.transform = tvFilterState === 1 ? 'rotate(45deg)' : 'rotate(0deg)';
+      if (label) label.textContent = tvFilterState === 1 ? 'FILTER 0.5-40Hz' : 'FILTER 0.05-150Hz';
+      showToast(tvFilterState === 1 ? 'Diagnostic bandpass filter engaged (0.5 - 40 Hz)' : 'Standard monitoring filter (0.05 - 150 Hz)', 'fa-filter');
+    }
+
+    function handleTvSliderClick(e) {
+      const track = document.getElementById('scanTvSliderTrack');
+      const thumb = document.getElementById('scanTvSliderThumb');
+      if (!track || !thumb) return;
+      const rect = track.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(8, Math.min(88, (clickX / rect.width) * 100));
+      thumb.style.left = `${pct}%`;
+      if (pct < 35) {
+        setScanTimeWindow(1.5);
+      } else if (pct < 65) {
+        setScanTimeWindow(2.5);
+      } else {
+        setScanTimeWindow(5.0);
+      }
+    }
+
     function renderScanPreviewWaveformChart() {
-      renderEcgWaveformStrip('scanPreviewWaveformChart', 220, currentDisplayWindow);
+      renderEcgWaveformStrip('scanPreviewWaveformChart', 250, currentDisplayWindow);
       const peaks = (currentRPeaks && currentRPeaks.length > 0) ? currentRPeaks : detectRPeaksClient(currentSignal, currentFs);
       const numPts = Math.min(currentSignal.length, Math.round(currentDisplayWindow * currentFs));
       const visPeaks = peaks.filter(p => (p / currentFs) <= currentDisplayWindow).length;
       const metaEl = document.getElementById('scanWaveformPointsMeta');
       if (metaEl) metaEl.textContent = `${numPts} SAMPLES · ${visPeaks} BEATS DETECTED`;
+
+      // Update TV CRT digital HR counter
+      if (peaks && peaks.length >= 2) {
+        const rr = [];
+        for (let i = 1; i < peaks.length; i++) {
+          rr.push((peaks[i] - peaks[i-1]) / currentFs);
+        }
+        const meanRR = rr.reduce((a, b) => a + b, 0) / rr.length;
+        if (meanRR > 0) {
+          const calcBpm = Math.round(60 / meanRR);
+          const bpmEl = document.getElementById('scanTvBpmValue');
+          if (bpmEl && calcBpm >= 30 && calcBpm <= 240) {
+            bpmEl.textContent = calcBpm;
+          }
+        }
+      }
     }
 
     function setTimeWindow(win, btn) {
@@ -6306,6 +6712,12 @@
       currentDisplayWindow = win;
       document.querySelectorAll('.scan-time-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
+      const thumb = document.getElementById('scanTvSliderThumb');
+      if (thumb) {
+        if (win <= 1.5) thumb.style.left = '15%';
+        else if (win <= 2.5) thumb.style.left = '45%';
+        else thumb.style.left = '80%';
+      }
       renderScanPreviewWaveformChart();
     }
 
@@ -7979,6 +8391,7 @@
     function initRetroTelemetryMonitors() {
       const dashCanvas = document.getElementById('dashboardCrtCanvas');
       const mobCanvas = document.getElementById('mobileCrtCanvas');
+      const scanCanvas = document.getElementById('scanCrtCanvas');
       
       let sweepOffset = 0;
       function animateTrace() {
@@ -7988,13 +8401,17 @@
         if (mobCanvas && mobCanvas.offsetParent) {
           drawSingleCrtTrace(mobCanvas, sweepOffset);
         }
-        sweepOffset = (sweepOffset + 2.5) % 18000;
+        if (scanCanvas && scanCanvas.offsetParent && scanCanvas.style.display !== 'none') {
+          drawSingleCrtTrace(scanCanvas, sweepOffset);
+        }
+        sweepOffset = (sweepOffset + (tvSpeedState === 50 ? 5.0 : 2.5)) % 18000;
         telemetryAnimationId = requestAnimationFrame(animateTrace);
       }
 
       if (telemetryAnimationId) cancelAnimationFrame(telemetryAnimationId);
       if (dashCanvas) drawSingleCrtTrace(dashCanvas, 0);
       if (mobCanvas) drawSingleCrtTrace(mobCanvas, 0);
+      if (scanCanvas) drawSingleCrtTrace(scanCanvas, 0);
       telemetryAnimationId = requestAnimationFrame(animateTrace);
     }
 

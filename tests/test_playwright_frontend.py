@@ -24,7 +24,7 @@ import urllib.request
 import pytest
 from playwright.sync_api import sync_playwright
 
-BASE_URL = os.environ.get("TEST_APP_URL", "http://127.0.0.1:8000")
+BASE_URL = os.environ.get("TEST_APP_URL", "http://127.0.0.1:8008")
 
 
 def _ensure_local_server(url: str):
@@ -32,17 +32,22 @@ def _ensure_local_server(url: str):
     try:
         with urllib.request.urlopen(f"{url}/api/health", timeout=1.0) as resp:
             if resp.status == 200:
-                return
+                data = resp.read().decode('utf-8', errors='ignore')
+                if "ECG Guardian" in data or "ecg" in data.lower():
+                    return
     except Exception:
         pass
 
     import uvicorn
+    import urllib.parse
+    parsed = urllib.parse.urlparse(url)
+    port = parsed.port or 8008
     def run_app():
-        uvicorn.run("api.index:app", host="127.0.0.1", port=8000, log_level="warning")
+        uvicorn.run("api.index:app", host="127.0.0.1", port=port, log_level="warning")
 
     t = threading.Thread(target=run_app, daemon=True)
     t.start()
-    for _ in range(30):
+    for _ in range(40):
         time.sleep(0.2)
         try:
             with urllib.request.urlopen(f"{url}/api/health", timeout=0.5) as resp:
