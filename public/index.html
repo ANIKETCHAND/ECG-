@@ -3576,6 +3576,7 @@
             <button class="nav-tab-btn" onclick="navigateTo('patientProfile')"><i class="fa-solid fa-heart-pulse"></i> My Health</button>
             <button class="nav-tab-btn" onclick="navigateTo('appointments')"><i class="fa-solid fa-calendar-check"></i> Appointments</button>
             <button class="nav-tab-btn" onclick="navigateTo('settings')"><i class="fa-solid fa-user"></i> Profile</button>
+            <button class="nav-tab-btn" onclick="signOutUser()" title="Log Out"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
           </div>
 
           <!-- Grid of Patient Cards Matching Reference Image View 6 -->
@@ -5860,6 +5861,9 @@
           <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
             <i class="fa-solid fa-user"></i> <span>Profile</span>
           </a>
+          <a class="sidebar-item" onclick="signOutUser()" title="Log Out" style="cursor:pointer;">
+            <i class="fa-solid fa-right-from-bracket"></i> <span>Log Out</span>
+          </a>
         `;
       } else {
         nav.innerHTML = `
@@ -5883,6 +5887,9 @@
           </a>
           <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
             <i class="fa-solid fa-gear"></i> <span>Settings</span>
+          </a>
+          <a class="sidebar-item" onclick="signOutUser()" title="Log Out" style="cursor:pointer;">
+            <i class="fa-solid fa-right-from-bracket"></i> <span>Log Out</span>
           </a>
         `;
       }
