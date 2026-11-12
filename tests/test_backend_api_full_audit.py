@@ -218,8 +218,8 @@ def test_patient_crud_and_validation(client, auth_headers):
 # 4. DASHBOARD STATS ENDPOINT
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_dashboard_stats_endpoint(client):
-    res = client.get("/api/dashboard/stats")
+def test_dashboard_stats_endpoint(client, auth_headers):
+    res = client.get("/api/dashboard/stats", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "SUCCESS"

@@ -78,21 +78,24 @@
 
 ### 5. Automated Verification & Testing
 - **`tests/test_negative_authorization_and_security.py`**:
-  - Created a comprehensive 14-test negative authorization suite verifying:
+  - Expanded negative authorization and safety verification suite to 23 tests verifying:
     - SEC-01: Anonymous requests to `/api/auth/me` return 401.
-    - SEC-02: Zero-trust authentication blocks unauthenticated access to `/api/patients` and `/api/reports`.
-    - SEC-03: Patient accounts cannot seal clinical diagnostic reports (403 Forbidden).
+    - SEC-02: Zero-trust authentication blocks unauthenticated access to `/api/patients`, `/api/reports`, `/api/dashboard/stats`, `/api/notifications`, `/api/doctors/{id}`, `/api/appointments/{id}`, `/api/ecg/compare`.
+    - SEC-03: Patient accounts cannot seal clinical diagnostic reports (403 Forbidden), access hospital telemetry dashboard (403 Forbidden), or modify doctor credentials (403 Forbidden).
     - SEC-04: Invalid / forged bearer tokens are rejected (401 Unauthorized).
     - SEC-05: Missing / empty authorization header rejected with 401 Unauthorized.
     - SEC-06: Malformed authorization header rejected with 401 Unauthorized.
-    - SEC-07: Unauthenticated calls to `/api/patients` (POST) rejected with 401.
-    - SEC-08: Patient accounts cannot register new patients (403 Forbidden).
-    - SEC-09: Unauthenticated calls to `/api/conversations` (GET/POST) rejected with 401.
-    - SEC-10: Unauthenticated calls to `/api/appointments` (GET/POST) rejected with 401.
+    - SEC-07: Neutralized anonymous data leaks on telemetry dashboard and patient notifications.
     - CLIN-01: Missing potassium triggers mandatory withholding.
     - CLIN-02: Missing creatinine triggers mandatory withholding.
-    - CLIN-03: Hypokalemia (<3.5 mEq/L) blocks torsadogenic / antiarrhythmic drugs.
+    - CLIN-03: Hypokalemia (<3.5 mEq/L) blocks torsadogenic / antiarrhythmic drugs (`test_hypokalemia_contraindication_blocks_torsadogenic_candidates`).
     - BIO-01: Optical extractor disables ST analysis and preserves relative morphology.
-    - BIO-02: Dynamic Q-onset detection verifies precise fiducial marking.
+    - BIO-02: Dynamic morphology Q-onset detection with pre-inflection fallback and physiological tachycardia QT bound (`test_dynamic_q_onset_computes_physiologic_qt`).
     - ML-01: Catalog proves strict zero-leakage record split.
-- **Full Suite Run**: 573 passed in 96.06 seconds with 0 failures (100% passing).
+- **`public/index.html`**:
+  - Neutralized client-side fake auth fallback in `quickLoginUser()` where failed logins generated dummy sessions in localStorage.
+  - Added authorization header propagation to `loadDoctorDashboard()`.
+- **`src/measurements/measurement_engine.py`**:
+  - Fixed Q-onset fallback: when pre-R inflection slope remains steep, onset falls back to deflection onset (`q_search_start`) rather than Q trough.
+  - Expanded QT interval physiological lower bound from 280 ms to 200 ms to accurately support physiological QT shortening during tachycardia (HR 120-180 BPM).
+- **Full Suite Run**: 582 passed in 99.04 seconds with 0 failures (100% passing).

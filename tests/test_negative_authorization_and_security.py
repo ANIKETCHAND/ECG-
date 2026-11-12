@@ -138,6 +138,79 @@ class TestNegativeAuthorization:
         )
         assert response.status_code == 401
 
+    def test_unauthenticated_dashboard_stats_returns_401(self, client):
+        """SEC-02: Unauthenticated GET /api/dashboard/stats is strictly blocked with 401."""
+        response = client.get("/api/dashboard/stats")
+        assert response.status_code == 401
+        assert "authentication required" in response.json()["detail"].lower()
+
+    def test_patient_role_cannot_access_hospital_dashboard_stats(self, client):
+        """SEC-03: Patient accounts are forbidden from accessing hospital telemetry dashboard (403)."""
+        from api.security import create_jwt_token
+        from src.auth.auth_manager import User, UserRole
+
+        patient_user = User(
+            user_id="pat_dash_test",
+            username="eve_pat",
+            password_hash="",
+            salt="",
+            role=UserRole.PATIENT,
+            full_name="Eve Patient",
+            email="eve@hospital.org",
+            hospital_id="HOSP-APEX",
+        )
+        token = create_jwt_token(patient_user)
+        response = client.get(
+            "/api/dashboard/stats",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+        assert "access denied" in response.json()["detail"].lower()
+
+    def test_unauthenticated_notifications_returns_401(self, client):
+        """SEC-02: Unauthenticated GET /api/notifications is strictly blocked with 401."""
+        response = client.get("/api/notifications")
+        assert response.status_code == 401
+
+    def test_unauthenticated_doctor_profile_update_returns_401(self, client):
+        """SEC-02: Unauthenticated PUT /api/doctors/{id} is strictly blocked with 401."""
+        response = client.put("/api/doctors/dr.smith", json={"full_name": "Tampered Name"})
+        assert response.status_code == 401
+
+    def test_patient_role_cannot_modify_doctor_credentials(self, client):
+        """SEC-03: Patient accounts are forbidden from altering clinician credentials (403)."""
+        from api.security import create_jwt_token
+        from src.auth.auth_manager import User, UserRole
+
+        patient_user = User(
+            user_id="pat_rogue",
+            username="rogue_pat",
+            password_hash="",
+            salt="",
+            role=UserRole.PATIENT,
+            full_name="Rogue Patient",
+            email="rogue@example.com",
+            hospital_id="HOSP-APEX",
+        )
+        token = create_jwt_token(patient_user)
+        response = client.put(
+            "/api/doctors/dr.smith",
+            json={"registration_number": "MCI-FAKE-9999"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+        assert "access denied" in response.json()["detail"].lower()
+
+    def test_unauthenticated_appointment_cancellation_returns_401(self, client):
+        """SEC-02: Unauthenticated DELETE /api/appointments/{id} is blocked with 401."""
+        response = client.delete("/api/appointments/APT-9999")
+        assert response.status_code == 401
+
+    def test_unauthenticated_ecg_compare_returns_401(self, client):
+        """SEC-02: Unauthenticated POST /api/ecg/compare is blocked with 401."""
+        response = client.post("/api/ecg/compare", json={"current_analysis": {}, "prior_analysis": {}})
+        assert response.status_code == 401
+
 
 class TestClinicalSafetySafeguards:
     """Clinical safety engine prevents silent substitutions of missing lab data."""
@@ -229,6 +302,48 @@ class TestClinicalSafetySafeguards:
                     break
         assert renal_warning_found, f"Expected renal withholding warning. Reasons were: {all_reasons}"
 
+    def test_hypokalemia_contraindication_blocks_torsadogenic_candidates(self):
+        """CLIN-03: Hypokalemia (<3.5 mEq/L) blocks torsadogenic / antiarrhythmic candidate agents."""
+        engine = MultimodalMedicationCandidateEngine()
+        patient_profile = {
+            "age": 60,
+            "sex": "M",
+            "conditions": ["Ventricular Ectopy", "Hypertension"],
+            "allergies": [],
+            "current_medications": []
+        }
+        ecg_measurements = {
+            "heart_rate": 80,
+            "qt_interval": 400,
+            "qtc_interval": 420,
+            "has_long_qt": False,
+        }
+        # Serum potassium below safety threshold (3.1 < 3.5 mEq/L)
+        laboratory_results = {
+            "potassium": 3.1,
+            "creatinine": 1.0,
+            "egfr": 80.0,
+            "magnesium": 2.0
+        }
+
+        result = engine.generate_candidate_recommendations(
+            ecg_finding="Ventricular Ectopy",
+            ecg_measurements=ecg_measurements,
+            patient_profile=patient_profile,
+            vital_signs={"systolic_bp": 130, "diastolic_bp": 80},
+            laboratory_results=laboratory_results
+        )
+
+        hypokalemia_blocked = False
+        all_reasons = []
+        for cand in result.candidates:
+            all_reasons.extend(cand.contraindications_detected)
+            for reason in cand.contraindications_detected:
+                if "Hypokalemia" in reason and "Contraindicated" in reason:
+                    hypokalemia_blocked = True
+                    break
+        assert hypokalemia_blocked, f"Expected hypokalemia contraindication block. Detected reasons: {all_reasons}"
+
 
 class TestBiomedicalSignalSafety:
     """Biomedical waveform extraction safeguards."""
@@ -248,6 +363,37 @@ class TestBiomedicalSignalSafety:
         assert result["can_evaluate_st"] is False
         assert result["calibration_status"] == "UNCALIBRATED_OPTICAL_EXTRACT"
         assert "withheld" in result["clinical_warning"].lower() or "uncalibrated" in result["clinical_warning"].lower()
+
+    def test_dynamic_q_onset_computes_physiologic_qt(self):
+        """BIO-02: Dynamic morphology-aware Q-onset detection accurately measures physiologic QT/QTc."""
+        from src.measurements.measurement_engine import compute_ecg_measurements
+
+        fs = 360.0
+        # Generate 10 beats at 75 BPM (RR = 0.8s = 288 samples)
+        # Normal physiologic QT is ~360-400 ms (~130-144 samples)
+        peaks = np.array([288 * i for i in range(1, 10)])
+        sig_len = peaks[-1] + 360
+        sig = np.zeros(sig_len)
+        for p in peaks:
+            # Q-wave onset at p - 14 (about 39ms before R peak), trough at p - 7
+            sig[p - 14 : p - 7] = np.linspace(0.0, -0.25, 7)
+            sig[p - 7 : p] = np.linspace(-0.25, 0.0, 7)
+            # R peak
+            sig[p] = 1.2
+            # S wave
+            sig[p : p + 14] = np.linspace(1.2, -0.3, 14)
+            sig[p + 14 : p + 28] = np.linspace(-0.3, 0.0, 14)
+            # T wave: peak at p + 75 (~208ms), offset at p + 130 (~361ms)
+            t_len = 55
+            sig[p + 75 : p + 75 + t_len] = 0.35 * np.sin(np.linspace(0, np.pi, t_len))
+
+        res = compute_ecg_measurements(sig, fs, peaks, leads_available=["II"])
+        assert res.heart_rate_bpm == 75.0
+        assert res.qt_interval_ms is not None
+        # Physiologic QT for 75 BPM should be between 300 ms and 450 ms
+        assert 300.0 <= res.qt_interval_ms <= 450.0
+        assert res.qtc_bazett_ms is not None
+        assert "dynamic Q-onset" in res.qt_status
 
 
 class TestModelGovernanceSplits:

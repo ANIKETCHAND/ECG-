@@ -1819,9 +1819,25 @@ def update_patient_endpoint(patient_identifier: str, req: PatientUpdateRequest, 
 
 
 @router.get("/dashboard/stats", dependencies=[_protected])
-def get_dashboard_stats(hospital_id: Optional[str] = "HOSP-APEX"):
+def get_dashboard_stats(
+    request: Request,
+    hospital_id: Optional[str] = "HOSP-APEX",
+    token: Optional[str] = None,
+):
     """Aggregate authoritative metrics for Doctor Dashboard."""
-    hosp = hospital_id or "HOSP-APEX"
+    user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Patient accounts cannot access hospital clinical telemetry dashboard.",
+        )
+    hosp = hospital_id or (user.hospital_id if user and user.hospital_id else "HOSP-APEX")
     with DB_MANAGER._db() as conn:
         p_count = conn.execute("SELECT COUNT(*) FROM patients WHERE hospital_id = ?", (hosp,)).fetchone()[0]
         e_count = conn.execute("SELECT COUNT(*) FROM ecg_records WHERE hospital_id = ?", (hosp,)).fetchone()[0]
@@ -2807,24 +2823,38 @@ def create_appointment(req: CreateAppointmentRequest, request: Request = None, t
     return {"status": "SUCCESS", "appointment": apt, "message": "Appointment booked successfully."}
 
 @router.delete("/appointments/{appointment_id}", dependencies=[_protected])
-def cancel_appointment(appointment_id: str):
+def cancel_appointment(appointment_id: str, request: Request = None, token: Optional[str] = None):
     """Cancel an appointment in database."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     success = DB_MANAGER.cancel_appointment(appointment_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Appointment '{appointment_id}' not found.")
     AUDIT_LOGGER.log_event(
         event_type="APPOINTMENT_CANCELLED",
-        user_id="SYSTEM",
-        username="Clinician / Patient",
-        user_role="USER",
+        user_id=user.user_id if user else "SYSTEM",
+        username=user.full_name if user else "Clinician / Patient",
+        user_role=user.role.value if (user and hasattr(user.role, "value")) else "USER",
         action=f"Cancelled appointment {appointment_id}",
         record_id=appointment_id,
     )
     return {"status": "SUCCESS", "message": f"Appointment {appointment_id} cancelled."}
 
 @router.get("/appointments/{appointment_id}", dependencies=[_protected])
-def get_appointment_endpoint(appointment_id: str):
+def get_appointment_endpoint(appointment_id: str, request: Request = None, token: Optional[str] = None):
     """Retrieve scheduled appointment details by ID."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     apt = DB_MANAGER.get_appointment(appointment_id)
     if not apt:
         raise HTTPException(status_code=404, detail=f"Appointment '{appointment_id}' not found.")
@@ -2964,14 +2994,27 @@ def get_notifications_endpoint(
 ):
     """Retrieve in-app notifications and unread badge count."""
     user = get_authenticated_user_from_request(request, token)
-    effective_uid = user_id or (user.user_id if user else "USR-RAJ_VERMA")
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    effective_uid = user_id or (user.user_id if user else None)
     notifs = DB_MANAGER.list_notifications(user_id=effective_uid, unread_only=unread_only)
     unread_count = sum(1 for n in notifs if not n.get("is_read"))
     return {"status": "SUCCESS", "notifications": notifs, "unread_count": unread_count}
 
 @router.post("/notifications/{notification_id}/read", dependencies=[_protected])
-def mark_notification_read_endpoint(notification_id: str):
+def mark_notification_read_endpoint(notification_id: str, request: Request = None, token: Optional[str] = None):
     """Mark a notification as read."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     DB_MANAGER.mark_notification_read(notification_id)
     return {"status": "SUCCESS", "message": f"Notification {notification_id} marked as read."}
 
@@ -2979,7 +3022,13 @@ def mark_notification_read_endpoint(notification_id: str):
 def mark_all_notifications_read_endpoint(request: Request, user_id: Optional[str] = None, token: Optional[str] = None):
     """Mark all notifications as read for current user."""
     user = get_authenticated_user_from_request(request, token)
-    effective_uid = user_id or (user.user_id if user else "USR-RAJ_VERMA")
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    effective_uid = user_id or (user.user_id if user else None)
     count = DB_MANAGER.mark_all_notifications_read(effective_uid)
     return {"status": "SUCCESS", "marked_read": count}
 
@@ -3111,8 +3160,15 @@ class UpdateDoctorProfileRequest(BaseModel):
     email: Optional[str] = None
 
 @router.get("/doctors/{doctor_identifier}", dependencies=[_protected])
-def get_doctor_profile_endpoint(doctor_identifier: str):
+def get_doctor_profile_endpoint(doctor_identifier: str, request: Request = None, token: Optional[str] = None):
     """Retrieve doctor / cardiologist profile credentials and clinical roster details."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     u = AUTH_MANAGER.get_user(doctor_identifier) or AUTH_MANAGER.get_user_by_username(doctor_identifier)
     if not u:
         persisted = DB_MANAGER.get_persisted_user_by_username(doctor_identifier)
@@ -3144,8 +3200,20 @@ def get_doctor_profile_endpoint(doctor_identifier: str):
     }
 
 @router.put("/doctors/{doctor_identifier}", dependencies=[_protected])
-def update_doctor_profile_endpoint(doctor_identifier: str, req: UpdateDoctorProfileRequest):
+def update_doctor_profile_endpoint(doctor_identifier: str, req: UpdateDoctorProfileRequest, request: Request = None, token: Optional[str] = None):
     """Update doctor credentials, medical registration number, or hospital affiliation."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Patient accounts cannot modify doctor credentials.",
+        )
     u = AUTH_MANAGER.get_user(doctor_identifier) or AUTH_MANAGER.get_user_by_username(doctor_identifier)
     persisted = DB_MANAGER.get_persisted_user_by_username(doctor_identifier)
     if not u and not persisted:
@@ -3213,8 +3281,15 @@ class LongitudinalCompareRequest(BaseModel):
     patient_id: Optional[str] = "UNKNOWN-PT"
 
 @router.post("/ecg/compare", dependencies=[_protected])
-def compare_ecgs_endpoint(req: LongitudinalCompareRequest):
+def compare_ecgs_endpoint(req: LongitudinalCompareRequest, request: Request = None, token: Optional[str] = None):
     """Compare a current ECG analysis against a prior baseline to compute objective metric deltas."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         from src.longitudinal.ecg_comparison import compare_serial_ecgs
     except ImportError:

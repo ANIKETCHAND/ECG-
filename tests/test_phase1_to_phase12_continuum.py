@@ -211,7 +211,7 @@ def test_phase1_sqlite_user_and_session_persistence():
 
 # ── Phase 2: Doctor Profiles, Hospitals & Patient History ────────────────────
 
-def test_phase2_doctor_profiles_and_hospitals(client):
+def test_phase2_doctor_profiles_and_hospitals(client, auth_headers):
     # 1. Hospital list
     hosp_res = client.get("/api/hospitals")
     assert hosp_res.status_code == 200
@@ -220,7 +220,7 @@ def test_phase2_doctor_profiles_and_hospitals(client):
     assert any(h["hospital_id"] == "HOSP-APEX" for h in hosps)
 
     # 2. Get Doctor profile
-    doc_res = client.get("/api/doctors/dr.smith")
+    doc_res = client.get("/api/doctors/dr.smith", headers=auth_headers)
     assert doc_res.status_code == 200
     doc = doc_res.json()["doctor"]
     assert doc["full_name"] is not None
@@ -229,7 +229,7 @@ def test_phase2_doctor_profiles_and_hospitals(client):
     up_res = client.put("/api/doctors/dr.smith", json={
         "registration_number": "MCI-CARDIO-8941",
         "hospital_id": "HOSP-APEX",
-    })
+    }, headers=auth_headers)
     assert up_res.status_code == 200
     assert up_res.json()["status"] == "SUCCESS"
 
@@ -326,7 +326,7 @@ def test_phase3_doctor_patient_messaging_workflow(client, auth_headers):
     assert len(msgs) >= 2
 
 
-def test_phase3_notification_pipeline_and_read_status(client):
+def test_phase3_notification_pipeline_and_read_status(client, auth_headers):
     notif_id = f"NOTIF-T-{uuid.uuid4().hex[:4].upper()}"
     DB_MANAGER.create_notification(
         notification_id=notif_id,
@@ -335,12 +335,12 @@ def test_phase3_notification_pipeline_and_read_status(client):
         message="Your 12-lead ECG analysis report is ready for viewing.",
         notification_type="ECG_REPORT",
     )
-    get_res = client.get("/api/notifications?user_id=USR-RAJ_VERMA")
+    get_res = client.get("/api/notifications?user_id=USR-RAJ_VERMA", headers=auth_headers)
     assert get_res.status_code == 200
     assert get_res.json()["unread_count"] >= 1
 
     # Mark as read
-    read_res = client.post(f"/api/notifications/{notif_id}/read")
+    read_res = client.post(f"/api/notifications/{notif_id}/read", headers=auth_headers)
     assert read_res.status_code == 200
 
 
@@ -606,7 +606,7 @@ def test_phase10_longitudinal_serial_deltas_and_comparison(client, auth_headers)
         "current_analysis": cur_ecg,
         "prior_analysis": prior_ecg,
         "patient_id": "PAT-TEST-01",
-    })
+    }, headers=auth_headers)
     assert api_res.status_code == 200
     comp_dict = api_res.json()["comparison"]
     assert comp_dict["delta_heart_rate_bpm"] == 24.0

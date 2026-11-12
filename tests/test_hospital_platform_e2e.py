@@ -233,8 +233,8 @@ def test_patient_crud_lifecycle(client, auth_headers):
 # 4. Doctor Dashboard Stats Endpoint Tests
 # ==============================================================================
 
-def test_dashboard_stats_endpoint(client):
-    resp = client.get("/api/dashboard/stats")
+def test_dashboard_stats_endpoint(client, auth_headers):
+    resp = client.get("/api/dashboard/stats", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "SUCCESS"

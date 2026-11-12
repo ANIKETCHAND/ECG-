@@ -278,7 +278,7 @@ def compute_ecg_measurements(
                     q_trough = q_search_start + q_min_local
                     # Trace backwards from Q-trough to find baseline departure / inflection
                     diff_pre = np.abs(np.diff(avg_beat[q_search_start : q_trough + 1]))
-                    q_point = q_trough
+                    q_point = q_search_start  # Fallback to search start if no baseline inflection found
                     if len(diff_pre) > 0:
                         thr = 0.10 * np.max(np.abs(np.diff(avg_beat)))
                         for k in range(len(diff_pre) - 1, -1, -1):
@@ -309,8 +309,8 @@ def compute_ecg_measurements(
                     qt_ms = qt_sec * 1000.0
                     rr_sec = m.mean_rr_ms / 1000.0
 
-                    # Physiological bounds for QT: 280 ms to 600 ms
-                    if 280.0 <= qt_ms <= 600.0 and rr_sec > 0:
+                    # Physiological bounds for QT: 200 ms to 600 ms (supports tachycardia down to 200ms)
+                    if 200.0 <= qt_ms <= 600.0 and rr_sec > 0:
                         m.qt_interval_ms = round(qt_ms, 1)
                         # Bazett: QTc = QT / sqrt(RR)
                         m.qtc_bazett_ms = round(qt_ms / np.sqrt(rr_sec), 1)

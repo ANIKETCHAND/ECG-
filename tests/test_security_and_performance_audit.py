@@ -205,7 +205,7 @@ def test_signal_limits_enforced():
     assert exc_info.value.status_code == 413
 
 
-def test_endpoint_latency_benchmarks(client):
+def test_endpoint_latency_benchmarks(client, auth_headers):
     """Verify API latency benchmarks across core endpoints."""
     # 1. /api/health < 50ms
     t0 = time.perf_counter()
@@ -223,7 +223,7 @@ def test_endpoint_latency_benchmarks(client):
 
     # 3. /api/dashboard/stats < 200ms
     t0 = time.perf_counter()
-    d_res = client.get("/api/dashboard/stats")
+    d_res = client.get("/api/dashboard/stats", headers=auth_headers)
     d_time_ms = (time.perf_counter() - t0) * 1000.0
     assert d_res.status_code == 200
     assert d_time_ms < 200.0, f"/dashboard/stats latency too high: {d_time_ms:.2f} ms"

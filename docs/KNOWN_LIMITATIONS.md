@@ -95,7 +95,7 @@
 | Jurisdiction / Standard | Formal Status | Evidence / Verification |
 | :--- | :--- | :--- |
 | **CDSCO MDR 2017 (India)** | Investigational Pre-Submission Dossier Prepared (Class B SaMD) | Technical Dossier drafted; formal clinical trial clearance pending |
-| **IEC 62304:2006/AMD 1:2015** | Architecture & test harness aligned (Class B software) | 573 automated regression tests passing |
+| **IEC 62304:2006/AMD 1:2015** | Architecture & test harness aligned (Class B software) | 582 automated regression tests passing |
 | **ISO 14971:2019** | Risk management file and FMEA hazard mitigations implemented | FMEA ledger documented in regulatory plan |
 | **ISO 13485:2016** | Quality management procedures mapped | Internal document control established |
 | **DPDP Act 2025 (India)** | Electronic patient consent endpoints & audit logging operational | `/api/patients/{id}/consent` & immutable audit trail |

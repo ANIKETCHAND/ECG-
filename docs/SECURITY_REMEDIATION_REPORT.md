@@ -80,4 +80,4 @@ The expanded automated negative authorization test suite `tests/test_negative_au
 - `test_uncalibrated_optical_waveform_marks_safety_flags` -> PASSED
 - `test_production_model_has_strict_record_split` -> PASSED
 
-Total passing test cases across the complete platform suite: **573 passed**.
+Total passing test cases across the complete platform suite: **582 passed**.

@@ -4535,32 +4535,24 @@
           }
           renderSidebarNav();
           return;
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || `Authentication failed for ${p.name}.`, 'fa-circle-exclamation');
+          return;
         }
       } catch (e) {
         console.warn('Quick login authentication:', e);
+        showToast('Network error during quick login authentication.', 'fa-circle-exclamation');
+        return;
       }
-      currentUser = {
-        user_id: `USR-${presetKey.toUpperCase()}`,
-        email: p.email,
-        name: p.name,
-        full_name: p.name,
-        role: p.role,
-        role_title: p.role_title,
-        initials: p.initials,
-        hospital_id: p.hospital_id
-      };
-      localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
-      if (shouldNavigate) {
-        showToast(`Signed in as ${currentUser.name}`, 'fa-user-check');
-        navigateTo(currentUser.role === 'DOCTOR' ? 'doctorDashboard' : 'patientDashboard');
-      }
-      renderSidebarNav();
     }
 
     // ── Screen 3: Doctor Dashboard Loader ──
     async function loadDoctorDashboard() {
       try {
-        const res = await fetch(`${API_BASE}/api/dashboard/stats`);
+        const token = localStorage.getItem('ecg_guardian_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`${API_BASE}/api/dashboard/stats`, { headers });
         if (res.ok) {
           const data = await res.json();
           const stats = data.stats || {};

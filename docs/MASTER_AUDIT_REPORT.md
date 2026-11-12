@@ -32,7 +32,7 @@ Prior to the Phase 1 Foundation remediation, ECG Guardian exhibited significant 
    - The production Random Forest model (`ECG-RF-2.0.0-PROD`) is authentic and trained on MIT-BIH, but its performance was misstated; the actual measured test performance on 14 unseen patients (32,446 beats) shows an overall accuracy of 90.86%, Normal F1 of 94.57%, PVC F1 of 72.42% (with a 37.01% false positive discovery rate), and Other F1 of 83.44%.
 
 ### 1.2 Current Foundation State
-All critical security vulnerabilities (SEC-01 through SEC-06), clinical pharmacology risks (CLIN-01 through CLIN-03), biomedical distortions (BIO-01, BIO-02), and ML split misattributions (ML-01, REG-01) have been resolved. The full automated regression test suite (**573 tests**) passes with **0 failures**.
+All critical security vulnerabilities (SEC-01 through SEC-07), clinical pharmacology risks (CLIN-01 through CLIN-03), biomedical distortions (BIO-01, BIO-02), and ML split misattributions (ML-01, REG-01) have been resolved. The full automated regression test suite (**582 tests**) passes with **0 failures**.
 
 ---
 
@@ -81,16 +81,17 @@ All critical security vulnerabilities (SEC-01 through SEC-06), clinical pharmaco
 | Finding ID | Severity | File & Code Location | Confirmed / Suspected | Status | Description & Impact | Remediation & Retest |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC-01** | **CRITICAL** | `api/index.py:513-525` | Confirmed | **VERIFIED** | Anonymous calls to `/api/auth/me` defaulted to Dr. Aniket (Cardiologist) session. | Replaced with strict `HTTP 401` exception. Tested via `test_anonymous_auth_me_returns_401`. |
-| **SEC-02** | **HIGH** | `api/index.py:1518, 1999`, `api/security.py:88-105` | Confirmed | **VERIFIED** | Endpoints `/api/patients`, `/api/reports`, etc., permitted unauthenticated requests in default mode. | Enforced zero-trust deny-by-default across all environments. Tested via `test_strict_auth_blocks_unauthenticated_patients_endpoint`. |
+| **SEC-02** | **HIGH** | `api/index.py:1518, 1999`, `api/security.py:88-105` | Confirmed | **VERIFIED** | Endpoints `/api/patients`, `/api/reports`, etc., permitted unauthenticated requests in default mode. | Enforced zero-trust deny-by-default across all environments. Tested via `test_default_auth_blocks_unauthenticated_patients_endpoint`. |
 | **SEC-03** | **HIGH** | `api/index.py:1863-1875` | Confirmed | **VERIFIED** | `/api/review` permitted unauthenticated or patient callers to seal diagnostic reports. | Added session binding and RBAC check returning `HTTP 403` for patients. Tested via `test_patient_role_cannot_seal_clinical_review`. |
 | **SEC-04** | **CRITICAL** | `.env.local:1-5`, `api/security.py:28-40` | Confirmed | **VERIFIED** | Plaintext production Vercel OIDC JWT token committed in source; hardcoded fallback JWT secrets in code. | Sanitized `.env.local`; removed hardcoded fallback secrets; enforced fail-closed secret requirement. Tested via CI and security test harness. |
 | **SEC-05** | **HIGH** | `public/index.html:1594-1620` | Confirmed | **VERIFIED** | Frontend executed automated backdoor login `quickLoginUser('dr_aniket')` on every page load. | Neutralized boot invocation; updated `quickLoginUser` to call authentic `/api/auth/login`. Tested via Playwright and API tests. |
 | **SEC-06** | **MEDIUM** | `api/security.py:120-165` | Confirmed | **VERIFIED** | In-memory session identifiers lacked HMAC verification or expiration bounds. | Implemented HMAC-SHA256 JWT tokens with role, hospital, and expiry claims. Tested via `test_api_security.py`. |
+| **SEC-07** | **CRITICAL** | `api/index.py:1821, 2809, 2958, 3146`, `public/index.html:4538` | Confirmed | **VERIFIED** | Anonymous data leakage: `/api/dashboard/stats` leaked full patient dossiers, `/api/notifications` dumped private patient notices to unauthenticated callers via `USR-RAJ_VERMA` fallback, `/api/doctors/{id}` allowed unauthenticated credential tampering, and `quickLoginUser` fabricated client-side login on failure. | Enforced zero-trust auth on all endpoints returning 401/403; removed patient fallback in notifications; added auth headers in frontend; eliminated fake client login fallback. Tested via `test_unauthenticated_dashboard_stats_returns_401`, `test_unauthenticated_notifications_returns_401`, etc. |
 | **CLIN-01** | **CRITICAL** | `src/clinical/medication_candidate_engine.py:483-490` | Confirmed | **VERIFIED** | Silent substitution of potassium constant ($4.2 \text{ mEq/L}$) when lab unrecorded. | Implemented Mandatory Laboratory Withholding protocol, tagging `REVIEW_REQUIRED`. Tested via `test_missing_potassium_triggers_mandatory_withholding`. |
 | **CLIN-02** | **CRITICAL** | `src/clinical/medication_candidate_engine.py:503-510` | Confirmed | **VERIFIED** | Silent substitution of creatinine ($0.95 \text{ mg/dL}$) and eGFR constants when unrecorded. | Implemented mandatory renal withholding protocol, tagging `REVIEW_REQUIRED`. Tested via `test_missing_creatinine_triggers_mandatory_withholding`. |
-| **CLIN-03** | **HIGH** | `src/clinical/medication_candidate_engine.py:465-475` | Confirmed | **VERIFIED** | Missing hypokalemia safety gate permitted antiarrhythmic candidates when $K^+ < 3.5 \text{ mEq/L}$. | Added hypokalemia contraindication gate blocking torsadogenic agents. Tested via `test_hypokalemia_contraindication_blocks_torsadogenic_candidates`. |
+| **CLIN-03** | **HIGH** | `src/clinical/medication_candidate_engine.py:465-475` | Confirmed | **VERIFIED** | Missing hypokalemia safety gate permitted antiarrhythmic candidates when $K^+ < 3.5 \text{ mEq/L}$. | Added hypokalemia contraindication gate blocking torsadogenic agents. Tested via dedicated test `test_hypokalemia_contraindication_blocks_torsadogenic_candidates`. |
 | **BIO-01** | **HIGH** | `src/ecg_input/waveform_extractor.py:184-205` | Confirmed | **VERIFIED** | Optical ECG extraction rescaled amplitude to $1.5 \text{ mV}$ and guessed duration from pixel width. | Removed 1.5 mV scaling; standardized via z-score; disabled ST analysis (`can_evaluate_st: false`). Tested via `test_uncalibrated_optical_waveform_marks_safety_flags`. |
-| **BIO-02** | **HIGH** | `src/measurements/measurement_engine.py:165-205` | Confirmed | **VERIFIED** | Fixed Q-point calculation ($R - 50 \text{ ms}$) distorted QT and QTc intervals across varying morphologies. | Implemented dynamic morphology-aware Q-onset detection via first derivative inflection. Tested via `test_dynamic_q_onset_computes_physiologic_qt`. |
+| **BIO-02** | **HIGH** | `src/measurements/measurement_engine.py:165-205, 313` | Confirmed | **VERIFIED** | Fixed Q-point calculation ($R - 50 \text{ ms}$) distorted QT and QTc intervals; Q-onset fallback erroneously defaulted to Q-trough; QT lower bound (280ms) rejected tachycardia. | Implemented dynamic morphology-aware Q-onset detection, onset fallback to deflection origin, and physiological tachycardia bound (200ms). Tested via dedicated test `test_dynamic_q_onset_computes_physiologic_qt`. |
 | **ML-01** | **HIGH** | `models/registry/catalog.json`, `README.md` | Confirmed | **VERIFIED** | Model catalog and documentation cited synthetic/leaked 4-record splits instead of actual held-out cohort. | Documented 14-record held-out test cohort (32,446 beats) and updated metrics in catalog and README. Tested via `test_training_integrity.py`. |
 | **ML-02** | **MEDIUM** | `src/ml/models/` | Confirmed | **PARTIALLY IMPLEMENTED** | Multi-task definitions (AF detection, 12-lead diagnostic) exist as unvalidated research prototypes. | Gated secondary models from clinical execution; production restricted to `ECG-RF-2.0.0-PROD`. |
 | **DATA-01** | **MEDIUM** | `src/database/db_manager.py`, `src/database/supabase_client.py` | Confirmed | **IMPLEMENTED** | Multi-tenant PostgreSQL persistence requires cloud credentials, falling back to local SQLite. | Implemented dual persistence architecture with local transaction logging and cloud sync. Tested via `test_supabase_database_audit.py`. |
@@ -108,7 +109,7 @@ All critical security vulnerabilities (SEC-01 through SEC-06), clinical pharmaco
 5. **Beat Classification (`ECG-RF-2.0.0-PROD`)**: Single-lead beat classification into Normal, PVC, and Other ectopy with 90.86% overall accuracy and zero patient-level train/test leakage.
 6. **Mandatory Laboratory Safety Withholding**: Gating of potassium and renal drug candidates when clinical biomarkers are omitted.
 7. **Zero-Trust Ingress Security**: Deny-by-default cryptographic JWT authentication and RBAC report signing protection (`HTTP 401` / `HTTP 403`).
-8. **Automated Verification Harness**: 573 automated regression tests passing across all critical subsystems.
+8. **Automated Verification Harness**: 582 automated regression tests passing across all critical subsystems.
 
 ### 4.2 Features That Partially Work (`PARTIALLY IMPLEMENTED`)
 1. **Multi-Task Machine Learning**: AF detection, 12-lead diagnostic classification, and ST-segment analysis exist as architectural definitions, but active production inference is restricted to beat arrhythmia.
@@ -128,7 +129,7 @@ All critical security vulnerabilities (SEC-01 through SEC-06), clinical pharmaco
 The coordinated findings across Teams A through G establish that ECG Guardian's mathematical and signal-processing foundation is rigorous, but its clinical utility is strictly bounded to single-lead rhythm analysis under licensed clinician supervision.
 
 ### B. Complete Defect Register
-A comprehensive ledger of 15 identified defects has been cataloged (Section 3). 12 defects are **VERIFIED** remediated, 2 are **IMPLEMENTED**, and 1 is **PARTIALLY IMPLEMENTED**. Zero fatal functional defects remain unaddressed.
+A comprehensive ledger of 16 identified defects has been cataloged (Section 3). 13 defects are **VERIFIED** remediated, 2 are **IMPLEMENTED**, and 1 is **PARTIALLY IMPLEMENTED**. Zero fatal functional defects remain unaddressed.
 
 ### C. Critical Safety Issues
 - Root-cause remediation of silent laboratory substitution prevents lethal medication suggestions in anuric or hyperkalemic patients.
@@ -168,7 +169,7 @@ A comprehensive ledger of 15 identified defects has been cataloged (Section 3). 
 
 ### J. Prioritized Remediation Roadmap
 - **Phase P0 (Safety & Security Containment)**: COMPLETED (`23ce00b`, `59625bb`).
-- **Phase P1 (Production Data Architecture & Signal Validation)**: COMPLETED (Dual persistence, dynamic Q-onset, 573 passing tests).
+- **Phase P1 (Production Data Architecture & Signal Validation)**: COMPLETED (Dual persistence, dynamic Q-onset, 582 passing tests).
 - **Phase P2 (Infrastructure Hardening)**: Transition from `localStorage` JWT to HttpOnly cookies; integrate asynchronous Celery/Redis worker queues for long-duration Holter recordings.
 - **Phase P3 (Multi-Center Clinical Evaluation)**: Prospective trial benchmarking single-lead decision support against 12-lead cardiologist standard of care.
 

@@ -7,7 +7,7 @@ This matrix establishes bi-directional traceability linking engineering requirem
 | Req ID | Domain | Requirement Description | Implementation Module | Source Code Location | Verification Test Case | Test Result |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC-01** | Security | Unauthenticated requests to `/api/auth/me` must return HTTP 401 without defaulting to admin/clinician identity. | API Security Gateway | `api/index.py:513-518` | `test_anonymous_auth_me_returns_401` | **PASS** |
-| **SEC-02** | Security | Enforce strict authentication on clinical endpoints (`/api/patients`, `/api/reports`) in production. | API Security Gateway | `api/index.py:1518, 1999`, `api/security.py:88-105` | `test_strict_auth_blocks_unauthenticated_patients_endpoint`, `test_strict_auth_blocks_unauthenticated_reports_endpoint` | **PASS** |
+| **SEC-02** | Security | Enforce strict authentication on clinical endpoints (`/api/patients`, `/api/reports`) in production. | API Security Gateway | `api/index.py:1518, 1999`, `api/security.py:88-105` | `test_default_auth_blocks_unauthenticated_patients_endpoint`, `test_default_auth_blocks_unauthenticated_reports_endpoint` | **PASS** |
 | **SEC-03** | Authorization | Prevent non-clinician / patient accounts from signing or sealing clinical reports (`/api/review`). | Role-Based Access Control | `api/index.py:1863-1874` | `test_patient_role_cannot_seal_clinical_review` | **PASS** |
 | **SEC-04** | Data Protection | Neutralize committed credentials and sanitize environment secrets. | Environment Management | `.env.local` | Source Code Inspection & CI Secrets Audit | **PASS** |
 | **SEC-05** | Frontend Auth | Eliminate automatic backdoor login in client web application. | Presentation Tier | `public/index.html:1594-1620` | Manual Walkthrough & `test_api_serverless.py` | **PASS** |
@@ -27,5 +27,5 @@ This matrix establishes bi-directional traceability linking engineering requirem
 
 - **Total Requirements Mapped**: 14 critical engineering requirements
 - **Implemented in Codebase**: 100% (14 / 14)
-- **Automated Test Coverage**: 100% automated regression verification (573 passing tests)
+- **Automated Test Coverage**: 100% automated regression verification (582 passing tests)
 - **Current Verification Status**: All 14 requirements verified passing with zero regressions.
