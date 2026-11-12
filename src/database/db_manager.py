@@ -23,6 +23,7 @@ import json
 import os
 import sqlite3
 import threading
+import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -390,6 +391,121 @@ class DatabaseManager:
                 )
                 """)
 
+                # 14. Users Table (Phase 1 Database Hardening)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    full_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    hospital_id TEXT DEFAULT 'HOSP-APEX',
+                    registration_number TEXT,
+                    picture TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL
+                )
+                """)
+
+                # 15. User Sessions Table (Phase 1 Database Hardening)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    token TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    expiry REAL NOT NULL,
+                    created_at REAL NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                )
+                """)
+
+                # 16. Appointments Table (Phase 3 Doctor-Patient Interaction)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS appointments (
+                    appointment_id TEXT PRIMARY KEY,
+                    hospital_id TEXT NOT NULL DEFAULT 'HOSP-APEX',
+                    patient_id TEXT NOT NULL,
+                    patient_mrn TEXT,
+                    patient_name TEXT NOT NULL,
+                    doctor_id TEXT,
+                    doctor_name TEXT NOT NULL,
+                    appointment_date TEXT NOT NULL,
+                    appointment_time TEXT NOT NULL,
+                    consultation_type TEXT DEFAULT 'In-Person Hospital Visit',
+                    location TEXT,
+                    reason TEXT,
+                    notes TEXT,
+                    status TEXT DEFAULT 'CONFIRMED',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT
+                )
+                """)
+
+                # 17. Conversations Table (Phase 3 Messaging)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversations (
+                    conversation_id TEXT PRIMARY KEY,
+                    hospital_id TEXT NOT NULL DEFAULT 'HOSP-APEX',
+                    patient_id TEXT NOT NULL,
+                    doctor_id TEXT NOT NULL,
+                    patient_name TEXT,
+                    doctor_name TEXT,
+                    subject TEXT,
+                    status TEXT DEFAULT 'ACTIVE',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """)
+
+                # 18. Messages Table (Phase 3 Messaging)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    message_id TEXT PRIMARY KEY,
+                    conversation_id TEXT NOT NULL,
+                    sender_id TEXT NOT NULL,
+                    sender_name TEXT NOT NULL,
+                    sender_role TEXT NOT NULL,
+                    recipient_id TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    is_read INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
+                )
+                """)
+
+                # 19. Notifications Table (Phase 3 Notifications)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    notification_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    hospital_id TEXT NOT NULL DEFAULT 'HOSP-APEX',
+                    title TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    notification_type TEXT DEFAULT 'SYSTEM',
+                    related_id TEXT,
+                    is_read INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL
+                )
+                """)
+
+                # 20. Patient Assignments Table (Phase 3 Care Team Assignment)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS patient_assignments (
+                    assignment_id TEXT PRIMARY KEY,
+                    hospital_id TEXT NOT NULL DEFAULT 'HOSP-APEX',
+                    patient_id TEXT NOT NULL,
+                    doctor_id TEXT NOT NULL,
+                    doctor_name TEXT NOT NULL,
+                    assigned_by TEXT NOT NULL,
+                    assignment_notes TEXT,
+                    status TEXT DEFAULT 'ACTIVE',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT
+                )
+                """)
+
                 # Indices
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_hospital_patient ON patients(hospital_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_ecg_patient ON ecg_records(patient_id)")
@@ -401,6 +517,13 @@ class DatabaseManager:
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_labs_patient_time ON laboratory_results(patient_id, recorded_at)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_symptoms_patient_time ON patient_symptoms(patient_id, recorded_at)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_meds_patient_active ON patient_medications(patient_id, is_active)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_appointments_hosp ON appointments(hospital_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_patient ON conversations(patient_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_doctor ON conversations(doctor_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_sessions ON user_sessions(token)")
 
                 # Seed Default Hospital
                 cursor.execute("SELECT 1 FROM hospitals WHERE hospital_id = 'HOSP-APEX'")
@@ -459,6 +582,24 @@ class DatabaseManager:
                     INSERT INTO patients (patient_id, hospital_mrn, name, hospital_id, age, sex, date_of_birth, contact, blood_group, known_allergies, existing_conditions, current_medications, previous_cardiac_history, smoking_status, created_at)
                     VALUES ('PAT-NEHA', 'MRN-5F2295', 'Neha Gupta', 'HOSP-APEX', 36, 'Female', '1990-04-18', '+91 98765 55667', 'AB+', 'Sulfa Drugs', 'Palpitations', 'None', 'None', 'Non-Smoker', ?)
                     """, (datetime.now().isoformat(),))
+
+                # Seed Default Appointment (Phase 3)
+                cursor.execute("SELECT 1 FROM appointments WHERE appointment_id = 'APT-2026-0891'")
+                if not cursor.fetchone():
+                    cursor.execute("""
+                    INSERT INTO appointments (
+                        appointment_id, hospital_id, patient_id, patient_mrn, patient_name,
+                        doctor_id, doctor_name, appointment_date, appointment_time, consultation_type,
+                        location, reason, notes, status, created_at
+                    ) VALUES (
+                        'APT-2026-0891', 'HOSP-APEX', 'USR-RAJ_VERMA', 'MRN-5F2298', 'Raj Verma',
+                        'DOC-003', 'Dr. Aniket Chandra, MD (Cardiology)', '2026-11-15', '10:30 AM',
+                        'In-Person Hospital Visit', 'Apex Heart & Vascular Hospital, Consultation Room 402',
+                        'Routine Post-ECG Follow-Up & Medication Review',
+                        'Follow-up after baseline 12-lead ECG analysis. Evaluate blood pressure trends and lipid profile.',
+                        'CONFIRMED', '2026-10-31T10:30:00Z'
+                    )
+                    """)
 
                 conn.commit()
 
@@ -1469,6 +1610,341 @@ class DatabaseManager:
             created_at=p_row.created_at,
             updated_at=p_row.updated_at,
         )
+
+    # --- Phase 1: User & Session Persistence Operations ---
+    def save_user(self, user_id: str, username: str, password_hash: str, salt: str, role: str, full_name: str, email: str, hospital_id: str = "HOSP-APEX", registration_number: Optional[str] = None, picture: Optional[str] = None, is_active: bool = True, created_at: Optional[float] = None, updated_at: Optional[float] = None) -> None:
+        now_ts = time.time()
+        created_at = created_at or now_ts
+        updated_at = updated_at or now_ts
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT INTO users (user_id, username, password_hash, salt, role, full_name, email, hospital_id, registration_number, picture, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    username = excluded.username,
+                    password_hash = excluded.password_hash,
+                    salt = excluded.salt,
+                    role = excluded.role,
+                    full_name = excluded.full_name,
+                    email = excluded.email,
+                    hospital_id = excluded.hospital_id,
+                    registration_number = excluded.registration_number,
+                    picture = excluded.picture,
+                    is_active = excluded.is_active,
+                    updated_at = excluded.updated_at
+                """, (user_id, username.lower(), password_hash, salt, role, full_name, email, hospital_id, registration_number, picture, 1 if is_active else 0, created_at, updated_at))
+                conn.commit()
+
+    def get_persisted_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        with self._db() as conn:
+            row = conn.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),)).fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def get_persisted_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        with self._db() as conn:
+            row = conn.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email.strip(),)).fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def list_persisted_users(self, hospital_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            if hospital_id:
+                rows = conn.execute("SELECT * FROM users WHERE hospital_id = ?", (hospital_id,)).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM users").fetchall()
+            return [dict(r) for r in rows]
+
+    def save_session(self, token: str, user_id: str, expiry: float) -> None:
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT OR REPLACE INTO user_sessions (token, user_id, expiry, created_at)
+                VALUES (?, ?, ?, ?)
+                """, (token, user_id, expiry, time.time()))
+                conn.commit()
+
+    def get_session(self, token: str) -> Optional[Tuple[str, float]]:
+        with self._db() as conn:
+            row = conn.execute("SELECT user_id, expiry FROM user_sessions WHERE token = ?", (token,)).fetchone()
+            if row:
+                return row["user_id"], float(row["expiry"])
+        return None
+
+    def delete_session(self, token: str) -> None:
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("DELETE FROM user_sessions WHERE token = ?", (token,))
+                conn.commit()
+
+    # --- Phase 3: Appointment Operations ---
+    def create_appointment(
+        self,
+        appointment_id: str,
+        patient_id: str,
+        patient_name: str,
+        doctor_name: str,
+        appointment_date: str,
+        appointment_time: str,
+        hospital_id: str = "HOSP-APEX",
+        patient_mrn: Optional[str] = None,
+        doctor_id: Optional[str] = None,
+        consultation_type: str = "In-Person Hospital Visit",
+        location: Optional[str] = "Apex Heart & Vascular Hospital, Consultation Room 402",
+        reason: Optional[str] = "Routine Cardiology Follow-Up",
+        notes: Optional[str] = "",
+        status: str = "CONFIRMED",
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT INTO appointments (
+                    appointment_id, hospital_id, patient_id, patient_mrn, patient_name,
+                    doctor_id, doctor_name, appointment_date, appointment_time,
+                    consultation_type, location, reason, notes, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    appointment_id, hospital_id, patient_id, patient_mrn, patient_name,
+                    doctor_id, doctor_name, appointment_date, appointment_time,
+                    consultation_type, location, reason, notes, status, now_iso, now_iso
+                ))
+                conn.commit()
+        return self.get_appointment(appointment_id)
+
+    def get_appointment(self, appointment_id: str) -> Optional[Dict[str, Any]]:
+        with self._db() as conn:
+            row = conn.execute("SELECT * FROM appointments WHERE appointment_id = ?", (appointment_id,)).fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def list_appointments(
+        self,
+        patient_id: Optional[str] = None,
+        hospital_id: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            query = "SELECT * FROM appointments WHERE 1=1"
+            params: List[Any] = []
+            if patient_id and patient_id not in ["ALL", ""]:
+                query += " AND (patient_id = ? OR patient_mrn = ?)"
+                params.extend([patient_id, patient_id])
+            if hospital_id:
+                query += " AND hospital_id = ?"
+                params.append(hospital_id)
+            query += " ORDER BY appointment_date DESC, appointment_time DESC LIMIT ?"
+            params.append(limit)
+            rows = conn.execute(query, params).fetchall()
+            return [dict(r) for r in rows]
+
+    def cancel_appointment(self, appointment_id: str) -> bool:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                cur = conn.execute(
+                    "UPDATE appointments SET status = 'CANCELLED', updated_at = ? WHERE appointment_id = ?",
+                    (now_iso, appointment_id)
+                )
+                conn.commit()
+                return cur.rowcount > 0
+
+    # --- Phase 3: Doctor-Patient Messaging Operations ---
+    def create_conversation(
+        self,
+        conversation_id: str,
+        patient_id: str,
+        doctor_id: str,
+        patient_name: str,
+        doctor_name: str,
+        subject: str,
+        hospital_id: str = "HOSP-APEX",
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT INTO conversations (conversation_id, hospital_id, patient_id, doctor_id, patient_name, doctor_name, subject, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
+                """, (conversation_id, hospital_id, patient_id, doctor_id, patient_name, doctor_name, subject, now_iso, now_iso))
+                conn.commit()
+        return self.get_conversation(conversation_id)
+
+    def get_conversation(self, conversation_id: str) -> Optional[Dict[str, Any]]:
+        with self._db() as conn:
+            row = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,)).fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def list_conversations(
+        self,
+        user_id: Optional[str] = None,
+        hospital_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            query = "SELECT * FROM conversations WHERE 1=1"
+            params: List[Any] = []
+            if user_id:
+                query += " AND (patient_id = ? OR doctor_id = ?)"
+                params.extend([user_id, user_id])
+            if hospital_id:
+                query += " AND hospital_id = ?"
+                params.append(hospital_id)
+            query += " ORDER BY updated_at DESC LIMIT ?"
+            params.append(limit)
+            rows = conn.execute(query, params).fetchall()
+            return [dict(r) for r in rows]
+
+    def send_message(
+        self,
+        message_id: str,
+        conversation_id: str,
+        sender_id: str,
+        sender_name: str,
+        sender_role: str,
+        recipient_id: str,
+        content: str,
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT INTO messages (message_id, conversation_id, sender_id, sender_name, sender_role, recipient_id, content, is_read, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+                """, (message_id, conversation_id, sender_id, sender_name, sender_role, recipient_id, content, now_iso))
+                conn.execute("UPDATE conversations SET updated_at = ? WHERE conversation_id = ?", (now_iso, conversation_id))
+                conn.commit()
+        return {
+            "message_id": message_id,
+            "conversation_id": conversation_id,
+            "sender_id": sender_id,
+            "sender_name": sender_name,
+            "sender_role": sender_role,
+            "recipient_id": recipient_id,
+            "content": content,
+            "is_read": False,
+            "created_at": now_iso,
+        }
+
+    def list_messages(self, conversation_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC LIMIT ?",
+                (conversation_id, limit)
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    # --- Phase 3: Notifications Operations ---
+    def create_notification(
+        self,
+        notification_id: str,
+        user_id: str,
+        title: str,
+        message: str,
+        notification_type: str = "SYSTEM",
+        related_id: Optional[str] = None,
+        hospital_id: str = "HOSP-APEX",
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                conn.execute("""
+                INSERT INTO notifications (notification_id, user_id, hospital_id, title, message, notification_type, related_id, is_read, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+                """, (notification_id, user_id, hospital_id, title, message, notification_type, related_id, now_iso))
+                conn.commit()
+        return {
+            "notification_id": notification_id,
+            "user_id": user_id,
+            "hospital_id": hospital_id,
+            "title": title,
+            "message": message,
+            "notification_type": notification_type,
+            "related_id": related_id,
+            "is_read": False,
+            "created_at": now_iso,
+        }
+
+    def list_notifications(self, user_id: str, unread_only: bool = False, limit: int = 50) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            query = "SELECT * FROM notifications WHERE (user_id = ? OR user_id = 'ALL')"
+            params: List[Any] = [user_id]
+            if unread_only:
+                query += " AND is_read = 0"
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            rows = conn.execute(query, params).fetchall()
+            return [dict(r) for r in rows]
+
+    def mark_notification_read(self, notification_id: str) -> bool:
+        with self._lock:
+            with self._db() as conn:
+                cur = conn.execute("UPDATE notifications SET is_read = 1 WHERE notification_id = ?", (notification_id,))
+                conn.commit()
+                return cur.rowcount > 0
+
+    def mark_all_notifications_read(self, user_id: str) -> int:
+        with self._lock:
+            with self._db() as conn:
+                cur = conn.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ? OR user_id = 'ALL'", (user_id,))
+                conn.commit()
+                return cur.rowcount
+
+    # --- Phase 3: Patient Assignment Operations ---
+    def assign_patient_to_doctor(
+        self,
+        assignment_id: str,
+        patient_id: str,
+        doctor_id: str,
+        doctor_name: str,
+        assigned_by: str,
+        assignment_notes: Optional[str] = None,
+        hospital_id: str = "HOSP-APEX",
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now().isoformat()
+        with self._lock:
+            with self._db() as conn:
+                conn.execute(
+                    "UPDATE patient_assignments SET status = 'REASSIGNED', updated_at = ? WHERE patient_id = ? AND status = 'ACTIVE'",
+                    (now_iso, patient_id)
+                )
+                conn.execute("""
+                INSERT INTO patient_assignments (assignment_id, hospital_id, patient_id, doctor_id, doctor_name, assigned_by, assignment_notes, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
+                """, (assignment_id, hospital_id, patient_id, doctor_id, doctor_name, assigned_by, assignment_notes or "", now_iso, now_iso))
+                conn.commit()
+        return {
+            "assignment_id": assignment_id,
+            "patient_id": patient_id,
+            "doctor_id": doctor_id,
+            "doctor_name": doctor_name,
+            "assigned_by": assigned_by,
+            "assignment_notes": assignment_notes,
+            "status": "ACTIVE",
+            "created_at": now_iso,
+        }
+
+    def get_doctor_assigned_patients(self, doctor_id: str, hospital_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self._db() as conn:
+            query = """
+            SELECT a.assignment_id, a.patient_id, a.doctor_id, a.doctor_name, a.created_at as assigned_at,
+                   p.hospital_mrn, p.name, p.age, p.sex, p.blood_group, p.existing_conditions
+            FROM patient_assignments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            WHERE a.doctor_id = ? AND a.status = 'ACTIVE'
+            """
+            params: List[Any] = [doctor_id]
+            if hospital_id:
+                query += " AND a.hospital_id = ?"
+                params.append(hospital_id)
+            rows = conn.execute(query, params).fetchall()
+            return [dict(r) for r in rows]
 
 
 # Global singleton instance

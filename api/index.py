@@ -102,6 +102,7 @@ class AnalyzeRequest(BaseModel):
     signal: List[float]
     fs: float = 360.0
     lead: str = "II"
+    leads: Optional[Dict[str, List[float]]] = None
     patient_id: Optional[str] = "PAT-ANON"
     patient_name: Optional[str] = "Anonymous"
     patient_mrn: Optional[str] = None
@@ -323,20 +324,26 @@ class GoogleAuthRequest(BaseModel):
     hospital_id: Optional[str] = "HOSP-APEX"
 
 def decode_google_jwt(jwt_token: str) -> dict:
-    """Decode unverified claims from Google Identity Services JWT payload."""
+    """Decode and cryptographically verify claims from Google Identity Services JWT payload."""
     try:
-        parts = jwt_token.strip().split(".")
-        if len(parts) >= 2:
-            padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
-            payload_bytes = base64.urlsafe_b64decode(padded)
-            return json.loads(payload_bytes.decode("utf-8"))
+        try:
+            from auth.jwks_validator import verify_google_id_token
+        except ImportError:
+            from src.auth.jwks_validator import verify_google_id_token
+        valid, claims, err = verify_google_id_token(
+            jwt_token,
+            expected_client_id=GOOGLE_CLIENT_ID if GOOGLE_CLIENT_ID else None,
+            allow_unverified_fallback=False,
+        )
+        if valid and claims:
+            return claims
     except Exception:
         pass
     return {}
 
 @router.post("/auth/google")
 def google_auth_endpoint(req: GoogleAuthRequest):
-    """Authenticate or auto-provision clinical user via Google Identity or OAuth."""
+    """Authenticate or auto-provision clinical user via Google Identity or OAuth with cryptographic verification and role validation."""
     email = req.email
     name = req.name
     picture = req.picture
@@ -344,11 +351,15 @@ def google_auth_endpoint(req: GoogleAuthRequest):
 
     if req.credential:
         claims = decode_google_jwt(req.credential)
-        if claims:
-            email = claims.get("email") or email
-            name = claims.get("name") or name
-            picture = claims.get("picture") or picture
-            sub = claims.get("sub")
+        if not claims:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Google ID token: cryptographic signature verification failed or token is untrusted."
+            )
+        email = claims.get("email") or email
+        name = claims.get("name") or name
+        picture = claims.get("picture") or picture
+        sub = claims.get("sub")
 
     if not email:
         raise HTTPException(
@@ -356,7 +367,10 @@ def google_auth_endpoint(req: GoogleAuthRequest):
             detail="Missing email or Google credential in authentication request."
         )
 
+    # Server-Side Role Validation: prevent client privilege escalation to ADMIN
     role_key = (req.role or "CARDIOLOGIST").upper()
+    if role_key in ["ADMIN", "HOSPITAL_ADMIN"]:
+        role_key = "CARDIOLOGIST"
     role_enum = UserRole.__members__.get(role_key, UserRole.CARDIOLOGIST)
     user, token = AUTH_MANAGER.authenticate_google(
         email=email,
@@ -406,6 +420,9 @@ def register_auth_endpoint(req: AuthRegisterRequest):
     role_enum = getattr(UserRole, role_key, None)
     if role_enum is None:
         role_enum = UserRole.PATIENT if "PATIENT" in role_key else UserRole.DOCTOR
+    # Server-Side Role Validation: prevent unauthorized self-promotion to ADMIN
+    if role_enum in [UserRole.ADMIN, UserRole.HOSPITAL_ADMIN]:
+        role_enum = UserRole.DOCTOR
 
     existing = AUTH_MANAGER.get_user_by_username(email)
     if existing:
@@ -656,11 +673,18 @@ def analyze_ecg(req: AnalyzeRequest):
 
     # 3. Deterministic Measurements
     r_peaks = np.array(analysis_res.detected_r_peaks)
+    multi_leads_np = None
+    leads_avail = [req.lead]
+    if req.leads:
+        multi_leads_np = {k: np.array(v, dtype=float) for k, v in req.leads.items() if len(v) > 0}
+        leads_avail = list(set(leads_avail + list(req.leads.keys())))
+
     measurements = compute_ecg_measurements(
         sig_arr,
         req.fs,
         r_peaks=r_peaks,
-        leads_available=[req.lead],
+        leads_available=leads_avail,
+        multi_lead_signals=multi_leads_np,
     )
 
     # Normalize clinical fields (handling both string and list inputs, plus aliases)
@@ -899,10 +923,30 @@ def analyze_ecg(req: AnalyzeRequest):
             "heart_rate_bpm": analysis_res.heart_rate_bpm,
             "mean_rr_ms": analysis_res.mean_rr_ms,
             "detected_beats": analysis_res.detected_beats_count,
+            "pr_interval_ms": measurements.pr_interval_ms,
+            "pr_status": measurements.pr_status,
             "qrs_duration_ms": measurements.qrs_duration_ms,
             "qt_interval_ms": measurements.qt_interval_ms,
             "qtc_bazett_ms": measurements.qtc_bazett_ms,
             "qtc_fridericia_ms": measurements.qtc_fridericia_ms,
+            "p_axis_deg": measurements.p_axis_deg,
+            "qrs_axis_deg": measurements.qrs_axis_deg,
+            "t_axis_deg": measurements.t_axis_deg,
+            "axis_status": measurements.axis_status,
+        },
+        "cardiac_measurements": {
+            "heart_rate_bpm": analysis_res.heart_rate_bpm,
+            "mean_rr_ms": analysis_res.mean_rr_ms,
+            "detected_beats": analysis_res.detected_beats_count,
+            "pr_interval_ms": measurements.pr_interval_ms,
+            "pr_status": measurements.pr_status,
+            "qrs_duration_ms": measurements.qrs_duration_ms,
+            "qt_interval_ms": measurements.qt_interval_ms,
+            "qtc_bazett_ms": measurements.qtc_bazett_ms,
+            "qtc_fridericia_ms": measurements.qtc_fridericia_ms,
+            "p_axis_deg": measurements.p_axis_deg,
+            "qrs_axis_deg": measurements.qrs_axis_deg,
+            "t_axis_deg": measurements.t_axis_deg,
             "axis_status": measurements.axis_status,
         },
         "ai_classification": {
@@ -2269,73 +2313,502 @@ async def upload_ecg_file(
     raise HTTPException(status_code=400, detail=f"Unsupported file format '{Path(filename).suffix}'. Supported: CSV, TXT, NPY, JSON, JPG, PNG, PDF.")
 
 
-# ── Appointments & Consultations Endpoints ─────────────────────────
-DEFAULT_APPOINTMENTS: List[Dict[str, Any]] = [
-    {
-        "appointment_id": "APT-2026-0891",
-        "patient_id": "USR-RAJ_VERMA",
-        "patient_mrn": "MRN-5F2298",
-        "patient_name": "Raj Verma",
-        "doctor_name": "Dr. Aniket Chandra, MD (Cardiology)",
-        "appointment_date": "2026-11-15",
-        "appointment_time": "10:30 AM",
-        "consultation_type": "In-Person Hospital Visit",
-        "location": "Apex Heart & Vascular Hospital, Consultation Room 402",
-        "reason": "Routine Post-ECG Follow-Up & Medication Review",
-        "notes": "Follow-up after baseline 12-lead ECG analysis. Evaluate blood pressure trends and lipid profile.",
-        "status": "CONFIRMED",
-        "created_at": "2026-10-31T10:30:00Z"
-    }
-]
-
+# ── Appointments & Consultations Endpoints (Phase 3 Database-Backed) ─────────────────────────
 class CreateAppointmentRequest(BaseModel):
     patient_id: Optional[str] = "USR-RAJ_VERMA"
     patient_mrn: Optional[str] = "MRN-5F2298"
     patient_name: Optional[str] = "Raj Verma"
     doctor_name: Optional[str] = "Dr. Aniket Chandra, MD (Cardiology)"
+    doctor_id: Optional[str] = "DOC-003"
     appointment_date: str
     appointment_time: str
     consultation_type: Optional[str] = "In-Person Hospital Visit"
     location: Optional[str] = "Apex Heart & Vascular Hospital, Consultation Room 402"
     reason: Optional[str] = "Routine Post-ECG Follow-Up & Medication Review"
     notes: Optional[str] = ""
+    hospital_id: Optional[str] = "HOSP-APEX"
 
 @router.get("/appointments", dependencies=[_protected])
-def list_appointments(patient_id: Optional[str] = None):
-    """Retrieve scheduled patient appointments."""
-    if patient_id and patient_id not in ["ALL", ""]:
-        res = [a for a in DEFAULT_APPOINTMENTS if a.get("patient_id") == patient_id]
-        return res if res else DEFAULT_APPOINTMENTS
-    return DEFAULT_APPOINTMENTS
+def list_appointments(
+    request: Request,
+    patient_id: Optional[str] = None,
+    hospital_id: Optional[str] = None,
+    limit: int = 100,
+    token: Optional[str] = None,
+):
+    """Retrieve scheduled patient appointments from database with tenant and role scoping."""
+    user = get_authenticated_user_from_request(request, token)
+    effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else None)
+
+    # Scoping for patients: view only their appointments
+    target_pid = patient_id
+    if user and user.role == UserRole.PATIENT:
+        target_pid = user.registration_number or user.user_id
+
+    apts = DB_MANAGER.list_appointments(patient_id=target_pid, hospital_id=effective_hosp, limit=limit)
+    return apts
 
 @router.post("/appointments", dependencies=[_protected])
 def create_appointment(req: CreateAppointmentRequest):
-    """Book a new clinical consultation."""
+    """Book a new clinical consultation backed by persistent database."""
     new_id = f"APT-{datetime.now().year}-{uuid.uuid4().hex[:4].upper()}"
-    apt = {
-        "appointment_id": new_id,
-        "patient_id": req.patient_id or "USR-RAJ_VERMA",
-        "patient_mrn": req.patient_mrn or "MRN-5F2298",
-        "patient_name": req.patient_name or "Raj Verma",
-        "doctor_name": req.doctor_name or "Dr. Aniket Chandra, MD (Cardiology)",
-        "appointment_date": req.appointment_date,
-        "appointment_time": req.appointment_time,
-        "consultation_type": req.consultation_type or "In-Person Hospital Visit",
-        "location": req.location or "Apex Heart & Vascular Hospital, Consultation Room 402",
-        "reason": req.reason or "Cardiology Consultation",
-        "notes": req.notes or "",
-        "status": "CONFIRMED",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    DEFAULT_APPOINTMENTS.insert(0, apt)
+    apt = DB_MANAGER.create_appointment(
+        appointment_id=new_id,
+        patient_id=req.patient_id or "USR-RAJ_VERMA",
+        patient_name=req.patient_name or "Raj Verma",
+        doctor_name=req.doctor_name or "Dr. Aniket Chandra, MD (Cardiology)",
+        appointment_date=req.appointment_date,
+        appointment_time=req.appointment_time,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+        patient_mrn=req.patient_mrn or "MRN-5F2298",
+        doctor_id=req.doctor_id or "DOC-003",
+        consultation_type=req.consultation_type or "In-Person Hospital Visit",
+        location=req.location or "Apex Heart & Vascular Hospital, Consultation Room 402",
+        reason=req.reason or "Cardiology Consultation",
+        notes=req.notes or "",
+        status="CONFIRMED",
+    )
+    # Generate notification
+    DB_MANAGER.create_notification(
+        notification_id=f"NOTIF-{uuid.uuid4().hex[:6].upper()}",
+        user_id=req.patient_id or "USR-RAJ_VERMA",
+        title="Consultation Confirmed",
+        message=f"Appointment with {req.doctor_name or 'Cardiologist'} on {req.appointment_date} at {req.appointment_time}.",
+        notification_type="APPOINTMENT",
+        related_id=new_id,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+    )
+    AUDIT_LOGGER.log_event(
+        event_type="APPOINTMENT_SCHEDULED",
+        user_id=req.patient_id or "PATIENT",
+        username=req.patient_name or "Patient",
+        user_role="PATIENT",
+        action=f"Booked appointment {new_id} with {req.doctor_name}",
+        record_id=new_id,
+        details={"date": req.appointment_date, "time": req.appointment_time},
+    )
     return {"status": "SUCCESS", "appointment": apt, "message": "Appointment booked successfully."}
 
 @router.delete("/appointments/{appointment_id}", dependencies=[_protected])
 def cancel_appointment(appointment_id: str):
-    """Cancel an appointment by ID."""
-    global DEFAULT_APPOINTMENTS
-    DEFAULT_APPOINTMENTS = [a for a in DEFAULT_APPOINTMENTS if a.get("appointment_id") != appointment_id]
+    """Cancel an appointment in database."""
+    success = DB_MANAGER.cancel_appointment(appointment_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Appointment '{appointment_id}' not found.")
+    AUDIT_LOGGER.log_event(
+        event_type="APPOINTMENT_CANCELLED",
+        user_id="SYSTEM",
+        username="Clinician / Patient",
+        user_role="USER",
+        action=f"Cancelled appointment {appointment_id}",
+        record_id=appointment_id,
+    )
     return {"status": "SUCCESS", "message": f"Appointment {appointment_id} cancelled."}
+
+@router.get("/appointments/{appointment_id}", dependencies=[_protected])
+def get_appointment_endpoint(appointment_id: str):
+    """Retrieve scheduled appointment details by ID."""
+    apt = DB_MANAGER.get_appointment(appointment_id)
+    if not apt:
+        raise HTTPException(status_code=404, detail=f"Appointment '{appointment_id}' not found.")
+    return {"status": "SUCCESS", "appointment": apt}
+
+
+# ── Doctor-Patient Messaging Endpoints (Phase 3) ─────────────────────────
+class CreateConversationRequest(BaseModel):
+    patient_id: str
+    doctor_id: str
+    patient_name: Optional[str] = "Raj Verma"
+    doctor_name: Optional[str] = "Dr. Aniket Chandra, MD"
+    subject: str
+    initial_message: Optional[str] = None
+    hospital_id: Optional[str] = "HOSP-APEX"
+
+class SendMessageRequest(BaseModel):
+    sender_id: str
+    sender_name: str
+    sender_role: str
+    recipient_id: str
+    content: str
+
+@router.get("/conversations", dependencies=[_protected])
+def list_conversations_endpoint(
+    request: Request,
+    user_id: Optional[str] = None,
+    hospital_id: Optional[str] = None,
+    limit: int = 50,
+    token: Optional[str] = None,
+):
+    """List clinical messaging conversations for authenticated doctor or patient."""
+    user = get_authenticated_user_from_request(request, token)
+    effective_uid = user_id or (user.user_id if user else None)
+    effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else None)
+    convs = DB_MANAGER.list_conversations(user_id=effective_uid, hospital_id=effective_hosp, limit=limit)
+    return {"status": "SUCCESS", "conversations": convs}
+
+@router.post("/conversations", dependencies=[_protected])
+def create_conversation_endpoint(req: CreateConversationRequest):
+    """Create a new clinical doctor-patient conversation thread."""
+    conv_id = f"CONV-{uuid.uuid4().hex[:6].upper()}"
+    conv = DB_MANAGER.create_conversation(
+        conversation_id=conv_id,
+        patient_id=req.patient_id,
+        doctor_id=req.doctor_id,
+        patient_name=req.patient_name or "Patient",
+        doctor_name=req.doctor_name or "Doctor",
+        subject=req.subject,
+        hospital_id=req.hospital_id or "HOSP-APEX",
+    )
+    if req.initial_message:
+        msg_id = f"MSG-{uuid.uuid4().hex[:6].upper()}"
+        DB_MANAGER.send_message(
+            message_id=msg_id,
+            conversation_id=conv_id,
+            sender_id=req.patient_id,
+            sender_name=req.patient_name or "Patient",
+            sender_role="PATIENT",
+            recipient_id=req.doctor_id,
+            content=req.initial_message,
+        )
+    return {"status": "SUCCESS", "conversation": conv}
+
+@router.get("/conversations/{conversation_id}/messages", dependencies=[_protected])
+def list_messages_endpoint(conversation_id: str, limit: int = 100):
+    """Retrieve message transcript for a clinical conversation."""
+    conv = DB_MANAGER.get_conversation(conversation_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
+    messages = DB_MANAGER.list_messages(conversation_id, limit=limit)
+    return {"status": "SUCCESS", "conversation": conv, "messages": messages}
+
+@router.post("/conversations/{conversation_id}/messages", dependencies=[_protected])
+def send_message_endpoint(conversation_id: str, req: SendMessageRequest):
+    """Send a message within an existing clinical conversation."""
+    conv = DB_MANAGER.get_conversation(conversation_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
+    msg_id = f"MSG-{uuid.uuid4().hex[:6].upper()}"
+    msg = DB_MANAGER.send_message(
+        message_id=msg_id,
+        conversation_id=conversation_id,
+        sender_id=req.sender_id,
+        sender_name=req.sender_name,
+        sender_role=req.sender_role,
+        recipient_id=req.recipient_id,
+        content=req.content,
+    )
+    # Notify recipient
+    DB_MANAGER.create_notification(
+        notification_id=f"NOTIF-{uuid.uuid4().hex[:6].upper()}",
+        user_id=req.recipient_id,
+        title=f"New message from {req.sender_name}",
+        message=req.content[:100],
+        notification_type="MESSAGE",
+        related_id=conversation_id,
+        hospital_id=conv.get("hospital_id", "HOSP-APEX"),
+    )
+    return {"status": "SUCCESS", "message": msg}
+
+
+# ── Notifications Endpoints (Phase 3) ─────────────────────────
+@router.get("/notifications", dependencies=[_protected])
+def get_notifications_endpoint(
+    request: Request,
+    user_id: Optional[str] = None,
+    unread_only: bool = False,
+    token: Optional[str] = None,
+):
+    """Retrieve in-app notifications and unread badge count."""
+    user = get_authenticated_user_from_request(request, token)
+    effective_uid = user_id or (user.user_id if user else "USR-RAJ_VERMA")
+    notifs = DB_MANAGER.list_notifications(user_id=effective_uid, unread_only=unread_only)
+    unread_count = sum(1 for n in notifs if not n.get("is_read"))
+    return {"status": "SUCCESS", "notifications": notifs, "unread_count": unread_count}
+
+@router.post("/notifications/{notification_id}/read", dependencies=[_protected])
+def mark_notification_read_endpoint(notification_id: str):
+    """Mark a notification as read."""
+    DB_MANAGER.mark_notification_read(notification_id)
+    return {"status": "SUCCESS", "message": f"Notification {notification_id} marked as read."}
+
+@router.post("/notifications/read-all", dependencies=[_protected])
+def mark_all_notifications_read_endpoint(request: Request, user_id: Optional[str] = None, token: Optional[str] = None):
+    """Mark all notifications as read for current user."""
+    user = get_authenticated_user_from_request(request, token)
+    effective_uid = user_id or (user.user_id if user else "USR-RAJ_VERMA")
+    count = DB_MANAGER.mark_all_notifications_read(effective_uid)
+    return {"status": "SUCCESS", "marked_read": count}
+
+
+# ── Patient Care Team Assignment Endpoints (Phase 3) ─────────────────────────
+class AssignPatientRequest(BaseModel):
+    doctor_id: str
+    doctor_name: str
+    assigned_by: Optional[str] = "Clinical Coordinator"
+    assignment_notes: Optional[str] = "Assigned for primary arrhythmia telemetry tracking."
+    hospital_id: Optional[str] = "HOSP-APEX"
+
+@router.post("/patients/{patient_identifier}/assign", dependencies=[_protected])
+def assign_patient_endpoint(patient_identifier: str, req: AssignPatientRequest):
+    """Assign a patient to an attending doctor or cardiologist."""
+    p = DB_MANAGER.get_patient(patient_identifier) or DB_MANAGER.get_patient_by_mrn(patient_identifier)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
+
+    assignment_id = f"ASN-{uuid.uuid4().hex[:6].upper()}"
+    res = DB_MANAGER.assign_patient_to_doctor(
+        assignment_id=assignment_id,
+        patient_id=p.patient_id,
+        doctor_id=req.doctor_id,
+        doctor_name=req.doctor_name,
+        assigned_by=req.assigned_by or "Care Coordinator",
+        assignment_notes=req.assignment_notes,
+        hospital_id=req.hospital_id or p.hospital_id,
+    )
+    # Notify doctor
+    DB_MANAGER.create_notification(
+        notification_id=f"NOTIF-{uuid.uuid4().hex[:6].upper()}",
+        user_id=req.doctor_id,
+        title="New Patient Assignment",
+        message=f"Patient {p.name} ({p.hospital_mrn}) has been assigned to your clinical care roster.",
+        notification_type="PATIENT_ASSIGNMENT",
+        related_id=p.patient_id,
+        hospital_id=p.hospital_id,
+    )
+    AUDIT_LOGGER.log_event(
+        event_type="PATIENT_ASSIGNED",
+        user_id=req.assigned_by or "SYSTEM",
+        username=req.assigned_by or "System",
+        user_role="CARE_COORDINATOR",
+        action=f"Assigned patient {p.name} to {req.doctor_name}",
+        patient_id=p.patient_id,
+        record_id=assignment_id,
+        details={"doctor_id": req.doctor_id, "doctor_name": req.doctor_name},
+    )
+    return {"status": "SUCCESS", "assignment": res}
+
+@router.get("/doctors/{doctor_identifier}/patients", dependencies=[_protected])
+def get_doctor_patients_endpoint(doctor_identifier: str, hospital_id: Optional[str] = None):
+    """Retrieve clinical roster of patients assigned to a doctor."""
+    patients = DB_MANAGER.get_doctor_assigned_patients(doctor_identifier, hospital_id=hospital_id)
+    return {"status": "SUCCESS", "doctor_id": doctor_identifier, "count": len(patients), "patients": patients}
+
+
+# ── DPDP Act 2025 Consent & Healthcare Security Endpoints (Phase 11) ─────────────
+class PatientConsentRequest(BaseModel):
+    consent_type: str = "ECG_DATA_PROCESSING"
+    status: str = "GRANTED"  # GRANTED, REVOKED, RESTRICTED
+    purposes: List[str] = ["AI_DIAGNOSTIC_ASSISTANCE", "TELEMETRY_MONITORING"]
+    notes: Optional[str] = "Patient provided informed electronic consent for diagnostic processing."
+
+@router.post("/patients/{patient_identifier}/consent", dependencies=[_protected])
+def record_patient_consent_endpoint(patient_identifier: str, req: PatientConsentRequest):
+    """Record patient informed consent in accordance with Digital Personal Data Protection (DPDP) Act 2025."""
+    p = DB_MANAGER.get_patient(patient_identifier) or DB_MANAGER.get_patient_by_mrn(patient_identifier)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
+
+    event_type = "DPDP_CONSENT_GRANTED" if req.status.upper() == "GRANTED" else "DPDP_CONSENT_REVOKED"
+    AUDIT_LOGGER.log_event(
+        event_type=event_type,
+        user_id=p.patient_id,
+        username=p.name,
+        user_role="PATIENT",
+        action=f"DPDP Act 2025 Consent {req.status.upper()} for purposes: {', '.join(req.purposes)}",
+        patient_id=p.patient_id,
+        details={"purposes": req.purposes, "consent_type": req.consent_type, "notes": req.notes},
+    )
+    return {
+        "status": "SUCCESS",
+        "consent_status": req.status.upper(),
+        "patient_id": p.patient_id,
+        "mrn": p.hospital_mrn,
+        "purposes": req.purposes,
+        "compliance": "DPDP Act 2025 / CDSCO MDR 2017 Class B",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ── Doctor Credentials & Hospital Management Endpoints (Phase 2) ─────────────
+class UpdateDoctorProfileRequest(BaseModel):
+    full_name: Optional[str] = None
+    registration_number: Optional[str] = None
+    hospital_id: Optional[str] = None
+    email: Optional[str] = None
+
+@router.get("/doctors/{doctor_identifier}", dependencies=[_protected])
+def get_doctor_profile_endpoint(doctor_identifier: str):
+    """Retrieve doctor / cardiologist profile credentials and clinical roster details."""
+    u = AUTH_MANAGER.get_user(doctor_identifier) or AUTH_MANAGER.get_user_by_username(doctor_identifier)
+    if not u:
+        persisted = DB_MANAGER.get_persisted_user_by_username(doctor_identifier)
+        if persisted:
+            return {
+                "status": "SUCCESS",
+                "doctor": {
+                    "doctor_id": persisted["user_id"],
+                    "full_name": persisted["full_name"],
+                    "email": persisted["email"],
+                    "role": persisted["role"],
+                    "hospital_id": persisted["hospital_id"],
+                    "registration_number": persisted["registration_number"],
+                    "is_active": bool(persisted["is_active"]),
+                }
+            }
+        raise HTTPException(status_code=404, detail=f"Doctor '{doctor_identifier}' not found.")
+    return {
+        "status": "SUCCESS",
+        "doctor": {
+            "doctor_id": u.user_id,
+            "full_name": u.full_name,
+            "email": u.email,
+            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+            "hospital_id": u.hospital_id,
+            "registration_number": u.registration_number,
+            "is_active": u.is_active,
+        }
+    }
+
+@router.put("/doctors/{doctor_identifier}", dependencies=[_protected])
+def update_doctor_profile_endpoint(doctor_identifier: str, req: UpdateDoctorProfileRequest):
+    """Update doctor credentials, medical registration number, or hospital affiliation."""
+    u = AUTH_MANAGER.get_user(doctor_identifier) or AUTH_MANAGER.get_user_by_username(doctor_identifier)
+    persisted = DB_MANAGER.get_persisted_user_by_username(doctor_identifier)
+    if not u and not persisted:
+        raise HTTPException(status_code=404, detail=f"Doctor '{doctor_identifier}' not found.")
+
+    uid = u.user_id if u else persisted["user_id"]
+    if u:
+        if req.full_name: u.full_name = req.full_name
+        if req.registration_number: u.registration_number = req.registration_number
+        if req.hospital_id: u.hospital_id = req.hospital_id
+        if req.email: u.email = req.email
+
+    with DB_MANAGER._lock:
+        with DB_MANAGER._db() as conn:
+            if req.full_name: conn.execute("UPDATE users SET full_name = ? WHERE user_id = ?", (req.full_name, uid))
+            if req.registration_number: conn.execute("UPDATE users SET registration_number = ? WHERE user_id = ?", (req.registration_number, uid))
+            if req.hospital_id: conn.execute("UPDATE users SET hospital_id = ? WHERE user_id = ?", (req.hospital_id, uid))
+            if req.email: conn.execute("UPDATE users SET email = ? WHERE user_id = ?", (req.email, uid))
+            conn.commit()
+
+    return {
+        "status": "SUCCESS",
+        "message": "Doctor credentials updated successfully.",
+        "doctor_id": uid,
+    }
+
+@router.get("/hospitals")
+def list_hospitals_endpoint():
+    """List affiliated healthcare facilities and multi-tenant hospital configurations."""
+    return {
+        "status": "SUCCESS",
+        "hospitals": [
+            {
+                "hospital_id": "HOSP-APEX",
+                "name": "Apex Heart & Vascular Hospital",
+                "location": "New Delhi, India",
+                "specialty": "Tertiary Cardiac Care",
+                "accreditation": "NABH / CDSCO Class B SaMD Compliant",
+                "active_units": ["CCU", "CathLab", "Outpatient Cardiology", "Telemetry Ward"],
+            },
+            {
+                "hospital_id": "HOSP-CITY",
+                "name": "City General Hospital",
+                "location": "Mumbai, India",
+                "specialty": "Multispecialty & Emergency Medicine",
+                "accreditation": "NABH Compliant",
+                "active_units": ["Emergency Department", "Internal Medicine"],
+            },
+            {
+                "hospital_id": "HOSP-METRO",
+                "name": "Metro Healthcare Institute",
+                "location": "Bengaluru, India",
+                "specialty": "Cardiovascular Research & Telemetry",
+                "accreditation": "NABH / JCI Compliant",
+                "active_units": ["Cardiac Telemetry Unit", "Electrophysiology Lab"],
+            },
+        ]
+    }
+
+
+# ── Longitudinal ECG Monitoring & Delta Analytics (Phase 10) ─────────────────
+class LongitudinalCompareRequest(BaseModel):
+    current_analysis: Dict[str, Any]
+    prior_analysis: Dict[str, Any]
+    patient_id: Optional[str] = "UNKNOWN-PT"
+
+@router.post("/ecg/compare", dependencies=[_protected])
+def compare_ecgs_endpoint(req: LongitudinalCompareRequest):
+    """Compare a current ECG analysis against a prior baseline to compute objective metric deltas."""
+    try:
+        from src.longitudinal.ecg_comparison import compare_serial_ecgs
+    except ImportError:
+        from longitudinal.ecg_comparison import compare_serial_ecgs
+    res = compare_serial_ecgs(
+        current_analysis=req.current_analysis,
+        prior_analysis=req.prior_analysis,
+        patient_id=req.patient_id or "UNKNOWN-PT",
+    )
+    return {
+        "status": "SUCCESS",
+        "comparison": res.to_dict(),
+    }
+
+@router.get("/patients/{patient_identifier}/longitudinal", dependencies=[_protected])
+def get_patient_longitudinal_endpoint(patient_identifier: str, request: Request, token: Optional[str] = None):
+    """Retrieve historical ECG timeline, serial interval deltas, and trend analytics for a patient."""
+    p = DB_MANAGER.get_patient(patient_identifier) or DB_MANAGER.get_patient_by_mrn(patient_identifier)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
+
+    user = get_authenticated_user_from_request(request, token)
+    if user and user.role == UserRole.PATIENT:
+        is_own = (user.user_id == p.patient_id or (user.registration_number and user.registration_number in p.hospital_mrn))
+        if not is_own:
+            raise HTTPException(status_code=403, detail="Access denied: Cannot access other patient records.")
+
+    reports = REPORT_PERSISTENCE_SERVICE.get_patient_timeline(p.patient_id)
+    history_analyses = []
+    for rep in reversed(reports):
+        meas = rep.get("cardiac_parameters") or rep.get("measurements") or {}
+        history_analyses.append({
+            "analysis_id": rep.get("report_id") or rep.get("report_number") or str(uuid.uuid4().hex[:6]),
+            "timestamp": rep.get("generated_at"),
+            "lead_analyzed": "II",
+            "prediction": rep.get("primary_finding") or rep.get("clinical_diagnosis", "NORMAL"),
+            "heart_rate": meas.get("heart_rate_bpm") or meas.get("heart_rate"),
+            "qrs_duration_ms": meas.get("qrs_duration_ms") or meas.get("qrs_duration"),
+            "qtc_ms": meas.get("qtc_bazett_ms") or meas.get("qtc_ms"),
+            "pr_interval_ms": meas.get("pr_interval_ms") or meas.get("pr_interval"),
+        })
+
+    try:
+        from src.longitudinal.trend_analysis import calculate_serial_trends
+        from src.longitudinal.ecg_comparison import compare_serial_ecgs
+    except ImportError:
+        from longitudinal.trend_analysis import calculate_serial_trends
+        from longitudinal.ecg_comparison import compare_serial_ecgs
+
+    trends = calculate_serial_trends(history_analyses, patient_id=p.patient_id)
+    latest_comparison = None
+    if len(history_analyses) >= 2:
+        latest_comparison = compare_serial_ecgs(
+            current_analysis=history_analyses[-1],
+            prior_analysis=history_analyses[-2],
+            patient_id=p.patient_id,
+        ).to_dict()
+
+    return {
+        "status": "SUCCESS",
+        "patient_id": p.patient_id,
+        "mrn": p.hospital_mrn,
+        "recording_count": len(history_analyses),
+        "history": history_analyses,
+        "latest_comparison": latest_comparison,
+        "trends": trends.to_dict(),
+    }
+
 
 
 

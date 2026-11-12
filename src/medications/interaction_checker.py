@@ -210,6 +210,23 @@ def check_medication_safety(
                     )
                 )
 
+        # 5a-bis. High-Risk QTc Prolongation Safety Gate (>= 480 ms)
+        if qtc_val is not None and qtc_val >= 480:
+            alerts.append(
+                SafetyAlert(
+                    category="PHYSIOLOGICAL_CONFLICT",
+                    severity="CRITICAL",
+                    title=f"High-Risk QTc Safety Gate: QTc Prolongation ({qtc_val:.0f} ms >= 480 ms)",
+                    description=(
+                        f"Patient QTc interval is severely prolonged at {qtc_val:.0f} ms (established safety gate threshold: 480 ms). "
+                        f"Administering {med.generic_name} requires urgent electrophysiology consultation and continuous cardiac monitoring."
+                    ),
+                    clinical_recommendation="Critical action required: Review all concurrent medications, correct electrolyte imbalances (hypokalemia, hypomagnesemia), and avoid QT-prolonging drugs.",
+                    source="AHA/HRS/ACC Clinical Safety Standards for Drug-Induced Proarrhythmia",
+                    evidence_level="Level A",
+                )
+            )
+
         # 5b. Bradycardia / AV Nodal Conduction Slowing Agents
         is_nodal_agent = any(k in med.drug_class.lower() for k in ["beta", "calcium channel", "glycoside"])
         effective_hr = ecg_hr

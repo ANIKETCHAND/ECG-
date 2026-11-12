@@ -217,6 +217,34 @@ class AuthManager:
                 created_at=time.time(),
             )
             self._users[uname.lower()] = u
+            self._persist_user_safe(u)
+
+    def _persist_user_safe(self, u: User) -> None:
+        try:
+            from src.database.db_manager import DB_MANAGER
+            DB_MANAGER.save_user(
+                user_id=u.user_id,
+                username=u.username,
+                password_hash=u.password_hash,
+                salt=u.salt,
+                role=u.role.value if isinstance(u.role, UserRole) else str(u.role),
+                full_name=u.full_name,
+                email=u.email,
+                hospital_id=u.hospital_id,
+                registration_number=u.registration_number,
+                picture=u.picture,
+                is_active=u.is_active,
+                created_at=u.created_at,
+            )
+        except Exception:
+            pass
+
+    def _persist_session_safe(self, token: str, user_id: str, expiry: float) -> None:
+        try:
+            from src.database.db_manager import DB_MANAGER
+            DB_MANAGER.save_session(token, user_id, expiry)
+        except Exception:
+            pass
 
     def register_user(
         self,
@@ -243,6 +271,7 @@ class AuthManager:
             created_at=time.time(),
         )
         self._users[username.strip().lower()] = u
+        self._persist_user_safe(u)
         return u
 
     def authenticate(self, username: str, password: str) -> Optional[User]:
@@ -261,24 +290,74 @@ class AuthManager:
         return None
 
     def create_session(self, user: User, duration_sec: int = 3600) -> str:
-        """Create a secure session token."""
+        """Create a secure session token with SQLite persistence."""
         token = f"sess_{secrets.token_urlsafe(32)}"
         expiry = time.time() + duration_sec
         self._sessions[token] = (user.user_id, expiry)
+        self._persist_session_safe(token, user.user_id, expiry)
         return token
 
     def validate_session(self, token: str) -> Optional[User]:
-        """Validate token and return active user."""
-        if token not in self._sessions:
-            return None
-        user_id, expiry = self._sessions[token]
-        if time.time() > expiry:
-            del self._sessions[token]
-            return None
-        for user in self._users.values():
-            if user.user_id == user_id and user.is_active:
-                return user
+        """Validate token and return active user, checking memory and SQLite."""
+        if token in self._sessions:
+            user_id, expiry = self._sessions[token]
+            if time.time() > expiry:
+                del self._sessions[token]
+                self.invalidate_session(token)
+                return None
+            for user in self._users.values():
+                if user.user_id == user_id and user.is_active:
+                    return user
+
+        # Check SQLite persistence
+        try:
+            from src.database.db_manager import DB_MANAGER
+            persisted = DB_MANAGER.get_session(token)
+            if persisted:
+                user_id, expiry = persisted
+                if time.time() > expiry:
+                    DB_MANAGER.delete_session(token)
+                    return None
+                for user in self._users.values():
+                    if user.user_id == user_id and user.is_active:
+                        self._sessions[token] = (user_id, expiry)
+                        return user
+                p_users = DB_MANAGER.list_persisted_users()
+                for pu in p_users:
+                    if pu["user_id"] == user_id and pu.get("is_active", 1):
+                        role_key = pu["role"]
+                        role_enum = UserRole.__members__.get(role_key, UserRole.CARDIOLOGIST)
+                        user = User(
+                            user_id=pu["user_id"],
+                            username=pu["username"],
+                            password_hash=pu["password_hash"],
+                            salt=pu["salt"],
+                            role=role_enum,
+                            full_name=pu["full_name"],
+                            email=pu["email"],
+                            hospital_id=pu.get("hospital_id", "HOSP-APEX"),
+                            registration_number=pu.get("registration_number"),
+                            picture=pu.get("picture"),
+                            is_active=bool(pu.get("is_active", 1)),
+                            created_at=float(pu.get("created_at", time.time())),
+                        )
+                        self._users[user.username] = user
+                        self._sessions[token] = (user_id, expiry)
+                        return user
+        except Exception:
+            pass
+
         return None
+
+    def invalidate_session(self, token: str) -> None:
+        """Invalidate session in memory and SQLite."""
+        if token in self._sessions:
+            del self._sessions[token]
+        try:
+            from src.database.db_manager import DB_MANAGER
+            DB_MANAGER.delete_session(token)
+        except Exception:
+            pass
 
     def has_permission(self, user: User, permission: str) -> bool:
         """Check whether a user role has the required permission."""
@@ -287,6 +366,14 @@ class AuthManager:
 
     def get_user_by_username(self, username: str) -> Optional[User]:
         return self._users.get(username.strip().lower())
+
+    def get_user(self, user_id: str) -> Optional[User]:
+        """Find a user by user_id or username."""
+        clean_id = (user_id or "").strip().lower()
+        for u in self._users.values():
+            if u.user_id.lower() == clean_id or u.username.lower() == clean_id:
+                return u
+        return None
 
     def authenticate_google(
         self,
@@ -337,6 +424,7 @@ class AuthManager:
             )
             self._users[username] = user
 
+        self._persist_user_safe(user)
         token = self.create_session(user, duration_sec=86400)
         return user, token
 

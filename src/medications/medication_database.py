@@ -13,6 +13,8 @@ from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import urllib.parse
+import urllib.request
 
 
 @dataclass
@@ -428,4 +430,116 @@ class MedicationDatabase:
 
 
 GLOBAL_MEDICATION_DB = MedicationDatabase()
+
+_API_CACHE: Dict[str, Any] = {}
+
+
+def query_rxnorm(drug_name: str, timeout_sec: float = 2.5) -> Dict[str, Any]:
+    """Query NIH RxNorm REST API for RxCUI concept properties with local fallback."""
+    cache_key = f"rxnorm_{drug_name.lower().strip()}"
+    if cache_key in _API_CACHE:
+        return _API_CACHE[cache_key]
+
+    clean_name = urllib.parse.quote(drug_name.strip())
+    url = f"https://rxnav.nlm.nih.gov/REST/rxcui.json?name={clean_name}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ECG-Guardian/2.0", "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            id_group = data.get("idGroup", {})
+            rxnorm_id = (id_group.get("rxnormId") or [None])[0]
+            result = {
+                "source": "NIH RxNorm",
+                "drug_name": drug_name,
+                "rxcui": rxnorm_id,
+                "is_found": bool(rxnorm_id),
+            }
+            _API_CACHE[cache_key] = result
+            return result
+    except Exception:
+        pass
+
+    entry = GLOBAL_MEDICATION_DB.get_by_name(drug_name)
+    fallback = {
+        "source": "NIH RxNorm (Local Reference Fallback)",
+        "drug_name": drug_name,
+        "rxcui": entry.generic_name if entry else None,
+        "is_found": bool(entry),
+    }
+    _API_CACHE[cache_key] = fallback
+    return fallback
+
+
+def query_openfda(drug_name: str, timeout_sec: float = 2.5) -> Dict[str, Any]:
+    """Query FDA openFDA Drug Label API for boxed warnings and QTc contraindications."""
+    cache_key = f"openfda_{drug_name.lower().strip()}"
+    if cache_key in _API_CACHE:
+        return _API_CACHE[cache_key]
+
+    clean_name = urllib.parse.quote(drug_name.strip())
+    url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"{clean_name}\"+openfda.brand_name:\"{clean_name}\"&limit=1"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ECG-Guardian/2.0"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            results = data.get("results", [])
+            if results:
+                lbl = results[0]
+                res = {
+                    "source": "FDA openFDA Drug Label",
+                    "drug_name": drug_name,
+                    "warnings": (lbl.get("warnings") or [""])[0][:300],
+                    "boxed_warning": bool(lbl.get("boxed_warning")),
+                    "is_found": True,
+                }
+                _API_CACHE[cache_key] = res
+                return res
+    except Exception:
+        pass
+
+    entry = GLOBAL_MEDICATION_DB.get_by_name(drug_name)
+    fallback = {
+        "source": "FDA Prescribing Information (Local DB Fallback)",
+        "drug_name": drug_name,
+        "warnings": entry.qt_prolongation_notes if entry else "",
+        "boxed_warning": bool(entry and entry.black_box_warning),
+        "is_found": bool(entry),
+    }
+    _API_CACHE[cache_key] = fallback
+    return fallback
+
+
+def query_dailymed(drug_name: str, timeout_sec: float = 2.5) -> Dict[str, Any]:
+    """Query NLM DailyMed Web Service for structured product labeling (SPL)."""
+    cache_key = f"dailymed_{drug_name.lower().strip()}"
+    if cache_key in _API_CACHE:
+        return _API_CACHE[cache_key]
+
+    clean_name = urllib.parse.quote(drug_name.strip())
+    url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name={clean_name}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ECG-Guardian/2.0"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            spls = data.get("data", [])
+            res = {
+                "source": "NLM DailyMed SPL",
+                "drug_name": drug_name,
+                "spl_count": len(spls),
+                "is_found": len(spls) > 0,
+            }
+            _API_CACHE[cache_key] = res
+            return res
+    except Exception:
+        pass
+
+    entry = GLOBAL_MEDICATION_DB.get_by_name(drug_name)
+    fallback = {
+        "source": "NLM DailyMed (Local DB Fallback)",
+        "drug_name": drug_name,
+        "spl_count": 1 if entry else 0,
+        "is_found": bool(entry),
+    }
+    _API_CACHE[cache_key] = fallback
+    return fallback
 

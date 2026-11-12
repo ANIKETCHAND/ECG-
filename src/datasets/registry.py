@@ -236,7 +236,86 @@ APPROVED_DATASETS: Dict[str, DatasetEntry] = {
         download_size_mb=35000.0,
         notes="Credentialed clinical database for correlating ECG electrophysiology with ICU outcomes and medications.",
     ),
+    "chapman_shaoxing": DatasetEntry(
+        dataset_id="chapman_shaoxing",
+        name="Chapman-Shaoxing 12-Lead Arrhythmia Database",
+        description="10,646 12-lead 10-second ECG recordings at 500 Hz from Chapman University and Shaoxing People's Hospital with 11 rhythm categories.",
+        source_url="https://physionet.org/content/ecg-arrhythmia/1.0.0/",
+        physionet_slug="ecg-arrhythmia",
+        version="1.0.0",
+        license_type="Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        lead_count=12,
+        lead_names=["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"],
+        sampling_rates=[500.0],
+        total_records=10646,
+        task_suitability=["12lead_diagnosis", "beat_arrhythmia", "quality_gate"],
+        download_size_mb=1800.0,
+        notes="Key Asian population multicenter validation cohort for 12-lead rhythm and conduction abnormalities.",
+    ),
+    "mit_bih_nstdb": DatasetEntry(
+        dataset_id="mit_bih_nstdb",
+        name="MIT-BIH Noise Stress Test Database",
+        description="12 30-minute calibrated recordings containing baseline wander, muscle tremor, and electrode motion artifact for noise robustness stress testing.",
+        source_url="https://physionet.org/content/nstdb/1.0.0/",
+        physionet_slug="nstdb",
+        version="1.0.0",
+        license_type="Open PhysioNet (ODC-BY 1.0)",
+        lead_count=2,
+        lead_names=["ECG1", "ECG2"],
+        sampling_rates=[360.0],
+        total_records=12,
+        task_suitability=["quality_gate", "abstention_stress_testing"],
+        download_size_mb=45.0,
+        notes="Standard benchmark for verifying signal quality gate abstention thresholds and SNR limits.",
+    ),
+    "ecg_image_database": DatasetEntry(
+        dataset_id="ecg_image_database",
+        name="PTB-XL Scanned Paper ECG Image Database",
+        description="Benchmark collection of high-resolution scanned 12-lead ECG paper strips at 300 DPI with calibrated millimeter grid overlays.",
+        source_url="https://physionet.org/content/ptb-xl-ecg-image/1.0.0/",
+        physionet_slug="ptb-xl-ecg-image",
+        version="1.0.0",
+        license_type="Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        lead_count=12,
+        lead_names=["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"],
+        sampling_rates=[300.0, 500.0],
+        total_records=21837,
+        task_suitability=["image_digitization", "ocr", "layout_segmentation"],
+        download_size_mb=2400.0,
+        notes="Validation reference for optical deskewing, 25mm/s paper speed calibration, and lead segmentation.",
+    ),
 }
+
+
+def verify_patient_split_isolation(
+    train_record_ids: List[str],
+    val_record_ids: List[str],
+    test_record_ids: List[str],
+    dataset_id: str = "mit_bih_arrhythmia",
+) -> Dict[str, Any]:
+    """Verify zero patient-level leakage across dataset train, validation, and test partitions."""
+    from src.datasets.patient_index import resolve_patient_id
+
+    train_pts = {resolve_patient_id(dataset_id, r) for r in train_record_ids}
+    val_pts = {resolve_patient_id(dataset_id, r) for r in val_record_ids}
+    test_pts = {resolve_patient_id(dataset_id, r) for r in test_record_ids}
+
+    leak_train_val = train_pts.intersection(val_pts)
+    leak_train_test = train_pts.intersection(test_pts)
+    leak_val_test = val_pts.intersection(test_pts)
+
+    has_leak = bool(leak_train_val or leak_train_test or leak_val_test)
+
+    return {
+        "is_valid": not has_leak,
+        "train_patients_count": len(train_pts),
+        "val_patients_count": len(val_pts),
+        "test_patients_count": len(test_pts),
+        "leak_train_val": list(leak_train_val),
+        "leak_train_test": list(leak_train_test),
+        "leak_val_test": list(leak_val_test),
+        "verdict": "PASSED: Zero patient identity overlap detected across benchmark splits" if not has_leak else "FAILED: Patient leakage detected across benchmark splits",
+    }
 
 
 class DatasetRegistry:

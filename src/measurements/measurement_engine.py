@@ -55,11 +55,103 @@ class ClinicalECGMeasurements:
         return asdict(self)
 
 
+def compute_frontal_axes(
+    lead_i: np.ndarray,
+    lead_avf: np.ndarray,
+    fs: float,
+    r_peaks: np.ndarray,
+) -> Dict[str, Any]:
+    """Compute deterministic frontal plane electrical axes (P, QRS, T) in degrees.
+
+    Uses net area integrals of Lead I and Lead aVF fiducial windows according to
+    the standard hexaxial reference system:
+    theta = atan2(Net_aVF, Net_I) * (180 / pi)
+
+    Returns:
+        Dict containing:
+        - 'qrs_axis_deg': float (-180 to +180 deg)
+        - 'p_axis_deg': float (-180 to +180 deg)
+        - 't_axis_deg': float (-180 to +180 deg)
+        - 'classification': str (Normal, Left Axis Deviation, Right Axis Deviation, Extreme)
+    """
+    sig_1 = np.asarray(lead_i, dtype=float)
+    sig_avf = np.asarray(lead_avf, dtype=float)
+    peaks = np.asarray(r_peaks, dtype=int)
+
+    if len(sig_1) == 0 or len(sig_avf) == 0 or len(sig_1) != len(sig_avf) or len(peaks) < 2:
+        return {
+            "qrs_axis_deg": None,
+            "p_axis_deg": None,
+            "t_axis_deg": None,
+            "classification": "Indeterminate (insufficient multi-lead cycles)",
+        }
+
+    qrs_pre = int(0.06 * fs)
+    qrs_post = int(0.08 * fs)
+    p_pre = int(0.22 * fs)
+    p_post = int(0.10 * fs)
+    t_pre = int(0.12 * fs)
+    t_post = int(0.38 * fs)
+
+    net_1_qrs_list = []
+    net_avf_qrs_list = []
+    net_1_p_list = []
+    net_avf_p_list = []
+    net_1_t_list = []
+    net_avf_t_list = []
+
+    for p in peaks:
+        if p - p_pre >= 0 and p + t_post < len(sig_1):
+            net_1_qrs_list.append(np.sum(sig_1[p - qrs_pre : p + qrs_post]))
+            net_avf_qrs_list.append(np.sum(sig_avf[p - qrs_pre : p + qrs_post]))
+            net_1_p_list.append(np.sum(sig_1[p - p_pre : p - p_post]))
+            net_avf_p_list.append(np.sum(sig_avf[p - p_pre : p - p_post]))
+            net_1_t_list.append(np.sum(sig_1[p + t_pre : p + t_post]))
+            net_avf_t_list.append(np.sum(sig_avf[p + t_pre : p + t_post]))
+
+    if len(net_1_qrs_list) < 2:
+        return {
+            "qrs_axis_deg": None,
+            "p_axis_deg": None,
+            "t_axis_deg": None,
+            "classification": "Indeterminate (insufficient complete beats)",
+        }
+
+    mean_net_1_qrs = float(np.median(net_1_qrs_list))
+    mean_net_avf_qrs = float(np.median(net_avf_qrs_list))
+    qrs_deg = round(float(np.degrees(np.arctan2(mean_net_avf_qrs, mean_net_1_qrs))), 1)
+
+    mean_net_1_p = float(np.median(net_1_p_list))
+    mean_net_avf_p = float(np.median(net_avf_p_list))
+    p_deg = round(float(np.degrees(np.arctan2(mean_net_avf_p, mean_net_1_p))), 1)
+
+    mean_net_1_t = float(np.median(net_1_t_list))
+    mean_net_avf_t = float(np.median(net_avf_t_list))
+    t_deg = round(float(np.degrees(np.arctan2(mean_net_avf_t, mean_net_1_t))), 1)
+
+    if -30.0 <= qrs_deg <= 90.0:
+        classification = "Normal Electrical Axis (-30° to +90°)"
+    elif -90.0 <= qrs_deg < -30.0:
+        classification = "Left Axis Deviation (-30° to -90°)"
+    elif 90.0 < qrs_deg <= 180.0:
+        classification = "Right Axis Deviation (+90° to +180°)"
+    else:
+        classification = "Extreme Axis Deviation (-90° to -180°)"
+
+    return {
+        "qrs_axis_deg": qrs_deg,
+        "p_axis_deg": p_deg,
+        "t_axis_deg": t_deg,
+        "classification": classification,
+    }
+
+
 def compute_ecg_measurements(
     signal: np.ndarray,
     fs: float,
     r_peaks: np.ndarray,
     leads_available: Optional[List[str]] = None,
+    multi_lead_signals: Optional[Dict[str, np.ndarray]] = None,
 ) -> ClinicalECGMeasurements:
     """Compute deterministic clinical ECG parameters.
 
@@ -217,19 +309,92 @@ def compute_ecg_measurements(
     else:
         m.qt_status = "Not reliably measurable (requires stable heart rate)"
 
-    # 4. PR Interval
-    # P-wave detection on single-lead is often subtle and variable
-    m.pr_status = "Not reliably measurable on single-lead automated baseline"
-    m.pr_interval_ms = None
+    # 4. PR Interval Estimation
+    if len(peaks) >= 3 and fs > 0:
+        try:
+            pr_pre = int(0.28 * fs)
+            pr_post = int(0.08 * fs)
+            pr_snippets = []
+            for p in peaks:
+                if p - pr_pre >= 0 and p + pr_post < len(sig):
+                    pr_snippets.append(sig[p - pr_pre : p + pr_post])
+            if len(pr_snippets) >= 3:
+                avg_pr_beat = np.mean(pr_snippets, axis=0)
+                r_pos = pr_pre
+
+                # P-wave search interval: [-240ms, -100ms] before R
+                p_win_start = r_pos - int(0.24 * fs)
+                p_win_end = r_pos - int(0.09 * fs)
+                if p_win_start >= 0 and p_win_end > p_win_start:
+                    p_win = avg_pr_beat[p_win_start:p_win_end]
+                    # Check for identifiable P wave deflection
+                    if np.ptp(p_win) >= 0.02 and np.ptp(p_win) > 0.05 * np.ptp(avg_pr_beat):
+                        p_local_max = np.argmax(p_win)
+                        p_peak_idx = p_win_start + p_local_max
+
+                        # Search backward from P peak for P onset
+                        diff_p = np.abs(np.diff(avg_pr_beat))
+                        p_onset = p_win_start
+                        for idx in range(p_peak_idx - 1, max(0, p_win_start - int(0.04 * fs)), -1):
+                            if diff_p[idx] < 0.10 * np.max(diff_p[p_win_start:p_win_end]):
+                                p_onset = idx
+                                break
+
+                        # Q onset is around [-50ms, -20ms] before R
+                        q_search_start = r_pos - int(0.08 * fs)
+                        q_search_end = r_pos
+                        q_onset = r_pos - int(0.04 * fs)
+                        diff_q = np.abs(np.diff(avg_pr_beat))
+                        for idx in range(r_pos - 1, max(0, q_search_start), -1):
+                            if diff_q[idx] < 0.15 * np.max(diff_q[q_search_start:q_search_end]):
+                                q_onset = idx
+                                break
+
+                        calc_pr_sec = (q_onset - p_onset) / float(fs)
+                        calc_pr_ms = calc_pr_sec * 1000.0
+                        if 100.0 <= calc_pr_ms <= 260.0:
+                            m.pr_interval_ms = round(calc_pr_ms, 1)
+                            m.pr_status = "Estimated from Lead II P-wave onset"
+                        else:
+                            m.pr_status = f"Not reliably measurable (calculated {calc_pr_ms:.0f}ms out of bounds)"
+                    else:
+                        m.pr_status = "Not reliably measurable (P-wave morphology indistinct)"
+                else:
+                    m.pr_status = "Not reliably measurable (insufficient baseline window)"
+            else:
+                m.pr_status = "Not reliably measurable (insufficient beats)"
+        except Exception:
+            m.pr_status = "Not reliably measurable on single-lead automated baseline"
+    else:
+        m.pr_status = "Not reliably measurable on single-lead automated baseline"
 
     # 5. Frontal Plane Electrical Axes
-    # Strict Clinical Boundary: Electrical Axis CANNOT be determined from a single lead.
-    # It mathematically requires at least two orthogonal limb vector projections (Lead I and aVF).
-    leads = leads_available or ["II"]
-    has_lead_1 = any(l.strip().upper() in ["I", "LEAD I", "LEAD 1"] for l in leads)
-    has_lead_avf = any(l.strip().upper() in ["AVF", "LEAD AVF", "A_VF"] for l in leads)
+    # When orthogonal multi-lead signals (I and aVF) are provided, calculate exact hexaxial vector axes
+    leads = [l.strip().upper() for l in (leads_available or ["II"])]
+    has_lead_1 = any(l in ["I", "LEAD I", "LEAD 1"] for l in leads)
+    has_lead_avf = any(l in ["AVF", "LEAD AVF", "A_VF"] for l in leads)
 
-    if has_lead_1 and has_lead_avf:
+    if multi_lead_signals:
+        lead_i_sig = None
+        lead_avf_sig = None
+        for k, v in multi_lead_signals.items():
+            k_upper = k.strip().upper()
+            if k_upper in ["I", "LEAD I", "LEAD 1"]:
+                lead_i_sig = v
+            elif k_upper in ["AVF", "LEAD AVF", "A_VF"]:
+                lead_avf_sig = v
+
+        if lead_i_sig is not None and lead_avf_sig is not None:
+            axes_res = compute_frontal_axes(lead_i_sig, lead_avf_sig, fs, peaks)
+            m.qrs_axis_deg = axes_res.get("qrs_axis_deg")
+            m.p_axis_deg = axes_res.get("p_axis_deg")
+            m.t_axis_deg = axes_res.get("t_axis_deg")
+            m.axis_status = axes_res.get("classification", "Calculated from limb leads I and aVF")
+        elif has_lead_1 and has_lead_avf:
+            m.axis_status = "Multi-lead limb vector calculation available"
+        else:
+            m.axis_status = "Not measurable on single-lead ECG (requires orthogonal limb leads I and aVF)"
+    elif has_lead_1 and has_lead_avf:
         m.axis_status = "Multi-lead limb vector calculation available"
     else:
         m.axis_status = "Not measurable on single-lead ECG (requires orthogonal limb leads I and aVF)"
