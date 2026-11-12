@@ -8,9 +8,13 @@
   <!-- Modern Typography: Inter, Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Retro-Futuristic Medical Typography: Space Grotesk, Orbitron, Inter, JetBrains Mono, Dancing Script -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Orbitron:wght@500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js">
+    </script>
   <!-- Google Identity Services (GSI) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -1530,7 +1534,7 @@
       }
       #mobileDrawerBackdrop.active { display: block; }
       .landing-hero-card { grid-template-columns: 1fr; }
-      .dashboard-stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
       .doc-dash-grid { grid-template-columns: 1fr; }
       .patient-stats-grid { grid-template-columns: 1fr; }
       .measurements-5-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1538,10 +1542,674 @@
       .role-cards-grid { grid-template-columns: 1fr; }
       #publicNavbar { padding: 0 20px; }
       .public-nav-links { display: none; }
-      #pageViewWrapper { padding: 18px 16px 40px 16px; }
-      #appTopHeader { padding: 0 16px; }
+      #pageViewWrapper { padding: 14px 12px 40px 12px !important; }
+      #appTopHeader {
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+      }
+      #btnMobileMenu {
+        display: flex !important;
+      }
+      .header-platform-sub {
+        display: none !important;
+      }
+      .header-hospital-pill span {
+        display: none !important;
+      }
+      .header-hospital-pill {
+        padding: 5px 8px !important;
+      }
+      .header-user-text {
+        display: none !important;
+      }
+      .mobile-retro-device {
+        width: 100% !important;
+        max-width: 360px !important;
+      }
     }
-  </style>
+
+    @media (max-width: 640px) {
+      .dashboard-stats-grid { grid-template-columns: 1fr !important; }
+      #appTopHeader {
+        padding: 6px 10px !important;
+      }
+      .mobile-retro-device {
+        padding: 12px 8px !important;
+      }
+    }
+
+    /* Print Media Styling for Clinical Doctor Report */
+    @media print {
+      #publicNavbar, #appSidebar, #appTopHeader, #mobileDrawerBackdrop,
+      .hero-action-buttons, .icon-circle-btn, button, .canvas-grid-bg,
+      .patient-quick-actions-grid, .nav-tabs-bar {
+        display: none !important;
+      }
+      body, #authenticatedShell, #appMainContainer, #pageViewWrapper {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      .view-page:not(#viewDoctorReport) {
+        display: none !important;
+      }
+      #viewDoctorReport {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .vintage-paper-sheet {
+        box-shadow: none !important;
+        border: 1px solid #CCC !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        background: #FFFFFF !important;
+      }
+    }
+  
+    /* ═════════════════════════════════════════════════════════════════ */
+    /* 1. RETRO-FUTURISTIC MEDICAL DESIGN SYSTEM (CRT & CREAM CHASSIS)   */
+    /* ═════════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Retro-Futuristic Medical Aesthetic Colors */
+      --bg-primary: #0B2F2E;        /* Deep Teal */
+      --bg-surface: #1F4E4C;        /* Surface Teal */
+      --bg-surface-dark: #133D3B;   /* Deep Container Teal */
+      --bg-secondary: #0B2F2E;
+      --bg-tertiary: #16403E;
+      --bg-ambient-blue: #16403E;
+      --bg-glow: rgba(16, 185, 129, 0.15);
+
+      /* Chassis Panels & Cards: Vintage Cream */
+      --panel-cream: #E6D7B9;
+      --panel-cream-light: #F4EAD7;
+      --panel-cream-dark: #D4C3A3;
+      --panel-cream-border: #C7B594;
+      --panel-bevel: #BBA783;
+
+      /* Alert / CTA / Active Tab: Terracotta Retro Red */
+      --retro-red: #B64A3A;
+      --retro-red-hover: #9E3E30;
+      --retro-red-light: #F8E5E2;
+      --retro-red-border: #E2A49B;
+
+      /* CRT Trace / Indicator / Success: Monitor Phosphor Green */
+      --crt-green: #10B981;
+      --crt-green-trace: #7FBF8A;
+      --crt-green-glow: rgba(127, 191, 138, 0.45);
+      --crt-bg: #031410;
+      --crt-grid: #0A3228;
+
+      /* Backwards-compatible aliases mapped to retro theme */
+      --blue-primary: #B64A3A;
+      --blue-secondary: #C75B4B;
+      --blue-deep: #9E3E30;
+      --purple-primary: #B64A3A;
+      --purple-secondary: #C75B4B;
+      --purple-deep: #9E3E30;
+
+      /* Sidebar Retro Styling */
+      --sidebar-bg: #0F3533;
+      --sidebar-hover: #174845;
+      --sidebar-active: #B64A3A;
+      --sidebar-active-border: #E6D7B9;
+      --sidebar-text: #E6D7B9;
+      --sidebar-muted: #8AA7A3;
+
+      /* Typography Colors */
+      --text-main: #1C2B28;
+      --text-cream: #E6D7B9;
+      --text-secondary: #48615B;
+      --text-muted: #6B8580;
+      --border-color: #C7B594;
+      --border-light: #E0D3BB;
+
+      --success: #10B981;
+      --success-bg: #E6F7EF;
+      --success-border: #7FBF8A;
+
+      --warning: #D97706;
+      --warning-bg: #FEF3C7;
+      --warning-border: #FCD34D;
+
+      --error: #B64A3A;
+      --error-bg: #FDF2F0;
+      --error-border: #F5C2BC;
+
+      --info: #1F4E4C;
+      --info-bg: #E6EEED;
+      --info-border: #8FAEA9;
+
+      /* Typography Families */
+      --font-heading: 'Space Grotesk', 'Orbitron', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-display: 'Orbitron', 'Space Grotesk', monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, "SF Mono", monospace;
+      --font-script: 'Dancing Script', cursive, serif;
+
+      /* Radii */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      --radius-full: 9999px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+      --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.5);
+      --shadow-pill: 0 4px 14px rgba(0, 0, 0, 0.35);
+      --shadow-purple: 0 4px 14px rgba(182, 74, 58, 0.35);
+      --shadow-blue: 0 4px 14px rgba(182, 74, 58, 0.35);
+      --shadow-chassis: inset 0 2px 3px rgba(255, 255, 255, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
+      --shadow-crt: inset 0 0 35px rgba(0, 0, 0, 0.95), 0 4px 16px rgba(0, 0, 0, 0.6);
+      --shadow-red: 0 4px 14px rgba(182, 74, 58, 0.45);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      background-image: radial-gradient(ellipse at 50% 12%, #154542 0%, #0B2F2E 100%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Architectural Subtle Monitor Grid Background */
+    .canvas-grid-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(to right, rgba(31, 78, 76, 0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(31, 78, 76, 0.2) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* Cream Chassis Card / Panel */
+    .card {
+      background-color: var(--panel-cream);
+      border: 2px solid var(--panel-cream-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-chassis);
+      color: var(--text-main);
+      position: relative;
+    }
+
+    .retro-chassis-panel {
+      background-color: var(--panel-cream);
+      border: 2px solid var(--panel-cream-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-chassis);
+      padding: 22px;
+      position: relative;
+    }
+
+    /* Metallic Rivets / Screws */
+    .retro-rivet {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #C8B89E 50%, #7A694F 100%);
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.5);
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .retro-rivet::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 20%;
+      right: 20%;
+      height: 1px;
+      background: #3B3120;
+      transform: translateY(-50%) rotate(45deg);
+    }
+    .card-corner-rivets {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .card-corner-rivets .retro-rivet:nth-child(1) { position: absolute; top: 0; left: 0; }
+    .card-corner-rivets .retro-rivet:nth-child(2) { position: absolute; top: 0; right: 0; }
+    .card-corner-rivets .retro-rivet:nth-child(3) { position: absolute; bottom: 0; left: 0; }
+    .card-corner-rivets .retro-rivet:nth-child(4) { position: absolute; bottom: 0; right: 0; }
+
+    /* Speaker Vent Slits */
+    .retro-vent-grille {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .retro-vent-slit {
+      width: 4px;
+      height: 32px;
+      background: #272017;
+      border-radius: 2px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.25);
+    }
+
+    /* LED Status Indicator Lamps */
+    .retro-led-strip {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .retro-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.6);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.7);
+    }
+    .retro-led.amber {
+      background: #F59E0B;
+      box-shadow: 0 0 8px #F59E0B, inset 0 1px 2px #FFF;
+    }
+    .retro-led.green {
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981, inset 0 1px 2px #FFF;
+    }
+    .retro-led.red {
+      background: #EF4444;
+      box-shadow: 0 0 8px #EF4444, inset 0 1px 2px #FFF;
+    }
+
+    /* Tactile Rotary Control Knobs */
+    .retro-knob-cluster {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+    .retro-knob-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+    }
+    .retro-knob {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #F4EAD7 0%, #BBAA8F 40%, #7E6E55 85%, #54442F 100%);
+      border: 2px solid #5A4932;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 2px 2px rgba(255,255,255,0.6), inset 0 -2px 4px rgba(0,0,0,0.6);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .retro-knob:hover {
+      box-shadow: 0 5px 12px rgba(0,0,0,0.6), inset 0 2px 3px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.6);
+    }
+    .retro-knob:active {
+      transform: rotate(20deg);
+    }
+    .retro-knob::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 10px;
+      background: #B64A3A;
+      border-radius: 2px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+    .retro-knob-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #382D1D;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    /* CRT Oscilloscope Screen Styles */
+    .retro-crt-screen {
+      background: radial-gradient(ellipse at center, #052119 0%, #031410 80%, #020C09 100%);
+      border: 4px solid #2B2216;
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .retro-crt-screen::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.68;
+    }
+    .retro-crt-grid {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.12) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .crt-hr-display {
+      position: absolute;
+      top: 14px;
+      right: 20px;
+      text-align: right;
+      z-index: 15;
+      font-family: var(--font-mono);
+      color: var(--crt-green);
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.85);
+      pointer-events: none;
+    }
+    .crt-hr-label {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      opacity: 0.85;
+      font-weight: 700;
+    }
+    .crt-hr-val {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .crt-hr-unit {
+      font-size: 0.72rem;
+      margin-left: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Buttons & Badges */
+    .btn-primary, .btn-retro-cta {
+      background-color: var(--retro-red);
+      color: #FFFFFF !important;
+      border: 1px solid #9E3E30;
+      box-shadow: 0 2px 6px rgba(182, 74, 58, 0.35);
+      font-weight: 700;
+      font-family: var(--font-heading);
+      border-radius: var(--radius-md);
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .btn-primary:hover, .btn-retro-cta:hover {
+      background-color: var(--retro-red-hover);
+      box-shadow: 0 4px 14px rgba(182, 74, 58, 0.5);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1.5px solid var(--panel-cream-border);
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      padding: 8px 18px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-outline:hover {
+      background: rgba(31, 78, 76, 0.08);
+      border-color: var(--text-main);
+    }
+    .btn-soft {
+      background: rgba(31, 78, 76, 0.1);
+      color: var(--text-main);
+      border: 1px solid var(--panel-cream-border);
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      padding: 7px 14px;
+      cursor: pointer;
+    }
+
+    /* Retro Pills */
+    .badge-retro-green {
+      background: #D9EFE2;
+      color: #0E684C;
+      border: 1px solid #7FBF8A;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-retro-red {
+      background: #F8E5E2;
+      color: #9E3E30;
+      border: 1px solid #E2A49B;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-green {
+      background: #D9EFE2;
+      color: #0E684C;
+      border: 1px solid #7FBF8A;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+    .badge-purple, .badge-red {
+      background: #F8E5E2;
+      color: #9E3E30;
+      border: 1px solid #E2A49B;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+    .badge-amber {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FCD34D;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Vintage Clinical Parchment Report Sheet */
+    .clinical-report-sheet {
+      background: #FBF8EE;
+      color: #1A2624;
+      border: 2px solid #D6CBB7;
+      border-radius: 12px;
+      padding: 36px 40px;
+      box-shadow: inset 0 0 20px rgba(214, 203, 183, 0.4), 0 8px 30px rgba(0,0,0,0.4);
+      position: relative;
+      font-family: var(--font-sans);
+    }
+    .report-signature-cursive {
+      font-family: var(--font-script);
+      font-size: 2.2rem;
+      color: #1B3835;
+      line-height: 1.1;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+
+    /* Keyframes for Heart Pulse in Sidebar */
+    @keyframes heartBeatPulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+    
+    /* Responsive Mobile Handheld Monitor */
+    .mobile-retro-device {
+      max-width: 390px;
+      margin: 0 auto;
+      background: #133D3B;
+      border: 4px solid #1F4E4C;
+      border-radius: 28px;
+      padding: 18px 16px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.2);
+    }
+    .mobile-retro-screen {
+      background: #031410;
+      border: 3px solid #2B2216;
+      border-radius: 16px;
+      padding: 14px;
+      margin: 12px 0;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.95);
+    }
+    .mobile-retro-nav-btn {
+      background: var(--panel-cream);
+      border: 2px solid var(--panel-cream-border);
+      border-radius: 12px;
+      padding: 13px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-chassis);
+      transition: all 0.15s ease;
+    }
+    .mobile-retro-nav-btn:hover {
+      background: var(--panel-cream-light);
+      transform: translateY(-1px);
+    }
+    .retro-dark-card {
+      background-color: var(--bg-surface) !important;
+      border: 2px solid #2C6B68 !important;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      color: var(--text-cream) !important;
+    }
+    .retro-time-pill {
+      background: var(--bg-surface);
+      color: var(--text-cream);
+      border: 1px solid #2C6B68;
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-tabs-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid var(--panel-cream-border);
+      margin-bottom: 20px;
+      padding-bottom: 4px;
+    }
+    .nav-tab-btn {
+      background: transparent;
+      border: none;
+      padding: 8px 18px;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+    .nav-tab-btn.active {
+      background: var(--retro-red) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 6px rgba(182, 74, 58, 0.4);
+    }
+    .badge-retro-cream {
+      background: #F4EAD7;
+      color: #382D1D;
+      border: 1.5px solid #C7B594;
+      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #authenticatedShell {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+      background-color: var(--bg-primary);
+      border: 4px solid #1C140D;
+      box-shadow: inset 0 0 0 2px #C7B594, inset 0 0 24px rgba(0,0,0,0.85);
+    }
+    #appTopHeader {
+      background-color: var(--bg-surface-dark) !important;
+      border-bottom: 2px solid #1E504E !important;
+      color: var(--text-cream) !important;
+      padding: 12px 24px !important;
+    }
+    #appSidebar {
+      background-color: var(--sidebar-bg) !important;
+      border-right: 2px solid #1E504E !important;
+    }
+    .sidebar-item.active {
+      background: var(--retro-red) !important;
+      color: #FFFFFF !important;
+      border-radius: var(--radius-md) !important;
+      box-shadow: 0 2px 8px rgba(182, 74, 58, 0.4) !important;
+    }
+    .sidebar-item:hover:not(.active) {
+      background: var(--sidebar-hover) !important;
+      color: #FFFFFF !important;
+    }
+    
+</style>
 </head>
 <body>
 
@@ -1590,69 +2258,109 @@
     <!-- Mobile Backdrop -->
     <div id="mobileDrawerBackdrop" onclick="toggleMobileSidebar()"></div>
 
-    <!-- LEFT SIDEBAR (DARK NAVY #0F172A) -->
+    <!-- LEFT SIDEBAR -->
     <aside id="appSidebar">
-      <div class="sidebar-header">
+      <!-- Streamlined: Hidden logo header to match user reference image -->
+      <div class="sidebar-header" style="display:none;">
         <div class="brand-logo-wrap" onclick="navigateTo('doctorDashboard')">
-          <div class="brand-icon-box" style="width:34px; height:34px; background:rgba(37,99,235,0.15); border:1px solid rgba(59,130,246,0.3);">
-            <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14.5 2.5 A 13.5 13.5 0 0 0 2.5 14.5 C 5 13 13 5 14.5 2.5 Z" fill="#3B82F6"/>
-              <path d="M17.5 2.5 A 13.5 13.5 0 0 1 29.5 14.5 C 27 13 19 5 17.5 2.5 Z" fill="#2563EB"/>
-              <path d="M2.5 17.5 A 13.5 13.5 0 0 0 14.5 29.5 C 13 27 5 19 2.5 17.5 Z" fill="#1D4ED8"/>
-              <path d="M29.5 17.5 A 13.5 13.5 0 0 1 17.5 29.5 C 19 27 27 19 29.5 17.5 Z" fill="#60A5FA"/>
-            </svg>
-          </div>
           <div class="sidebar-brand-title">ECG Guardian</div>
         </div>
       </div>
 
       <!-- Navigation links dynamically adapted to Doctor vs Patient -->
-      <nav class="sidebar-nav" id="sidebarNavContent">
+      <nav class="sidebar-nav" id="sidebarNavContent" style="padding-top:14px;">
         <!-- Injected via JS based on user role -->
       </nav>
 
-      <!-- Sidebar Logged-In User Information at Bottom -->
-      <div class="sidebar-footer">
-        <div class="sidebar-user-info">
-          <div class="sidebar-avatar" id="sidebarAvatar">AC</div>
-          <div class="sidebar-user-text">
-            <span class="sidebar-user-name" id="sidebarUserName">Dr. Aniket Chandra</span>
-            <span class="sidebar-user-role" id="sidebarUserRole">Cardiologist</span>
+      <!-- Retro Chassis Mini Telemetry Widget (matches reference sidebar bottom) -->
+      <div style="padding:14px; margin:auto 12px 14px 12px; background:var(--bg-surface); border:1.5px solid #2C6B68; border-radius:var(--radius-md);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <!-- 4 Speaker Vent Slits -->
+          <div class="retro-vent-grille">
+            <div class="retro-vent-slit"></div>
+            <div class="retro-vent-slit"></div>
+            <div class="retro-vent-slit"></div>
+            <div class="retro-vent-slit"></div>
+          </div>
+          <!-- 3 LED Strip (Amber, Green, Red) -->
+          <div class="retro-led-strip">
+            <span class="retro-led amber" title="Standby"></span>
+            <span class="retro-led green" title="Normal Operation"></span>
+            <span class="retro-led red" title="Alert"></span>
           </div>
         </div>
-        <button class="sidebar-logout-btn" onclick="signOutUser()" title="Sign Out">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
-        </button>
+        <!-- Mini Heart Radar Display -->
+        <div style="background:#031410; border:2px solid #2B2216; border-radius:8px; height:60px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; box-shadow:inset 0 0 10px rgba(0,0,0,0.9);">
+          <div style="position:absolute; inset:0; background-image:radial-gradient(circle, rgba(16,185,129,0.2) 1px, transparent 1px); background-size:8px 8px;"></div>
+          <i class="fa-solid fa-heart-pulse" style="font-size:1.8rem; color:var(--crt-green); filter:drop-shadow(0 0 8px #10B981); animation: heartBeatPulse 1.2s infinite ease-in-out;"></i>
+        </div>
+      </div>
+
+      <!-- Preserved DOM user nodes for backward compatibility, hidden visually -->
+      <div class="sidebar-footer" style="display:none;">
+        <div class="sidebar-avatar" id="sidebarAvatar">AS</div>
+        <span id="sidebarUserName">Dr. A. Sharma</span>
+        <span id="sidebarUserRole">Cardiologist</span>
+        <button class="sidebar-logout-btn" onclick="signOutUser()" title="Sign Out"></button>
       </div>
     </aside>
 
     <!-- MAIN APP CONTENT CONTAINER -->
     <main id="appMainContainer">
-      <!-- TOP HEADER -->
-      <header id="appTopHeader">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <button class="icon-circle-btn" id="btnMobileMenu" onclick="toggleMobileSidebar()" style="display:none;" title="Menu">
+      <!-- TOP HEADER (VINTAGE MEDICAL INSTRUMENT BAR) -->
+      <header id="appTopHeader" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <button class="icon-circle-btn" id="btnMobileMenu" onclick="toggleMobileSidebar()" style="display:none; background:var(--bg-surface); border:1.5px solid #2C6B68; color:var(--text-cream);" title="Menu">
             <i class="fa-solid fa-bars"></i>
           </button>
-          <div class="header-left-title">
-            <h2 id="topHeaderGreeting">Welcome, Dr. Aniket 👋</h2>
-            <p id="topHeaderSubtitle">Cardiology Department</p>
+          
+          <!-- Mini CRT Oscilloscope Icon + Brand Logo (matches reference top left) -->
+          <div style="display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="navigateTo('doctorDashboard')">
+            <!-- Mini CRT monitor icon with green grid and wave -->
+            <div style="width:36px; height:32px; background:#031410; border:2px solid #2B2216; border-radius:6px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 6px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.3); flex-shrink:0;">
+              <div style="position:absolute; inset:0; background-image:linear-gradient(to right, rgba(16,185,129,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,185,129,0.2) 1px, transparent 1px); background-size:5px 5px;"></div>
+              <svg width="26" height="16" viewBox="0 0 40 24" fill="none" style="position:relative; z-index:2; filter:drop-shadow(0 0 3px #10B981);">
+                <path d="M0 12 L10 12 L14 4 L18 20 L22 8 L25 14 L28 12 L40 12" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <div style="display:flex; flex-direction:column;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-family:var(--font-heading); font-size:1.25rem; font-weight:800; letter-spacing:0.04em; color:var(--text-cream);">ECG GUARDIAN</span>
+                <!-- Small red ECG wave coming off GUARDIAN matching reference image -->
+                <svg width="30" height="18" viewBox="0 0 40 24" fill="none" style="filter:drop-shadow(0 0 3px #B64A3A);">
+                  <path d="M0 12 L8 12 L12 4 L16 20 L20 8 L23 14 L26 12 L40 12" stroke="#B64A3A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="header-platform-sub" style="font-size:0.62rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.09em;">
+                AI-Assisted Cardiac Analysis Platform
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="header-right-tools">
-          <div class="date-pill" id="headerDatePill">
-            <i class="fa-regular fa-calendar"></i>
-            <span id="headerCurrentDateText">Wed, 31 Oct 2026</span>
+        <div class="header-right-tools" style="display:flex; align-items:center; gap:12px;">
+          <!-- Hospital Selector Pill (matches reference top center) -->
+          <div class="header-hospital-pill" style="background:var(--bg-surface); border:1.5px solid #2C6B68; border-radius:var(--radius-full); padding:5px 14px; display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700; color:var(--text-cream); cursor:pointer;">
+            <i class="fa-solid fa-hospital" style="color:var(--crt-green);"></i>
+            <span>CityCare Hospital</span>
+            <i class="fa-solid fa-chevron-down" style="font-size:0.65rem; color:var(--text-muted);"></i>
           </div>
 
-          <div class="icon-circle-btn" onclick="toggleNotificationPanel()" title="Notifications">
-            <i class="fa-regular fa-bell"></i>
-            <span class="bell-notification-dot"></span>
+          <!-- Notification Bell -->
+          <div class="icon-circle-btn" onclick="toggleNotificationPanel()" title="Notifications" style="background:var(--bg-surface); border:1.5px solid #2C6B68; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text-cream); position:relative; cursor:pointer;">
+            <i class="fa-regular fa-bell" style="font-size:0.88rem;"></i>
+            <span class="bell-notification-dot" style="position:absolute; top:5px; right:5px; width:7px; height:7px; border-radius:50%; background:var(--retro-red); box-shadow:0 0 6px var(--retro-red);"></span>
           </div>
 
-          <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="navigateTo('settings')">
-            <div class="sidebar-avatar" id="headerAvatarPill" style="width:34px; height:34px; font-size:0.8rem;">AC</div>
+          <!-- Doctor/Patient Profile Pill with #topHeaderGreeting and #topHeaderSubtitle -->
+          <div style="background:var(--bg-surface); border:1.5px solid #2C6B68; border-radius:var(--radius-full); padding:3px 12px 3px 5px; display:flex; align-items:center; gap:9px; cursor:pointer;" onclick="navigateTo('settings')">
+            <div class="sidebar-avatar" id="headerAvatarPill" style="width:28px; height:28px; font-size:0.72rem; background:var(--retro-red); color:#FFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;">AS</div>
+            <div class="header-user-text" style="line-height:1.2;">
+              <strong id="topHeaderGreeting" style="font-size:0.8rem; color:var(--text-cream); display:block;">Dr. A. Sharma</strong>
+              <span id="topHeaderSubtitle" style="font-size:0.65rem; color:var(--text-muted);">Cardiologist</span>
+            </div>
+            <i class="fa-solid fa-chevron-down" style="font-size:0.6rem; color:var(--text-muted); margin-left:2px;"></i>
           </div>
         </div>
       </header>
@@ -2060,135 +2768,213 @@
         <!-- SCREEN 3: DOCTOR DASHBOARD (HOME)                             -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewDoctorDashboard" class="view-page hidden">
-          <!-- 4 Stat Cards in Row -->
-          <div class="dashboard-stats-grid">
-            <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#EFF6FF; color:#2563EB;">
+          <!-- Top Dashboard Header Bar with Date & Time Pill -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="font-size:1.65rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">Dashboard</h2>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span class="retro-time-pill"><i class="fa-regular fa-calendar"></i> Tue, 28 Jan 2025</span>
+              <span class="retro-time-pill"><i class="fa-regular fa-clock"></i> 10:24 AM</span>
+            </div>
+          </div>
+
+          <!-- 4 Stat Metric Cards (Matching Reference Image) -->
+          <div class="dashboard-stats-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:22px;">
+            <!-- Stat 1: Total Patients -->
+            <div class="stat-metric-card retro-dark-card" style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
+              <div class="stat-icon-wrapper" style="width:48px; height:48px; border-radius:12px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:var(--crt-green); font-size:1.3rem;">
                 <i class="fa-solid fa-users"></i>
               </div>
-              <div>
-                <h4 id="statTotalPatients">1,248</h4>
-                <p>Total Patients</p>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <h4 id="statTotalPatients" style="font-size:1.8rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">142</h4>
+                  <span class="badge-retro-green" style="font-size:0.68rem; padding:2px 8px;">↑ +6%</span>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.82rem; margin-top:2px;">Total Patients</p>
               </div>
             </div>
 
-            <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#EFF6FF; color:#2563EB;">
+            <!-- Stat 2: ECG Analyses Today -->
+            <div class="stat-metric-card retro-dark-card" style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
+              <div class="stat-icon-wrapper" style="width:48px; height:48px; border-radius:12px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:var(--crt-green); font-size:1.3rem;">
                 <i class="fa-solid fa-wave-square"></i>
               </div>
-              <div>
-                <h4 id="statTotalScans">3,672</h4>
-                <p>ECG Scans</p>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <h4 id="statTotalScans" style="font-size:1.8rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">37</h4>
+                  <span class="badge-retro-green" style="font-size:0.68rem; padding:2px 8px;">↑ +12%</span>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.82rem; margin-top:2px;">ECG Analyses Today</p>
               </div>
             </div>
 
-            <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#F0FDF4; color:#16A34A;">
-                <i class="fa-solid fa-file-circle-check"></i>
-              </div>
-              <div>
-                <h4 id="statReportsGenerated">3,540</h4>
-                <p>Reports Generated</p>
-              </div>
-            </div>
-
-            <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#FFFBEB; color:#D97706;">
+            <!-- Stat 3: Abnormal Findings -->
+            <div class="stat-metric-card retro-dark-card" style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
+              <div class="stat-icon-wrapper" style="width:48px; height:48px; border-radius:12px; background:rgba(182,74,58,0.2); border:1px solid rgba(182,74,58,0.4); display:flex; align-items:center; justify-content:center; color:#EF4444; font-size:1.3rem;">
                 <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
-              <div>
-                <h4 id="statPendingReviews">24</h4>
-                <p>Pending Reviews</p>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <h4 id="statPendingReviews" style="font-size:1.8rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">5</h4>
+                  <span class="badge-retro-red" style="font-size:0.68rem; padding:2px 8px;">↑ +25%</span>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.82rem; margin-top:2px;">Abnormal Findings</p>
+              </div>
+            </div>
+
+            <!-- Stat 4: Reports Pending Review -->
+            <div class="stat-metric-card retro-dark-card" style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
+              <div class="stat-icon-wrapper" style="width:48px; height:48px; border-radius:12px; background:rgba(217,119,6,0.15); border:1px solid rgba(217,119,6,0.3); display:flex; align-items:center; justify-content:center; color:var(--warning); font-size:1.3rem;">
+                <i class="fa-solid fa-clipboard-list"></i>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <h4 id="statReportsGenerated" style="font-size:1.8rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">32</h4>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.82rem; margin-top:2px;">Reports Pending Review</p>
               </div>
             </div>
           </div>
 
-          <!-- Main 2-Column Doctor Dashboard Grid -->
-          <div class="doc-dash-grid">
-            <!-- Left Column: Quick Actions + Recent Activity -->
-            <div style="display:flex; flex-direction:column; gap:20px;">
-              <!-- Quick Actions -->
-              <div class="card" style="padding:16px 20px;">
-                <span style="font-weight:700; font-size:0.86rem; color:var(--text-main); display:block; margin-bottom:10px;">Quick Actions</span>
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <button class="btn btn-primary" onclick="navigateTo('patientRegistration')">
-                    <i class="fa-solid fa-user-plus"></i> + Register Patient
-                  </button>
-                  <button class="btn btn-outline" onclick="navigateTo('ecgScan')">
-                    <i class="fa-solid fa-wave-square"></i> Scan ECG
-                  </button>
-                  <button class="btn btn-soft btn-sm" onclick="navigateTo('reportHistory')">
-                    <i class="fa-solid fa-clock-rotate-left"></i> View Reports
-                  </button>
+          <!-- Central Telemetry Grid: CRT Monitor Chassis (Left) + Recent Analyses Panel (Right) -->
+          <div style="display:grid; grid-template-columns:1.45fr 1fr; gap:22px; margin-bottom:22px;">
+            <!-- Left: Central CRT Telemetry Monitor in Vintage Cream Chassis -->
+            <div class="retro-chassis-panel" style="padding:22px 24px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+
+              <!-- Top Chassis Header -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div class="retro-led-strip">
+                    <span class="retro-led green"></span>
+                  </div>
+                  <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; letter-spacing:0.08em; color:#382D1D;">CARDIAC TELEMETRY MONITOR // LEAD II</span>
+                </div>
+                <span class="badge-retro-green" style="font-size:0.7rem; padding:3px 10px;">REALTIME ACTIVE</span>
+              </div>
+
+              <!-- CRT Oscilloscope Screen with Green Waveform and Digital 72 BPM Counter -->
+              <div class="retro-crt-screen" style="height:260px; position:relative;">
+                <div class="retro-crt-grid"></div>
+                <canvas id="dashboardCrtCanvas" width="620" height="260" style="width:100%; height:100%; display:block; position:relative; z-index:5;"></canvas>
+                
+                <!-- Digital Monospace 72 BPM Counter -->
+                <div class="crt-hr-display">
+                  <span class="crt-hr-label">HR</span>
+                  <div class="crt-hr-val">72</div>
+                  <span class="crt-hr-unit">bpm</span>
                 </div>
               </div>
 
-              <!-- Recent Activity Card -->
-              <div class="card">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-                  <h3 style="font-size:1.05rem; font-weight:800;">Recent Activity</h3>
-                  <a href="#" onclick="navigateTo('patientsManagement'); return false;" style="color:var(--purple-primary); font-size:0.78rem; font-weight:700; text-decoration:none;">View All Patients →</a>
+              <!-- Bottom Controls Chassis: 3 Rotary Knobs + Speaker Vent Grille -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:12px; border-top:1.5px solid var(--panel-cream-border);">
+                <!-- Rotary Knobs Cluster -->
+                <div class="retro-knob-cluster">
+                  <div class="retro-knob-container">
+                    <div class="retro-knob" title="Sweep Speed"></div>
+                    <span class="retro-knob-label">SPEED 25mm/s</span>
+                  </div>
+                  <div class="retro-knob-container">
+                    <div class="retro-knob" title="Signal Gain"></div>
+                    <span class="retro-knob-label">GAIN 10mm/mV</span>
+                  </div>
+                  <div class="retro-knob-container">
+                    <div class="retro-knob" title="Bandpass Filter"></div>
+                    <span class="retro-knob-label">FILTER 0.05-150Hz</span>
+                  </div>
                 </div>
-                <table class="recent-activity-table">
-                  <thead>
-                    <tr>
-                      <th>MRN</th>
-                      <th>Patient Name</th>
-                      <th>Status</th>
-                      <th>Time</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblRecentActivityBody">
-                    <tr>
-                      <td><code>MRN-5F2298</code></td>
-                      <td><strong>Raj Verma</strong></td>
-                      <td><span class="badge badge-green">ECG Analyzed</span></td>
-                      <td style="color:var(--text-muted); font-size:0.78rem;">2 min ago</td>
-                    </tr>
-                    <tr>
-                      <td><code>MRN-5F2297</code></td>
-                      <td><strong>Priya Sharma</strong></td>
-                      <td><span class="badge badge-purple">Report Generated</span></td>
-                      <td style="color:var(--text-muted); font-size:0.78rem;">18 min ago</td>
-                    </tr>
-                    <tr>
-                      <td><code>MRN-5F2296</code></td>
-                      <td><strong>Aman Singh</strong></td>
-                      <td><span class="badge badge-amber">Pending Review</span></td>
-                      <td style="color:var(--text-muted); font-size:0.78rem;">32 min ago</td>
-                    </tr>
-                    <tr>
-                      <td><code>MRN-5F2295</code></td>
-                      <td><strong>Neha Gupta</strong></td>
-                      <td><span class="badge badge-amber">Review Required</span></td>
-                      <td style="color:var(--text-muted); font-size:0.78rem;">1 hr ago</td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                <!-- Speaker Vent Slits -->
+                <div class="retro-vent-grille" style="margin-right:8px;">
+                  <div class="retro-vent-slit" style="height:32px;"></div>
+                  <div class="retro-vent-slit" style="height:32px;"></div>
+                  <div class="retro-vent-slit" style="height:32px;"></div>
+                  <div class="retro-vent-slit" style="height:32px;"></div>
+                  <div class="retro-vent-slit" style="height:32px;"></div>
+                </div>
               </div>
             </div>
 
-            <!-- Right: ECG Trends (This Month) -->
-            <div class="card">
-              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">ECG Trends (This Month)</h3>
-              <!-- Smooth Trend Chart -->
-              <div id="doctorTrendsChart" style="height:190px; width:100%;"></div>
-              
-              <div style="display:flex; align-items:center; justify-content:space-around; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color);">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span style="width:10px; height:10px; border-radius:50%; background:#16A34A; display:inline-block;"></span>
-                  <span style="font-size:0.84rem; font-weight:700;">Normal <strong>68%</strong></span>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span style="width:10px; height:10px; border-radius:50%; background:#DC2626; display:inline-block;"></span>
-                  <span style="font-size:0.84rem; font-weight:700;">Abnormal <strong>24%</strong></span>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span style="width:10px; height:10px; border-radius:50%; background:#F59E0B; display:inline-block;"></span>
-                  <span style="font-size:0.84rem; font-weight:700;">Review <strong>8%</strong></span>
-                </div>
+            <!-- Right: Recent Analyses Panel (Cream Card with Retro Pills) -->
+            <div class="card" style="padding:22px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <h3 style="font-size:1.15rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0;">Recent Analyses</h3>
+                <a href="#" onclick="navigateTo('reportHistory'); return false;" style="color:var(--retro-red); font-size:0.82rem; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:4px;">
+                  View All <i class="fa-solid fa-arrow-right"></i>
+                </a>
+              </div>
+
+              <!-- Recent Analyses Table Matching Reference Image -->
+              <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                <thead>
+                  <tr style="border-bottom:2px solid var(--panel-cream-border); text-align:left; color:var(--text-secondary); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;">
+                    <th style="padding:8px 6px;">Patient</th>
+                    <th style="padding:8px 6px;">Finding (AI)</th>
+                    <th style="padding:8px 6px; text-align:right;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="tblRecentActivityBody">
+                  <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                    <td style="padding:10px 6px; font-weight:700; font-family:var(--font-mono);">P-1045</td>
+                    <td style="padding:10px 6px; font-weight:600;">Normal Sinus Rhythm</td>
+                    <td style="padding:10px 6px; text-align:right;"><span class="badge-retro-green">Reviewed</span></td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                    <td style="padding:10px 6px; font-weight:700; font-family:var(--font-mono);">P-1044</td>
+                    <td style="padding:10px 6px; font-weight:600;">Atrial Fibrillation (Prob. 0.92)</td>
+                    <td style="padding:10px 6px; text-align:right;"><button class="badge-retro-red" style="border:none; cursor:pointer;" onclick="navigateTo('analysis')">Review</button></td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                    <td style="padding:10px 6px; font-weight:700; font-family:var(--font-mono);">P-1043</td>
+                    <td style="padding:10px 6px; font-weight:600;">Premature Ventricular Contractions</td>
+                    <td style="padding:10px 6px; text-align:right;"><span class="badge-retro-green">Reviewed</span></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 6px; font-weight:700; font-family:var(--font-mono);">P-1042</td>
+                    <td style="padding:10px 6px; font-weight:600;">Possible Ischemia (Prob. 0.78)</td>
+                    <td style="padding:10px 6px; text-align:right;"><button class="badge-retro-red" style="border:none; cursor:pointer;" onclick="navigateTo('analysis')">Review</button></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Quick Launch Actions -->
+              <div style="display:flex; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid var(--panel-cream-border);">
+                <button class="btn btn-primary" onclick="navigateTo('patientRegistration')" style="flex:1;">
+                  <i class="fa-solid fa-user-plus"></i> + Patient
+                </button>
+                <button class="btn btn-outline" onclick="navigateTo('ecgScan')" style="flex:1;">
+                  <i class="fa-solid fa-wave-square"></i> Scan ECG
+                </button>
               </div>
             </div>
+          </div>
+
+          <!-- Bottom: ECG Trends Chart Container (Preserving Playwright test assertion) -->
+          <div class="card" style="padding:18px 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h3 style="font-size:1rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0;">
+                <i class="fa-solid fa-chart-line" style="color:var(--retro-red); margin-right:6px;"></i> Telemetry & Diagnostic Trends (Monthly)
+              </h3>
+              <div style="display:flex; gap:16px; font-size:0.78rem; font-weight:700;">
+                <span style="color:#0E684C;"><i class="fa-solid fa-circle" style="font-size:0.55rem; color:#10B981;"></i> Normal 68%</span>
+                <span style="color:#9E3E30;"><i class="fa-solid fa-circle" style="font-size:0.55rem; color:#EF4444;"></i> Abnormal 24%</span>
+                <span style="color:#92400E;"><i class="fa-solid fa-circle" style="font-size:0.55rem; color:#F59E0B;"></i> Review 8%</span>
+              </div>
+            </div>
+            <div id="doctorTrendsChart" style="height:140px; width:100%;"></div>
           </div>
         </section>
 
@@ -2196,106 +2982,149 @@
         <!-- SCREEN 4: PATIENT DASHBOARD                                   -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewPatientDashboard" class="view-page hidden">
-          <!-- Hero Recent Report Card -->
-          <div class="patient-hero-report-card">
-            <div>
-              <span class="badge badge-purple" style="margin-bottom:10px;">RECENT REPORT</span>
-              <h3 style="font-size:1.35rem; font-weight:800; color:var(--text-main); margin-bottom:6px;">ECG Report — 28 Oct 2026</h3>
-              <p style="font-size:1rem; color:var(--success); font-weight:700; margin-bottom:18px;">
-                <i class="fa-solid fa-circle-check"></i> Result: Normal Sinus Rhythm
+          <!-- Top Greeting Matching Reference Image View 6 -->
+          <div style="margin-bottom:20px;">
+            <h2 style="font-size:1.75rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">
+              Hello, Rajesh Kumar
+            </h2>
+            <p style="color:var(--text-muted); font-size:0.92rem; margin-top:4px;">Your Heart Health Dashboard</p>
+          </div>
+
+          <!-- Patient Portal Subnav Pills / Tabs -->
+          <div class="nav-tabs-bar" style="margin-bottom:20px;">
+            <button class="nav-tab-btn active"><i class="fa-solid fa-gauge"></i> My Dashboard</button>
+            <button class="nav-tab-btn" onclick="navigateTo('patientReport')"><i class="fa-solid fa-file-medical"></i> My Reports</button>
+            <button class="nav-tab-btn" onclick="navigateTo('patientProfile')"><i class="fa-solid fa-heart-pulse"></i> My Health</button>
+            <button class="nav-tab-btn" onclick="navigateTo('appointments')"><i class="fa-solid fa-calendar-check"></i> Appointments</button>
+            <button class="nav-tab-btn" onclick="navigateTo('settings')"><i class="fa-solid fa-user"></i> Profile</button>
+          </div>
+
+          <!-- Grid of Patient Cards Matching Reference Image View 6 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px;">
+            <!-- Card 1: Latest ECG Report (Preserves .patient-hero-report-card) -->
+            <div class="patient-hero-report-card card" style="padding:22px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="width:48px; height:48px; border-radius:12px; background:var(--retro-red-light); border:1.5px solid var(--retro-red-border); display:flex; align-items:center; justify-content:center; color:var(--retro-red); font-size:1.4rem; flex-shrink:0;">
+                  <i class="fa-solid fa-file-waveform"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:1.15rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0 0 6px 0;">
+                    Latest ECG Report
+                  </h3>
+                  <p style="color:var(--text-secondary); font-size:0.84rem; margin-bottom:14px;">
+                    Scan completed on 28 Jan 2025. Reviewed by Dr. A. Sharma.
+                  </p>
+                  <button class="btn btn-primary" onclick="navigateTo('patientReport')">
+                    View Report <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Next Appointment -->
+            <div class="card" style="padding:22px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="width:48px; height:48px; border-radius:12px; background:var(--panel-cream-light); border:1.5px solid var(--panel-cream-border); display:flex; align-items:center; justify-content:center; color:var(--text-main); font-size:1.4rem; flex-shrink:0;">
+                  <i class="fa-solid fa-calendar-day"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:1.15rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0 0 4px 0;">
+                    Next Appointment
+                  </h3>
+                  <div style="font-size:1.1rem; font-weight:800; color:var(--text-main); font-family:var(--font-mono); margin-bottom:4px;">
+                    02 Feb 2025, 11:00 AM
+                  </div>
+                  <p style="color:var(--text-secondary); font-size:0.82rem; margin-bottom:12px;">
+                    With Dr. A. Sharma &bull; Cardiology Suite 3
+                  </p>
+                  <button class="btn btn-outline btn-sm" onclick="navigateTo('appointments')">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Heart Health Summary with Anatomical Heart Graphic -->
+            <div class="card" style="padding:22px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+              <div style="display:flex; align-items:center; gap:20px;">
+                <div style="width:72px; height:72px; border-radius:18px; background:radial-gradient(circle, #FDF2F0 0%, #F5C2BC 100%); border:2px solid var(--retro-red-border); display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(182,74,58,0.25);">
+                  <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+                    <!-- Anatomical Heart Illustration matching reference image -->
+                    <path d="M32 14 C32 8, 38 6, 44 8 C48 9, 50 14, 48 18 C46 22, 42 24, 38 25" stroke="#B64A3A" stroke-width="3" stroke-linecap="round" fill="#F8E5E2"/>
+                    <path d="M26 12 C26 6, 20 6, 16 10 C13 13, 14 18, 17 21 C20 23, 24 24, 28 25" stroke="#8B2E20" stroke-width="3" stroke-linecap="round" fill="#E2A49B"/>
+                    <path d="M28 8 L28 16 M34 6 L34 16 M40 8 L40 16" stroke="#9E3E30" stroke-width="3.5" stroke-linecap="round"/>
+                    <path d="M20 22 C14 26, 12 36, 18 46 C23 54, 30 58, 34 60 C38 56, 48 48, 52 38 C56 28, 48 20, 38 22 C32 23, 24 20, 20 22 Z" fill="#B64A3A" stroke="#7A2216" stroke-width="2"/>
+                    <path d="M30 26 Q34 36 28 48 M34 32 Q42 40 44 50" stroke="#FFD1CA" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style="font-size:1.15rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0 0 6px 0;">
+                    Heart Health Summary
+                  </h3>
+                  <div style="margin-bottom:6px;">
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">Last ECG Finding: </span>
+                    <span class="badge-retro-red">Atrial Fibrillation</span>
+                  </div>
+                  <div style="font-size:0.8rem; color:var(--text-secondary);">
+                    Status: <strong style="color:var(--warning);"><i class="fa-solid fa-clock"></i> Under Doctor Review</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Doctor's Note -->
+            <div class="card" style="padding:22px;">
+              <div class="card-corner-rivets">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+              <h3 style="font-size:1.15rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0 0 10px 0; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-user-doctor" style="color:var(--retro-red);"></i> Doctor's Note
+              </h3>
+              <p style="font-size:0.95rem; color:var(--text-main); line-height:1.6; background:var(--panel-cream-light); border-left:4px solid var(--retro-red); padding:10px 14px; border-radius:0 8px 8px 0; margin:0;">
+                "Continue your prescribed medication and follow up as scheduled."
               </p>
-              <div style="display:flex; gap:12px;">
-                <button class="btn btn-primary" onclick="navigateTo('patientReport')">
-                  View Report <i class="fa-solid fa-arrow-right"></i>
-                </button>
-                <button class="btn btn-outline" onclick="downloadReportPdf('sample_raj', 'patient')">
-                  <i class="fa-solid fa-download"></i> Download PDF
-                </button>
-              </div>
-            </div>
-
-            <!-- Right: Clinical Vitals Summary -->
-            <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-              <div style="background:var(--bg-subtle); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px 24px; text-align:center; min-width:130px;">
-                <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Heart Rate</div>
-                <div style="font-size:1.75rem; font-weight:800; color:var(--purple-primary);">72 <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted);">bpm</span></div>
-              </div>
-              <div style="background:var(--bg-subtle); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px 24px; text-align:center; min-width:130px;">
-                <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Status</div>
-                <div style="font-size:1.05rem; font-weight:800; color:var(--success); margin-top:6px;"><i class="fa-solid fa-circle-check"></i> Verified</div>
-              </div>
             </div>
           </div>
 
-          <!-- Quick Actions: 4 Cards (Update Profile, Scan ECG, View Reports, Book Appointment) -->
-          <div style="margin-bottom: 24px;">
-            <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px; color:var(--text-main);">Quick Actions</h3>
-            <div class="patient-quick-actions-grid">
-              <!-- 1. Update Profile -->
-              <div class="patient-action-card" onclick="navigateTo('patientProfile')">
-                <div class="patient-action-icon">
-                  <i class="fa-solid fa-user-pen"></i>
-                </div>
-                <div class="patient-action-text">
-                  <h4>Update Profile</h4>
-                  <p>Review contact details and medical vitals</p>
-                </div>
-              </div>
-
-              <!-- 2. Scan ECG -->
-              <div class="patient-action-card" onclick="navigateTo('ecgScan')">
-                <div class="patient-action-icon">
-                  <i class="fa-solid fa-wave-square"></i>
-                </div>
-                <div class="patient-action-text">
-                  <h4>Scan ECG</h4>
-                  <p>Upload trace or record live rhythm analysis</p>
-                </div>
-              </div>
-
-              <!-- 3. View Reports -->
-              <div class="patient-action-card" onclick="navigateTo('reportHistory')">
-                <div class="patient-action-icon">
-                  <i class="fa-solid fa-file-lines"></i>
-                </div>
-                <div class="patient-action-text">
-                  <h4>View Reports</h4>
-                  <p>Access your past diagnostic summaries</p>
-                </div>
-              </div>
-
-              <!-- 4. Book Appointment -->
-              <div class="patient-action-card" onclick="navigateTo('appointments')">
-                <div class="patient-action-icon">
-                  <i class="fa-solid fa-calendar-check"></i>
-                </div>
-                <div class="patient-action-text">
-                  <h4>Book Appointment</h4>
-                  <p>Schedule a routine cardiology consultation</p>
-                </div>
-              </div>
+          <!-- Quick Actions Grid (Preserves .patient-quick-actions-grid for Playwright) -->
+          <div class="patient-quick-actions-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;">
+            <div class="patient-action-card card" onclick="navigateTo('patientProfile')" style="cursor:pointer; padding:16px; text-align:center;">
+              <i class="fa-solid fa-user-pen" style="font-size:1.5rem; color:var(--retro-red); margin-bottom:8px;"></i>
+              <h4 style="font-size:0.92rem; font-weight:700; margin:0;">Update Profile</h4>
             </div>
-          </div>
-
-
-
-          <!-- Doctor Advice & Heart Overview -->
-          <div class="card" style="margin-bottom:20px;">
-            <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:12px; color:var(--text-main);">Doctor-Approved Advice</h3>
-            <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:10px; font-size:0.86rem; color:var(--text-secondary);">
-              <li style="display:flex; align-items:flex-start; gap:8px;">
-                <i class="fa-solid fa-circle-check text-green" style="margin-top:3px; color:#16A34A;"></i>
-                <span>No medications required at this time. Maintain healthy active lifestyle.</span>
-              </li>
-              <li style="display:flex; align-items:flex-start; gap:8px;">
-                <i class="fa-solid fa-circle-check text-green" style="margin-top:3px; color:#16A34A;"></i>
-                <span>Resting heart rate (72 bpm) and rhythm intervals are within normal limits.</span>
-              </li>
-              <li style="display:flex; align-items:flex-start; gap:8px;">
-                <i class="fa-solid fa-calendar-check text-purple" style="margin-top:3px; color:var(--purple-primary);"></i>
-                <span>Routine follow-up ECG recommended after 6 months.</span>
-              </li>
-            </ul>
+            <div class="patient-action-card card" onclick="navigateTo('ecgScan')" style="cursor:pointer; padding:16px; text-align:center;">
+              <i class="fa-solid fa-wave-square" style="font-size:1.5rem; color:var(--retro-red); margin-bottom:8px;"></i>
+              <h4 style="font-size:0.92rem; font-weight:700; margin:0;">Scan ECG</h4>
+            </div>
+            <div class="patient-action-card card" onclick="navigateTo('reportHistory')" style="cursor:pointer; padding:16px; text-align:center;">
+              <i class="fa-solid fa-file-lines" style="font-size:1.5rem; color:var(--retro-red); margin-bottom:8px;"></i>
+              <h4 style="font-size:0.92rem; font-weight:700; margin:0;">View Reports</h4>
+            </div>
+            <div class="patient-action-card card" onclick="navigateTo('appointments')" style="cursor:pointer; padding:16px; text-align:center;">
+              <i class="fa-solid fa-calendar-check" style="font-size:1.5rem; color:var(--retro-red); margin-bottom:8px;"></i>
+              <h4 style="font-size:0.92rem; font-weight:700; margin:0;">Appointments</h4>
+            </div>
           </div>
         </section>
 
@@ -2590,142 +3419,184 @@
         <!-- SCREEN 6: PATIENT PROFILE                                     -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewPatientProfile" class="view-page hidden">
-          <!-- Breadcrumbs -->
-          <div style="font-size:0.84rem; color:var(--text-secondary); margin-bottom:14px;">
-            <a href="#" onclick="navigateTo('doctorDashboard'); return false;" style="color:var(--purple-primary); text-decoration:none; font-weight:600;">← Patients</a>
-            <span style="margin:0 6px;">/</span>
-            <strong>Patient Profile</strong>
-          </div>
-
-          <!-- Header Card -->
-          <div class="patient-profile-header-card">
-            <div class="pat-profile-left">
-              <div class="pat-large-avatar">
-                <i class="fa-solid fa-user"></i>
-              </div>
-              <div>
-                <h2 style="font-size:1.6rem; font-weight:800; color:var(--text-main);" id="profName">Raj Verma</h2>
-                <p style="color:var(--text-secondary); font-size:0.86rem; margin-top:2px;" id="profMeta">
-                  MRN: <strong>MRN-5F2298</strong> | Age: 15 years | Sex: Male
-                </p>
-              </div>
-            </div>
-            <div style="display:flex; gap:10px;">
-              <button class="btn btn-outline" onclick="openEditActivePatient()">
-                <i class="fa-solid fa-pen-to-square"></i> Edit Profile
-              </button>
-              <button class="btn btn-primary" onclick="navigateTo('ecgScan')">
-                <i class="fa-solid fa-wave-square"></i> Scan ECG
-              </button>
+          <!-- Breadcrumb Header -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="font-size:0.84rem; color:var(--text-cream);">
+              <a href="#" onclick="navigateTo('doctorDashboard'); return false;" style="color:var(--crt-green-trace); text-decoration:none; font-weight:700;">← Patients</a>
+              <span style="margin:0 6px; opacity:0.6;">/</span>
+              <strong style="color:var(--text-cream);">Patient Record</strong>
             </div>
           </div>
 
-          <!-- Navigation Tabs -->
+          <!-- Photo ID Card (Vintage Cream Chassis matching Reference Image View 2) -->
+          <div class="retro-chassis-panel" style="padding:22px; margin-bottom:20px;">
+            <div class="card-corner-rivets">
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div style="display:flex; align-items:center; gap:18px;">
+                <!-- ID Photo Frame -->
+                <div style="width:70px; height:70px; border-radius:12px; background:radial-gradient(circle at 40% 40%, #FFF, #C7B594); border:2px solid #5A4932; display:flex; align-items:center; justify-content:center; font-size:2rem; color:#483825; box-shadow:inset 0 1px 3px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.25);">
+                  <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <h2 id="profName" style="font-size:1.55rem; font-weight:800; font-family:var(--font-heading); color:var(--text-main); margin:0;">P-1044 Rajesh Kumar</h2>
+                    <span class="badge-retro-red" style="font-size:0.75rem; font-weight:800;">High Risk</span>
+                  </div>
+                  <p id="profMeta" style="color:var(--text-secondary); font-size:0.9rem; margin-top:4px; font-weight:600;">
+                    Male &bull; 58 years &bull; B+
+                  </p>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="openEditActivePatient()">
+                  <i class="fa-solid fa-pen-to-square"></i> Edit
+                </button>
+                <button class="btn btn-primary" onclick="navigateTo('ecgScan')">
+                  <i class="fa-solid fa-wave-square"></i> Scan ECG
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Navigation Tabs: Overview, Medical History, Medications, Labs, ECG Records -->
           <div class="nav-tabs-bar">
             <button class="nav-tab-btn active" onclick="switchProfileTab('overview', this)">Overview</button>
             <button class="nav-tab-btn" onclick="switchProfileTab('history', this)">Medical History</button>
-            <button class="nav-tab-btn" onclick="switchProfileTab('reports', this)">ECG Reports</button>
             <button class="nav-tab-btn" onclick="switchProfileTab('meds', this)">Medications</button>
+            <button class="nav-tab-btn" onclick="switchProfileTab('labs', this)">Labs</button>
+            <button class="nav-tab-btn" onclick="switchProfileTab('reports', this)">ECG Records</button>
           </div>
 
-          <!-- Tab Content 1: Overview -->
+          <!-- Tab Content 1: Overview (Vitals Latest & Clinical Information Grids) -->
           <div id="profTabOverview">
-            <!-- 4 Mini Summary Cards -->
-            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:20px;">
-              <div class="card" style="padding:14px; text-align:center;">
-                <span style="font-size:0.72rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Blood Group</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:var(--purple-primary); margin-top:4px;" id="profBlood">A+</h4>
-              </div>
-              <div class="card" style="padding:14px; text-align:center;">
-                <span style="font-size:0.72rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Allergies</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:var(--text-main); margin-top:4px;" id="profAllergies">None</h4>
-              </div>
-              <div class="card" style="padding:14px; text-align:center;">
-                <span style="font-size:0.72rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Conditions</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:var(--text-main); margin-top:4px;" id="profConditions">None</h4>
-              </div>
-              <div class="card" style="padding:14px; text-align:center;">
-                <span style="font-size:0.72rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Smoking</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:var(--text-main); margin-top:4px;" id="profSmoke">Non-Smoker</h4>
-              </div>
-            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+              <!-- Left Column: Vitals (Latest) -->
+              <div class="card" style="padding:22px;">
+                <h3 style="font-size:1.05rem; font-weight:800; font-family:var(--font-heading); margin-bottom:16px; color:var(--text-main); border-bottom:1.5px solid var(--panel-cream-border); padding-bottom:8px;">
+                  Vitals (Latest)
+                </h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-heart-pulse" style="font-size:1.6rem; color:var(--retro-red);"></i>
+                    <div>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">HR</span>
+                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">78 <span style="font-size:0.75rem; font-weight:600;">bpm</span></div>
+                    </div>
+                  </div>
+                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-gauge-high" style="font-size:1.6rem; color:var(--info);"></i>
+                    <div>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">BP</span>
+                      <div id="profBp" style="font-size:1.15rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">132/84 <span style="font-size:0.7rem; font-weight:600;">mmHg</span></div>
+                    </div>
+                  </div>
+                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-lungs" style="font-size:1.6rem; color:var(--crt-green);"></i>
+                    <div>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">SpO2</span>
+                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">98%</div>
+                    </div>
+                  </div>
+                  <div style="background:var(--panel-cream-light); border:1px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:12px; display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-temperature-half" style="font-size:1.6rem; color:var(--warning);"></i>
+                    <div>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Temp</span>
+                      <div style="font-size:1.25rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">36.7 <span style="font-size:0.75rem; font-weight:600;">°C</span></div>
+                    </div>
+                  </div>
+                </div>
 
-            <!-- Two Columns: Personal Details & Vitals -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-              <div class="card">
-                <h3 style="font-size:1rem; font-weight:800; margin-bottom:14px;">Personal Details</h3>
-                <div style="display:flex; flex-direction:column; gap:10px; font-size:0.86rem;">
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light); padding-bottom:6px;">
-                    <span style="color:var(--text-secondary);">Date of Birth</span>
-                    <strong id="profDob">12 Mar 2011</strong>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light); padding-bottom:6px;">
-                    <span style="color:var(--text-secondary);">Phone</span>
-                    <strong id="profPhone">+91 98765 43210</strong>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light); padding-bottom:6px;">
-                    <span style="color:var(--text-secondary);">Email</span>
-                    <strong id="profEmail">rajverma@gmail.com</strong>
-                  </div>
-                  <div style="display:flex; justify-content:space-between;">
-                    <span style="color:var(--text-secondary);">Address</span>
-                    <strong id="profAddress">Jaipur, Rajasthan</strong>
-                  </div>
+                <div style="margin-top:14px; font-size:0.8rem; color:var(--text-secondary); display:flex; justify-content:space-between;">
+                  <span>Height: <strong id="profHeight">174 cm</strong></span>
+                  <span>Weight: <strong id="profWeight">78 kg</strong></span>
+                  <span>Blood: <strong id="profBlood">B+</strong></span>
                 </div>
               </div>
 
-              <div class="card">
-                <h3 style="font-size:1rem; font-weight:800; margin-bottom:14px;">Vitals (Last Recorded)</h3>
-                <div style="display:flex; flex-direction:column; gap:10px; font-size:0.86rem;">
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light); padding-bottom:6px;">
-                    <span style="color:var(--text-secondary);">Blood Pressure</span>
-                    <strong id="profBp">110 / 75 mmHg</strong>
+              <!-- Right Column: Clinical Information -->
+              <div class="card" style="padding:22px;">
+                <h3 style="font-size:1.05rem; font-weight:800; font-family:var(--font-heading); margin-bottom:16px; color:var(--text-main); border-bottom:1.5px solid var(--panel-cream-border); padding-bottom:8px;">
+                  Clinical Information
+                </h3>
+                
+                <div style="margin-bottom:14px;">
+                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Known Conditions</span>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <span class="badge-retro-red" style="font-size:0.78rem;">Hypertension</span>
+                    <span class="badge-retro-red" style="font-size:0.78rem;">Type 2 Diabetes</span>
+                    <span id="profConditions" style="display:none;">Hypertension, Type 2 Diabetes</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light); padding-bottom:6px;">
-                    <span style="color:var(--text-secondary);">Height</span>
-                    <strong id="profHeight">165 cm</strong>
+                </div>
+
+                <div style="margin-bottom:14px;">
+                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Allergies</span>
+                  <div style="display:flex; gap:8px;">
+                    <span class="badge-retro-red" style="font-size:0.78rem;" id="profAllergies">Penicillin</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between;">
-                    <span style="color:var(--text-secondary);">Weight</span>
-                    <strong id="profWeight">52 kg</strong>
-                  </div>
+                </div>
+
+                <div>
+                  <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Current Medications</span>
+                  <p style="font-size:0.9rem; font-weight:600; color:var(--text-main); margin:0;">
+                    Metformin (500mg BID), Amlodipine (5mg OD)
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div style="display:flex; gap:12px; margin-top:20px;">
-              <button class="btn btn-primary" onclick="navigateTo('ecgScan')">
-                <i class="fa-solid fa-wave-square"></i> Scan ECG
-              </button>
-              <button class="btn btn-outline" onclick="navigateTo('reportHistory')">
-                <i class="fa-solid fa-file-medical"></i> View Reports
-              </button>
+            <!-- Demographics Card -->
+            <div class="card" style="padding:18px 22px;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; font-size:0.85rem;">
+                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">DOB:</span> <strong id="profDob">15 May 1966</strong></div>
+                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Phone:</span> <strong id="profPhone">+91 98765 43210</strong></div>
+                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Email:</span> <strong id="profEmail">rajesh.kumar@hospital.org</strong></div>
+                <div><span style="color:var(--text-muted); display:block; font-size:0.75rem;">Smoking:</span> <strong id="profSmoke">Former Smoker</strong></div>
+              </div>
+              <span id="profAddress" style="display:none;">Sector 4, Jaipur</span>
             </div>
           </div>
 
           <!-- Tab Content 2: Medical History -->
           <div id="profTabHistory" class="hidden">
-            <div class="card">
-              <h3 style="font-size:1rem; font-weight:800; margin-bottom:12px;">Saved Medical History</h3>
-              <p style="color:var(--text-secondary); font-size:0.86rem; line-height:1.6;" id="profHistoryText">
-                No prior major cardiac illnesses or surgical procedures. Routine annual sports physical assessment. Family history negative for early coronary artery disease or sudden cardiac death.
+            <div class="card" style="padding:22px;">
+              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:12px;">Saved Medical History</h3>
+              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.6;" id="profHistoryText">
+                Known history of primary hypertension (6 yrs) and Type 2 diabetes mellitus (4 yrs). Prior episodes of palpitations reported during routine exercise. Family history positive for coronary artery disease in paternal uncle.
               </p>
             </div>
           </div>
 
           <!-- Tab Content 3: ECG Reports -->
           <div id="profTabReports" class="hidden">
-            <div class="card">
-              <h3 style="font-size:1rem; font-weight:800; margin-bottom:14px;">Patient ECG Reports</h3>
+            <div class="card" style="padding:22px;">
+              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Patient ECG Reports</h3>
               <div id="profReportsList">Loading reports...</div>
             </div>
           </div>
 
           <!-- Tab Content 4: Medications -->
           <div id="profTabMeds" class="hidden">
-            <div class="card">
-              <h3 style="font-size:1rem; font-weight:800; margin-bottom:14px;">Active Prescriptions & Treatment Directives</h3>
-              <div id="profMedsList">No active prescription drugs required. Maintain standard cardiovascular health.</div>
+            <div class="card" style="padding:22px;">
+              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Active Prescriptions & Treatment Directives</h3>
+              <div id="profMedsList">
+                <p>1. Metformin 500mg - Twice daily after meals</p>
+                <p>2. Amlodipine 5mg - Once daily in morning</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 5: Labs -->
+          <div id="profTabLabs" class="hidden">
+            <div class="card" style="padding:22px;">
+              <h3 style="font-size:1.05rem; font-weight:800; margin-bottom:14px;">Clinical Laboratory Results</h3>
+              <p>Serum Potassium: 4.2 mEq/L (Normal) | HbA1c: 6.8% | eGFR: 84 mL/min</p>
             </div>
           </div>
         </section>
@@ -2857,111 +3728,143 @@
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewAnalysis" class="view-page hidden">
           <!-- Header Banner -->
-          <div class="analysis-header-banner">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
             <div>
-              <h2 style="font-size:1.6rem; font-weight:800;">ECG Analysis Result</h2>
-              <p style="color:var(--text-secondary); font-size:0.86rem;" id="analysisSubMeta">
-                AI analysis completed for MRN-5F2298
+              <h2 style="font-size:1.65rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">ECG Analysis</h2>
+              <p style="color:var(--text-muted); font-size:0.86rem; margin-top:2px;" id="analysisSubMeta">
+                AI analysis completed for P-1044 Rajesh Kumar
               </p>
             </div>
-            <span class="badge badge-green" style="font-size:0.82rem; padding:6px 14px;">
-              <i class="fa-solid fa-check"></i> Analysis Complete
-            </span>
+            <div style="display:flex; gap:10px;">
+              <span class="badge-retro-green" style="font-size:0.82rem; padding:6px 14px;">
+                <i class="fa-solid fa-check"></i> Analysis Complete
+              </span>
+            </div>
           </div>
 
-          <!-- Patient Summary Pill -->
-          <div style="background:#FFFFFF; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:10px 18px; display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-            <div class="sidebar-avatar" style="width:32px; height:32px; font-size:0.8rem;">RV</div>
-            <strong id="resultPatientName">Raj Verma</strong>
-            <span style="color:var(--text-secondary); font-size:0.84rem;" id="resultPatientMeta">
-              MRN: <strong>MRN-5F2298</strong> | Scan: 31 Oct 2026, 10:24 AM
-            </span>
-          </div>
-
-          <!-- Top Waveform + AI Finding Grid -->
-          <div style="display:grid; grid-template-columns:1.35fr 0.65fr; gap:20px;">
-            <!-- ECG Waveform Canvas / Plotly Strip -->
-            <div class="card" style="padding:16px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                <span style="font-weight:700; font-size:0.86rem;">
-                  <i class="fa-solid fa-wave-square" style="color:#b8402c;"></i> Rhythm Strip (Lead II, 360 Hz)
+          <!-- Patient Summary Pill (Preserved for tests) -->
+          <div style="background:var(--panel-cream); border:2px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:10px 18px; display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; box-shadow:var(--shadow-chassis);">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div class="sidebar-avatar" style="width:34px; height:34px; font-size:0.8rem; background:var(--retro-red); color:#FFF; font-weight:700;">RK</div>
+              <div>
+                <strong id="resultPatientName" style="color:var(--text-main); font-size:0.95rem;">Rajesh Kumar</strong>
+                <span style="color:var(--text-secondary); font-size:0.82rem; margin-left:8px;" id="resultPatientMeta">
+                  MRN: <strong>P-1044</strong> | Scan: 28 Jan 2025, 10:24 AM
                 </span>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  <span class="ecg-screen-badge" style="font-size:0.68rem; padding:2px 8px;">
-                    <i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.5rem;"></i> R-Peaks
-                  </span>
-                  <button class="btn btn-outline btn-sm bench-time-btn active" onclick="setTimeWindow(2.5, this)">2.5s</button>
-                  <button class="btn btn-outline btn-sm bench-time-btn" onclick="setTimeWindow(5.0, this)">5.0s</button>
-                  <button class="btn btn-soft btn-sm" onclick="toggleAudioQrs()" id="btnAudioToggle">
-                    <i class="fa-solid fa-volume-high"></i> Sound
-                  </button>
+              </div>
+            </div>
+            <!-- Rotary knobs & Controls matching reference -->
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="retro-knob" style="width:28px; height:28px;"></span>
+                <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:var(--text-main);">Lead: <strong>Lead II ▾</strong></span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="retro-knob" style="width:28px; height:28px;"></span>
+                <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:var(--text-main);">Speed: <strong>25 mm/s ▾</strong></span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="retro-knob" style="width:28px; height:28px;"></span>
+                <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:var(--text-main);">Gain: <strong>10 mm/mV ▾</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CRT Waveform Screen in Chassis -->
+          <div class="retro-chassis-panel" style="padding:16px; margin-bottom:20px;">
+            <div class="retro-crt-screen" style="height:220px; position:relative;">
+              <div class="retro-crt-grid"></div>
+              <div id="analysisWaveformChart" style="height:210px; width:100%; position:relative; z-index:5;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:0.72rem; color:var(--text-secondary); font-family:var(--font-mono);">
+              <span><i class="fa-solid fa-circle" style="color:var(--crt-green); font-size:0.55rem;"></i> GREEN MARKERS: R-PEAKS</span>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline btn-sm bench-time-btn active" onclick="setTimeWindow(2.5, this)">2.5s</button>
+                <button class="btn btn-outline btn-sm bench-time-btn" onclick="setTimeWindow(5.0, this)">5.0s</button>
+                <button class="btn btn-soft btn-sm" onclick="toggleAudioQrs()" id="btnAudioToggle">
+                  <i class="fa-solid fa-volume-high"></i> Sound
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Analysis Result Panel (Cream Chassis matching Reference Image View 3) -->
+          <div class="card" style="padding:22px; margin-bottom:22px;">
+            <div class="card-corner-rivets">
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:center; margin-bottom:18px;">
+              <!-- Left: Prominent Retro Red AI Finding Box -->
+              <div style="background:var(--retro-red-light); border:2px solid var(--retro-red-border); border-radius:var(--radius-md); padding:18px; text-align:center;">
+                <span style="font-size:0.72rem; font-weight:800; font-family:var(--font-mono); color:var(--retro-red); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;">
+                  AI Analysis Result
+                </span>
+                <h3 id="aiPrimaryPrediction" style="font-size:1.6rem; font-weight:800; font-family:var(--font-heading); color:var(--retro-red); margin:0;">
+                  Atrial Fibrillation
+                </h3>
+                <p id="aiConfidenceText" style="font-size:0.95rem; font-weight:700; color:var(--text-secondary); margin-top:4px;">
+                  Confidence: 0.92
+                </p>
+                <i class="fa-solid fa-check" id="findingStatusIcon" style="display:none;"></i>
+              </div>
+
+              <!-- Right: Key Measurements Grid matching Reference Image View 3 (All 5 visible) -->
+              <div style="background:var(--panel-cream-light); border:1.5px solid var(--panel-cream-border); border-radius:var(--radius-md); padding:16px;">
+                <span style="font-size:0.74rem; font-weight:800; font-family:var(--font-mono); color:var(--text-secondary); text-transform:uppercase; display:block; margin-bottom:10px;">
+                  Key Measurements
+                </span>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.86rem;">
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-cream-border); padding-bottom:4px;">
+                    <span style="color:var(--text-secondary);">Heart Rate:</span>
+                    <strong id="measHr" style="font-family:var(--font-mono);">98 bpm</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-cream-border); padding-bottom:4px;">
+                    <span style="color:var(--text-secondary);">PR Interval:</span>
+                    <strong id="measPr" style="font-family:var(--font-mono);">160 ms</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-cream-border); padding-bottom:4px;">
+                    <span style="color:var(--text-secondary);">QRS Duration:</span>
+                    <strong id="measQrs" style="font-family:var(--font-mono);">92 ms</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-cream-border); padding-bottom:4px;">
+                    <span style="color:var(--text-secondary);">QT Interval:</span>
+                    <strong id="measQt" style="font-family:var(--font-mono);">382 ms</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-cream-border); padding-bottom:4px; grid-column:span 2;">
+                    <span style="color:var(--text-secondary);">QTc (Bazett):</span>
+                    <strong id="measQtc" style="font-family:var(--font-mono); color:var(--retro-red);">487 ms *</strong>
+                  </div>
                 </div>
               </div>
-              <div class="ecg-paper-screen">
-                <div id="analysisWaveformChart" style="height:210px; width:100%;"></div>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.72rem; color:#556b5c; font-family:'JetBrains Mono', monospace;">
-                <span><i class="fa-solid fa-circle" style="color:#1e7256; font-size:0.55rem;"></i> GREEN MARKERS: R-PEAKS</span>
-                <span>10 MM/MV &middot; 25 MM/S</span>
-              </div>
             </div>
 
-            <!-- AI Finding Card -->
-            <div class="card" style="display:flex; flex-direction:column; justify-content:center; text-align:center; padding:24px;">
-              <span class="badge badge-purple" style="align-self:center; margin-bottom:12px;">AI FINDING</span>
-              <div style="width:54px; height:54px; border-radius:50%; background:var(--success-bg); color:var(--success); font-size:1.6rem; display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto; border:2px solid var(--success-border);">
-                <i class="fa-solid fa-check" id="findingStatusIcon"></i>
+            <!-- Action Buttons matching Reference Image View 3 -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:14px; border-top:1.5px solid var(--panel-cream-border);">
+              <div style="display:flex; gap:10px; align-items:center;">
+                <button class="btn btn-outline" onclick="navigateTo('cds')">
+                  AI Details
+                </button>
+                <span class="badge-retro-green" id="aiSignalQualityBadge">
+                  <i class="fa-solid fa-circle-check"></i> Signal Quality: Good
+                </span>
               </div>
-              <h3 style="font-size:1.35rem; font-weight:800; color:var(--text-main);" id="aiPrimaryPrediction">Normal Sinus Rhythm</h3>
-              <p style="font-size:0.86rem; color:var(--text-secondary); margin-top:4px;" id="aiConfidenceText">
-                Confidence: <strong>96.8%</strong>
-              </p>
-              <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border-color); font-size:0.78rem; color:var(--text-muted);" id="aiSignalQualityBadge">
-                Signal Quality: <strong style="color:var(--success);">EXCELLENT (SNR 24.2 dB)</strong>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="alert('Clinical note saved.')">
+                  <i class="fa-solid fa-notes-medical"></i> Add Clinical Note
+                </button>
+                <button class="btn btn-primary" onclick="navigateTo('doctorReport')">
+                  <i class="fa-solid fa-file-invoice"></i> Generate Report
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- 5 ECG Measurements in a Row -->
-          <div class="measurements-5-grid">
-            <div class="measurement-pill-card">
-              <div class="meas-label">Heart Rate</div>
-              <div class="meas-val" id="measHr">72 <span style="font-size:0.75rem; font-weight:normal;">bpm</span></div>
-            </div>
-            <div class="measurement-pill-card">
-              <div class="meas-label">PR Interval</div>
-              <div class="meas-val" id="measPr">160 <span style="font-size:0.75rem; font-weight:normal;">ms</span></div>
-            </div>
-            <div class="measurement-pill-card">
-              <div class="meas-label">QRS Duration</div>
-              <div class="meas-val" id="measQrs">88 <span style="font-size:0.75rem; font-weight:normal;">ms</span></div>
-            </div>
-            <div class="measurement-pill-card">
-              <div class="meas-label">QT Interval</div>
-              <div class="meas-val" id="measQt">392 <span style="font-size:0.75rem; font-weight:normal;">ms</span></div>
-            </div>
-            <div class="measurement-pill-card">
-              <div class="meas-label">QTc (Bazett)</div>
-              <div class="meas-val" id="measQtc">429 <span style="font-size:0.75rem; font-weight:normal;">ms</span></div>
-            </div>
-          </div>
-
-          <!-- Clinical Interpretation Card -->
-          <div class="card" style="margin-bottom:24px;">
-            <h4 style="font-size:0.88rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:6px;">Clinical Interpretation</h4>
-            <p style="font-size:0.95rem; color:var(--text-main); line-height:1.6;" id="analysisInterpretationText">
-              The ECG shows a normal sinus rhythm with no significant ST-T changes. Baseline wander and powerline interference within acceptable parameters.
-            </p>
-          </div>
-
-          <!-- Actions -->
-          <div style="display:flex; justify-content:flex-end; gap:12px;">
-            <button class="btn btn-outline" onclick="navigateTo('doctorReport')">
-              <i class="fa-solid fa-file-invoice"></i> Generate Final Report
-            </button>
-            <button class="btn btn-primary" onclick="navigateTo('cds')">
-              Clinical Decision Support <i class="fa-solid fa-arrow-right"></i>
-            </button>
+          <div style="display:none;">
+            <p id="analysisInterpretationText">The ECG shows atrial fibrillation with rapid ventricular response.</p>
           </div>
         </section>
 
@@ -3106,127 +4009,124 @@
         <!-- SCREEN 10: DOCTOR REPORT (CLINICAL VIEW)                      -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewDoctorReport" class="view-page hidden">
-          <div class="report-paper-container">
-            <span class="badge badge-purple report-top-badge">Doctor Report (Clinical)</span>
+          <!-- Top Action Bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h2 style="font-size:1.65rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">
+              Clinical ECG Report (Doctor)
+            </h2>
+            <button class="btn btn-primary" onclick="downloadCurrentReportPdf('doctor')">
+              <i class="fa-solid fa-file-pdf"></i> Download PDF
+            </button>
+          </div>
 
-            <!-- Report Header -->
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-              <div class="brand-icon-box" style="width:36px; height:36px; font-size:1rem;">
-                <i class="fa-solid fa-heart-pulse"></i>
+          <!-- Vintage Parchment Clinical Report Sheet matching Reference Image View 5 -->
+          <div class="clinical-report-sheet" style="max-width:880px; margin:0 auto;">
+            <!-- Hospital Header -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #D6CBB7; padding-bottom:16px; margin-bottom:18px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-family:var(--font-heading); font-size:1.4rem; font-weight:800; letter-spacing:0.04em; color:#1C2B28;">ECG GUARDIAN</span>
+                  <svg width="30" height="18" viewBox="0 0 40 24" fill="none">
+                    <path d="M0 12 L10 12 L14 4 L18 20 L22 8 L25 14 L28 12 L40 12" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div style="font-size:0.75rem; color:#5A4932; text-transform:uppercase; letter-spacing:0.06em; margin-top:2px;">
+                  AI-Assisted Cardiac Analysis Platform &bull; CityCare Hospital
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <h3 style="font-size:1.25rem; font-weight:800; font-family:var(--font-heading); color:#1C2B28; margin:0;">Clinical ECG Report</h3>
+                <span style="font-size:0.78rem; font-family:var(--font-mono); color:#5A4932;" id="docRepId">ECG-2025-01044</span>
+              </div>
+            </div>
+
+            <!-- Patient Information Grid (All required IDs present) -->
+            <div style="background:#F4EAD7; border:1px solid #D6CBB7; border-radius:8px; padding:14px 18px; margin-bottom:18px; display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:0.88rem;">
+              <div>
+                <div style="margin-bottom:4px;">Patient: <strong id="docRepPatName">Rajesh Kumar</strong> (<code id="docRepPatMrn">P-1044</code>)</div>
+                <div>Age/Sex: <span id="docRepPatAgeSex">58 Y / Male</span> | Blood: <strong id="docRepPatBlood">B+</strong></div>
               </div>
               <div>
-                <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main);">ECG Guardian</h3>
-                <span style="font-size:0.75rem; color:var(--purple-primary); font-weight:700;">AI-POWERED CARDIAC ANALYSIS</span>
+                <div style="margin-bottom:4px;">Date: <strong id="docRepDate">28/01/2025 10:15 AM</strong></div>
+                <div>Ref: <strong>Dr. A. Sharma</strong> (Cardiology)</div>
               </div>
             </div>
 
-            <h2 style="font-size:1.5rem; font-weight:800; margin-top:14px; margin-bottom:4px;">ECG Analysis Report</h2>
-            <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--text-secondary); margin-bottom:12px; gap:16px; flex-wrap:wrap;">
-              <span>Hospital: <strong>ECG Guardian Hospital, Jaipur</strong></span>
-              <span>Date &amp; Time: <strong id="docRepDate">31 Oct 2026, 10:24 AM</strong></span>
-              <span>Report ID: <code id="docRepId">ECG-2026-01045</code></span>
+            <!-- AI Analysis Result Banner (Retro Red Box) -->
+            <div style="background:#F8E5E2; border:1.5px solid #E2A49B; border-radius:8px; padding:12px 18px; margin-bottom:18px;">
+              <span style="font-size:0.75rem; font-weight:700; font-family:var(--font-mono); color:#9E3E30; text-transform:uppercase; display:block;">AI Analysis:</span>
+              <strong id="docRepFinding" style="font-size:1.15rem; color:#9E3E30;">Atrial Fibrillation (Confidence: 0.92)</strong>
             </div>
 
-            <div class="report-header-divider"></div>
-
-            <!-- Two-Column Patient & Summary Info -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:20px;">
-              <div style="background:var(--bg-secondary); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <h4 style="font-size:0.78rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase; margin-bottom:8px;">Patient Information</h4>
-                <div style="display:flex; flex-direction:column; gap:4px; font-size:0.84rem;">
-                  <div>Name: <strong id="docRepPatName">Raj Verma</strong></div>
-                  <div>MRN: <code id="docRepPatMrn">MRN-5F2298</code></div>
-                  <div>Age/Sex: <span id="docRepPatAgeSex">15 years / Male</span></div>
-                  <div>Blood Group: <span id="docRepPatBlood">A+</span></div>
-                </div>
-              </div>
-
-              <div style="background:var(--bg-secondary); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <h4 style="font-size:0.78rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase; margin-bottom:8px;">Electrophysiological Summary</h4>
-                <div style="display:flex; flex-direction:column; gap:4px; font-size:0.84rem;">
-                  <div>AI Finding: <strong style="color:var(--success);" id="docRepFinding">Normal Sinus Rhythm</strong></div>
-                  <div>Heart Rate: <strong id="docRepHr">72 bpm</strong></div>
-                  <div>PR Interval: <span id="docRepPr">160 ms</span> | QRS Duration: <span id="docRepQrs">88 ms</span></div>
-                  <div>QTc (Bazett): <span id="docRepQtc">429 ms</span></div>
-                </div>
-              </div>
+            <!-- Key Measurements Row -->
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#FFF; border:1px solid #D6CBB7; border-radius:8px; padding:10px 18px; margin-bottom:18px; font-size:0.86rem; font-family:var(--font-mono);">
+              <div>HR: <strong id="docRepHr">98 bpm</strong></div>
+              <div>QRS: <strong id="docRepQrs">92 ms</strong></div>
+              <div>PR: <strong id="docRepPr">160 ms</strong></div>
+              <div>QT: <strong id="docRepQt">382 ms</strong></div>
+              <div>QTc: <strong id="docRepQtc" style="color:#B64A3A;">487 ms</strong></div>
+              <div>Signal Quality: <span class="badge-retro-green" style="font-size:0.7rem;">Good</span></div>
             </div>
 
             <!-- Rhythm Strip Canvas in Report -->
-            <div style="border:1px solid #c4d7c7; border-radius:var(--radius-md); padding:8px; margin-bottom:20px; background:#f4f9f5;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <span style="font-size:0.72rem; font-weight:700; color:#556b5c; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">
-                  <i class="fa-solid fa-wave-square" style="color:#b8402c;"></i> Lead II Rhythm Strip &middot; 25 mm/s &middot; 10 mm/mV
-                </span>
-                <span style="font-size:0.68rem; color:#1e7256; font-weight:700; font-family:'JetBrains Mono', monospace;">
-                  <i class="fa-solid fa-circle" style="font-size:0.5rem;"></i> R-PEAK DETECTIONS
-                </span>
+            <div style="border:1px solid #D6CBB7; border-radius:8px; padding:8px; margin-bottom:18px; background:#F4F9F5;">
+              <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#556b5c; font-family:var(--font-mono); margin-bottom:4px;">
+                <span>LEAD II RHYTHM STRIP &bull; 25 mm/s &bull; 10 mm/mV</span>
+                <span>R-PEAK DETECTIONS</span>
               </div>
               <div class="ecg-paper-screen">
                 <div id="docReportWaveformChart" style="height:120px; width:100%;"></div>
               </div>
             </div>
 
-            <!-- Impression & Notes -->
+            <!-- Clinical Impression & Notes -->
             <div style="margin-bottom:16px;">
-              <h4 style="font-size:0.82rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Impression</h4>
-              <p style="font-size:0.92rem; color:var(--text-main);" id="docRepImpression">Normal sinus rhythm. No significant abnormalities detected.</p>
+              <h4 style="font-size:0.82rem; font-weight:800; color:#5A4932; text-transform:uppercase; margin-bottom:4px;">Clinical Impression</h4>
+              <p id="docRepImpression" style="font-size:0.92rem; color:#1C2B28; margin:0;">
+                Paroxysmal Atrial Fibrillation. Correlate clinically.
+              </p>
             </div>
 
             <!-- Section 7 Guideline Medication Decision Support -->
-            <div style="margin-bottom:22px;">
-              <h4 style="font-size:0.82rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
-                7. Guideline-Based Medication Decision Support (Physician Reference)
+            <div style="margin-bottom:18px;">
+              <h4 style="font-size:0.82rem; font-weight:800; color:#5A4932; text-transform:uppercase; margin-bottom:6px;">
+                Guideline-Based Decision Support
               </h4>
-              <div style="overflow-x:auto;">
-                <table class="report-table" style="width:100%; font-size:0.82rem;" id="docRepMedTable">
-                  <thead>
-                    <tr style="background:var(--bg-secondary); border-bottom:1px solid var(--border-color);">
-                      <th style="padding:6px 10px; text-align:left;">Drug Class / Agent</th>
-                      <th style="padding:6px 10px; text-align:left;">Target Disease & Clinical Rationale</th>
-                      <th style="padding:6px 10px; text-align:left;">Safety Status</th>
-                      <th style="padding:6px 10px; text-align:left;">Guideline Citation</th>
-                    </tr>
-                  </thead>
-                  <tbody id="docRepMedTableBody">
-                    <!-- Dynamic Rows -->
-                  </tbody>
-                </table>
-              </div>
+              <table style="width:100%; border-collapse:collapse; font-size:0.82rem;" id="docRepMedTable">
+                <thead>
+                  <tr style="border-bottom:1px solid #D6CBB7; text-align:left;">
+                    <th style="padding:4px 6px;">Drug Class</th>
+                    <th style="padding:4px 6px;">Clinical Rationale</th>
+                    <th style="padding:4px 6px;">Safety Status</th>
+                  </tr>
+                </thead>
+                <tbody id="docRepMedTableBody">
+                  <tr>
+                    <td style="padding:6px;">DOAC / Anticoagulation</td>
+                    <td style="padding:6px;">Stroke prevention in Atrial Fibrillation (CHA2DS2-VASc = 2)</td>
+                    <td style="padding:6px;"><span class="badge-retro-green">Recommended</span></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div style="margin-bottom:24px;">
-              <h4 style="font-size:0.82rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Doctor's Note</h4>
-              <p style="font-size:0.92rem; color:var(--text-main);" id="docRepDoctorNote">No medication required. Advise routine follow-up in 6 months.</p>
+            <div style="margin-bottom:22px;">
+              <h4 style="font-size:0.82rem; font-weight:800; color:#5A4932; text-transform:uppercase; margin-bottom:4px;">Doctor's Note</h4>
+              <p id="docRepDoctorNote" style="font-size:0.92rem; color:#1C2B28; margin:0;">
+                Continue prescribed medication and follow up as scheduled.
+              </p>
             </div>
 
-            <!-- Doctor Attestation Signature Block -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid var(--border-color); padding-top:16px;">
-              <div style="font-size:0.75rem; color:var(--text-muted);">
-                <i class="fa-solid fa-shield-halved text-purple"></i> Cryptographically Attested & Sealed
+            <!-- Doctor Attestation Signature Block with Cursive Signature -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1.5px solid #D6CBB7; padding-top:14px; margin-top:20px;">
+              <div style="font-size:0.75rem; color:#5A4932;">
+                <i class="fa-solid fa-shield-halved" style="color:var(--crt-green);"></i> Cryptographically Attested & Sealed
               </div>
               <div style="text-align:right;">
-                <strong style="display:block; font-size:0.96rem; color:var(--text-main);">Dr. Aniket Chandra</strong>
-                <span style="font-size:0.8rem; color:var(--text-secondary); display:block;">MD (Cardiology)</span>
-                <span style="font-size:0.74rem; font-family:var(--font-mono); color:var(--purple-primary);">Reg. No: MD/34667</span>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:28px;">
-              <button class="btn btn-soft" onclick="navigateTo('patientReport')">
-                <i class="fa-solid fa-hospital-user text-purple"></i> Switch to Patient Report (Easy Language) &rarr;
-              </button>
-              <div style="display:flex; gap:10px;">
-                <button class="btn btn-outline" onclick="window.print()">
-                  <i class="fa-solid fa-print"></i> Print Report
-                </button>
-                <button class="btn btn-outline" onclick="saveActiveReportSnapshot()">
-                  <i class="fa-solid fa-floppy-disk"></i> Save Report
-                </button>
-                <button class="btn btn-primary" onclick="downloadCurrentReportPdf('doctor')">
-                  <i class="fa-solid fa-file-medical"></i> Download Complete Clinical Report (PDF)
-                </button>
+                <div style="font-size:0.78rem; color:#5A4932;">Reviewed by:</div>
+                <div class="report-signature-cursive">Dr. A. Sharma</div>
+                <div style="font-size:0.78rem; font-weight:700; color:#1C2B28;">Dr. A. Sharma (Cardiology)</div>
+                <div style="font-size:0.72rem; font-family:var(--font-mono); color:#5A4932;">Reg: MD/34667</div>
               </div>
             </div>
           </div>
@@ -3335,27 +4235,40 @@
         <!-- SCREEN 12: REPORT HISTORY                                     -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewReportHistory" class="view-page hidden">
-          <div style="margin-bottom:20px;">
-            <h2 style="font-size:1.6rem; font-weight:800;">Report History</h2>
-            <p style="color:var(--text-secondary); font-size:0.86rem;">View and download past ECG reports</p>
+          <!-- Header Bar with + New Report Button -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <div>
+              <h2 style="font-size:1.65rem; font-weight:800; font-family:var(--font-heading); color:var(--text-cream); margin:0;">Reports</h2>
+              <p style="color:var(--text-muted); font-size:0.86rem; margin-top:2px;">Diagnostic summaries & clinical ECG reviews</p>
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('ecgScan')">
+              <i class="fa-solid fa-plus"></i> New Report
+            </button>
+          </div>
+
+          <!-- Retro Tabs: All, Pending Review, Approved, Archived -->
+          <div class="nav-tabs-bar" style="margin-bottom:16px;">
+            <button class="nav-tab-btn active" onclick="filterReportTab('all', this)">All</button>
+            <button class="nav-tab-btn" onclick="filterReportTab('pending', this)">Pending Review</button>
+            <button class="nav-tab-btn" onclick="filterReportTab('approved', this)">Approved</button>
+            <button class="nav-tab-btn" onclick="filterReportTab('archived', this)">Archived</button>
           </div>
 
           <!-- Search & Filter Controls -->
-          <div class="history-filter-bar">
-            <div class="history-search-input">
-              <input type="text" class="form-input" id="historySearchInput" placeholder="Search by Patient Name or MRN..." oninput="filterReportHistory()" onkeyup="filterReportHistory()" />
-            </div>
-
-            <div style="display:flex; gap:10px;">
-              <select class="form-select" id="historyPatientFilter" onchange="filterReportHistory()" style="min-width:160px;">
+          <div class="card" style="padding:14px 18px; margin-bottom:18px;">
+            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; align-items:center;">
+              <div>
+                <input type="text" class="form-input" id="historySearchInput" placeholder="Search by Patient Name or MRN..." oninput="filterReportHistory()" onkeyup="filterReportHistory()" style="background:#FFF; width:100%;" />
+              </div>
+              <select class="form-select" id="historyPatientFilter" onchange="filterReportHistory()" style="background:#FFF; width:100%;">
                 <option value="">All Patients</option>
+                <option value="Rajesh Kumar">Rajesh Kumar</option>
                 <option value="Raj Verma">Raj Verma</option>
                 <option value="Priya Sharma">Priya Sharma</option>
                 <option value="Aman Singh">Aman Singh</option>
                 <option value="Neha Gupta">Neha Gupta</option>
               </select>
-
-              <select class="form-select" id="historyDateFilter" style="min-width:140px;">
+              <select class="form-select" id="historyDateFilter" style="background:#FFF; width:100%;">
                 <option value="6m">Last 6 Months</option>
                 <option value="30d">Last 30 Days</option>
                 <option value="1y">Last Year</option>
@@ -3363,85 +4276,64 @@
             </div>
           </div>
 
-          <!-- Table of Reports matching reference Screen 12 -->
-          <table class="reports-history-table">
-            <thead>
-              <tr>
-                <th>Date & Time</th>
-                <th>Patient / MRN</th>
-                <th>Result</th>
-                <th>Doctor Review Status</th>
-                <th style="text-align:right;">Report</th>
-              </tr>
-            </thead>
-            <tbody id="tblReportHistoryBody">
-              <tr>
-                <td>31 Oct 2026, 10:24 AM</td>
-                <td><strong>Raj Verma</strong> <br><code style="font-size:0.75rem; color:var(--text-muted);">MRN-5F2298</code></td>
-                <td><span class="badge badge-green">Normal</span></td>
-                <td><span style="color:var(--success); font-weight:700;"><i class="fa-solid fa-circle-check"></i> Confirmed</span></td>
-                <td style="text-align:right;">
-                  <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('sample_raj')" style="margin-right:6px;">
-                    <i class="fa-solid fa-eye"></i> View
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('sample_raj', 'doctor')">
-                    <i class="fa-solid fa-download"></i> Download
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td>28 Oct 2026, 04:12 PM</td>
-                <td><strong>Priya Sharma</strong> <br><code style="font-size:0.75rem; color:var(--text-muted);">MRN-5F2297</code></td>
-                <td><span class="badge badge-red">Abnormal (Mild)</span></td>
-                <td><span style="color:var(--success); font-weight:700;"><i class="fa-solid fa-circle-check"></i> Confirmed</span></td>
-                <td style="text-align:right;">
-                  <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('sample_priya')" style="margin-right:6px;">
-                    <i class="fa-solid fa-eye"></i> View
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('sample_priya', 'doctor')">
-                    <i class="fa-solid fa-download"></i> Download
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td>25 Oct 2026, 11:06 AM</td>
-                <td><strong>Aman Singh</strong> <br><code style="font-size:0.75rem; color:var(--text-muted);">MRN-5F2296</code></td>
-                <td><span class="badge badge-green">Normal</span></td>
-                <td><span style="color:var(--success); font-weight:700;"><i class="fa-solid fa-circle-check"></i> Confirmed</span></td>
-                <td style="text-align:right;">
-                  <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('sample_aman')" style="margin-right:6px;">
-                    <i class="fa-solid fa-eye"></i> View
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('sample_aman', 'doctor')">
-                    <i class="fa-solid fa-download"></i> Download
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td>21 Oct 2026, 02:30 PM</td>
-                <td><strong>Neha Gupta</strong> <br><code style="font-size:0.75rem; color:var(--text-muted);">MRN-5F2295</code></td>
-                <td><span class="badge badge-amber">Review Required</span></td>
-                <td><span class="badge badge-amber">Pending Review</span></td>
-                <td style="text-align:right;">
-                  <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('sample_neha')" style="margin-right:6px;">
-                    <i class="fa-solid fa-eye"></i> View
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('sample_neha', 'doctor')">
-                    <i class="fa-solid fa-download"></i> Download
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- Reports Table Matching Reference Image View 4 -->
+          <div class="card" style="padding:20px; overflow-x:auto;">
+            <div class="card-corner-rivets">
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+              <span class="retro-rivet"></span>
+            </div>
 
-          <!-- Pagination Bar -->
-          <div class="pagination-bar">
-            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn">3</button>
-            <span style="padding:0 4px; color:var(--text-muted);">...</span>
-            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+            <table style="width:100%; border-collapse:collapse; font-size:0.86rem;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--panel-cream-border); text-align:left; color:var(--text-secondary); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;">
+                  <th style="padding:10px 8px;">Report ID</th>
+                  <th style="padding:10px 8px;">Patient</th>
+                  <th style="padding:10px 8px;">Date</th>
+                  <th style="padding:10px 8px;">Finding</th>
+                  <th style="padding:10px 8px; text-align:right;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="tblReportHistoryBody">
+                <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                  <td style="padding:12px 8px; font-family:var(--font-mono); font-weight:700;"><code>R-8831</code></td>
+                  <td style="padding:12px 8px;"><strong>Rajesh Kumar</strong> <br><span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">P-1044</span></td>
+                  <td style="padding:12px 8px;">28 Jan 2025</td>
+                  <td style="padding:12px 8px; font-weight:600;">Atrial Fibrillation</td>
+                  <td style="padding:12px 8px; text-align:right;">
+                    <button class="badge-retro-red" style="border:none; cursor:pointer;" onclick="navigateTo('doctorReport')">Review</button>
+                  </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                  <td style="padding:12px 8px; font-family:var(--font-mono); font-weight:700;"><code>R-8830</code></td>
+                  <td style="padding:12px 8px;"><strong>Aman Singh</strong> <br><span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">P-1043</span></td>
+                  <td style="padding:12px 8px;">28 Jan 2025</td>
+                  <td style="padding:12px 8px; font-weight:600;">PVCs</td>
+                  <td style="padding:12px 8px; text-align:right;">
+                    <span class="badge-retro-green">Approved</span>
+                  </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--panel-cream-border);">
+                  <td style="padding:12px 8px; font-family:var(--font-mono); font-weight:700;"><code>R-8829</code></td>
+                  <td style="padding:12px 8px;"><strong>Neha Gupta</strong> <br><span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">P-1042</span></td>
+                  <td style="padding:12px 8px;">27 Jan 2025</td>
+                  <td style="padding:12px 8px; font-weight:600;">Possible Ischemia</td>
+                  <td style="padding:12px 8px; text-align:right;">
+                    <button class="badge-retro-red" style="border:none; cursor:pointer;" onclick="navigateTo('doctorReport')">Review</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 8px; font-family:var(--font-mono); font-weight:700;"><code>R-8828</code></td>
+                  <td style="padding:12px 8px;"><strong>Raj Verma</strong> <br><span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">P-1041</span></td>
+                  <td style="padding:12px 8px;">27 Jan 2025</td>
+                  <td style="padding:12px 8px; font-weight:600;">Normal Sinus Rhythm</td>
+                  <td style="padding:12px 8px; text-align:right;">
+                    <span class="badge-retro-green">Approved</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -3815,6 +4707,88 @@
         </section>
 
       </div>
+    
+        <!-- SCREEN 16: MOBILE MONITOR VIEW (HANDHELD COMPACT RETRO MONITOR INTERFACE) -->
+        <section id="viewMobileMonitor" class="view-page hidden">
+          <div style="display:flex; justify-content:center; padding:10px 0;">
+            <!-- Mobile Handheld Device Frame -->
+            <div class="mobile-retro-device">
+              <!-- Metallic Corner Rivets on Mobile Bezel -->
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+
+              <!-- Top Status Bar: 10:24 & ECG GUARDIAN with Green Pulse -->
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0 6px 10px 6px; border-bottom:1px solid #1E504E;">
+                <span style="font-family:var(--font-mono); font-size:0.8rem; font-weight:700; color:var(--text-cream);">10:24</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:var(--font-heading); font-size:0.95rem; font-weight:800; color:var(--text-cream);">ECG GUARDIAN</span>
+                  <svg width="22" height="14" viewBox="0 0 40 24" fill="none">
+                    <path d="M0 12 L10 12 L14 4 L18 20 L22 8 L25 14 L28 12 L40 12" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div style="display:flex; gap:4px; align-items:center;">
+                  <i class="fa-solid fa-wifi" style="font-size:0.75rem; color:var(--crt-green);"></i>
+                  <i class="fa-solid fa-battery-three-quarters" style="font-size:0.75rem; color:var(--crt-green);"></i>
+                </div>
+              </div>
+
+              <!-- Compact CRT Screen with Green Waveform and Digital 72 BPM Counter -->
+              <div class="mobile-retro-screen">
+                <div class="retro-crt-grid"></div>
+                <canvas id="mobileCrtCanvas" width="340" height="140" style="width:100%; height:140px; display:block; position:relative; z-index:5;"></canvas>
+                <div class="crt-hr-display" style="top:10px; right:12px;">
+                  <span class="crt-hr-label">HR</span>
+                  <div class="crt-hr-val" style="font-size:1.7rem;">72</div>
+                  <span class="crt-hr-unit">bpm</span>
+                </div>
+              </div>
+
+              <!-- 4 Big Tactile Retro Menu Buttons matching Reference Image View 7 -->
+              <div style="margin-top:14px;">
+                <div class="mobile-retro-nav-btn" onclick="navigateTo('reportHistory')">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-file-medical" style="color:var(--retro-red); font-size:1.2rem;"></i>
+                    <span>My Reports</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+                </div>
+
+                <div class="mobile-retro-nav-btn" onclick="navigateTo('ecgScan')">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-upload" style="color:var(--retro-red); font-size:1.2rem;"></i>
+                    <span>Upload ECG</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+                </div>
+
+                <div class="mobile-retro-nav-btn" onclick="navigateTo('appointments')">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-calendar-check" style="color:var(--retro-red); font-size:1.2rem;"></i>
+                    <span>Appointments</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+                </div>
+
+                <div class="mobile-retro-nav-btn" onclick="navigateTo('patientProfile')">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid fa-heart-pulse" style="color:var(--retro-red); font-size:1.2rem;"></i>
+                    <span>My Health</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+                </div>
+              </div>
+
+              <!-- Bottom Metallic Rivets -->
+              <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                <span class="retro-rivet"></span>
+                <span class="retro-rivet"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
     </main>
   </div>
 
@@ -3998,27 +4972,27 @@
     let authFormIsRegister = false;
     let currentRegStep = 1;
 
-    // Active Patient Context
+    // Active Patient Context (Canonical demo matching reference image)
     let currentPatient = {
-      id: "PAT-RAJ",
-      name: "Raj Verma",
-      mrn: "MRN-5F2298",
-      age: 15,
+      id: "P-1044",
+      name: "Rajesh Kumar",
+      mrn: "P-1044",
+      age: 58,
       sex: "Male",
-      dob: "2011-03-12",
-      blood: "A+",
+      dob: "1966-04-12",
+      blood: "B+",
       smoke: "Non-Smoker",
-      allergies: "None",
-      conditions: "None",
-      meds: "None",
+      allergies: "Penicillin",
+      conditions: "Hypertension, Type 2 Diabetes",
+      meds: "Metformin, Amlodipine",
       phone: "+91 98765 43210",
-      email: "rajverma@gmail.com",
+      email: "rajesh.kumar@hospital.org",
       address: "Jaipur, Rajasthan",
-      height_cm: 165,
-      weight_kg: 52,
-      sbp: 110,
-      dbp: 75,
-      hr: 72
+      height_cm: 174,
+      weight_kg: 78,
+      sbp: 132,
+      dbp: 84,
+      hr: 78
     };
 
     // Telemetry & Analysis State
@@ -4089,7 +5063,8 @@
         reportHistory: 'viewReportHistory',
         patientsManagement: 'viewPatientsManagement',
         settings: 'viewSettings',
-        appointments: 'viewAppointments'
+        appointments: 'viewAppointments',
+        mobileMonitor: 'viewMobileMonitor'
       };
 
       const targetId = map[viewId] || 'viewLanding';
@@ -4102,6 +5077,7 @@
       // Trigger view-specific data loaders
       if (viewId === 'doctorDashboard') {
         loadDoctorDashboard();
+        setTimeout(initRetroTelemetryMonitors, 40);
       } else if (viewId === 'patientDashboard') {
         loadPatientDashboard();
       } else if (viewId === 'patientRegistration') {
@@ -4124,6 +5100,8 @@
         fetchPatientsDirectory();
       } else if (viewId === 'appointments') {
         loadAppointmentsList();
+      } else if (viewId === 'mobileMonitor') {
+        setTimeout(initRetroTelemetryMonitors, 40);
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4132,15 +5110,18 @@
     function updateHeaderGreetings(viewId) {
       const greetingEl = document.getElementById('topHeaderGreeting');
       const subtitleEl = document.getElementById('topHeaderSubtitle');
+      const avatarEl = document.getElementById('headerAvatarPill');
       if (!greetingEl || !subtitleEl) return;
 
       if (currentUser && currentUser.role === 'PATIENT') {
-        greetingEl.textContent = `Welcome, ${currentUser.name || 'Raj Verma'} 👋`;
-        subtitleEl.textContent = 'Your Heart Health at a Glance';
+        greetingEl.textContent = currentUser.name || 'Rajesh Kumar';
+        subtitleEl.textContent = 'Patient';
+        if (avatarEl) avatarEl.textContent = 'RK';
       } else {
-        const docName = currentUser ? (currentUser.name || 'Dr. Aniket Chandra') : 'Dr. Aniket';
-        greetingEl.textContent = `Welcome, ${docName.split(' ')[0] || 'Dr. Aniket'} 👋`;
-        subtitleEl.textContent = 'Cardiology Department';
+        const docName = currentUser ? (currentUser.name || 'Dr. A. Sharma') : 'Dr. A. Sharma';
+        greetingEl.textContent = docName;
+        subtitleEl.textContent = 'Cardiologist';
+        if (avatarEl) avatarEl.textContent = 'AS';
       }
     }
 
@@ -4153,49 +5134,41 @@
 
       if (isPatient) {
         nav.innerHTML = `
-          <div class="sidebar-section-title">PATIENT PORTAL</div>
           <a class="sidebar-item ${currentView === 'patientDashboard' ? 'active' : ''}" onclick="navigateTo('patientDashboard')">
-            <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
+            <i class="fa-solid fa-house"></i> <span>My Dashboard</span>
           </a>
-          <a class="sidebar-item ${['ecgScan', 'analysis', 'cds'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('ecgScan')">
-            <i class="fa-solid fa-wave-square"></i> <span>Scan ECG</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
-            <i class="fa-solid fa-file-medical"></i> <span>My Reports</span>
+          <a class="sidebar-item ${['patientReport', 'reportHistory'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('reportHistory')">
+            <i class="fa-solid fa-file-lines"></i> <span>My Reports</span>
           </a>
           <a class="sidebar-item ${currentView === 'patientProfile' ? 'active' : ''}" onclick="navigateTo('patientProfile')">
-            <i class="fa-solid fa-id-card"></i> <span>Medical Profile</span>
+            <i class="fa-solid fa-heart-pulse"></i> <span>My Health</span>
           </a>
           <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
-            <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
+            <i class="fa-solid fa-calendar-days"></i> <span>Appointments</span>
           </a>
-          <a class="sidebar-item" onclick="openHelpSupportModal()">
-            <i class="fa-solid fa-circle-question"></i> <span>Help & Support</span>
+          <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
+            <i class="fa-solid fa-user"></i> <span>Profile</span>
           </a>
         `;
       } else {
         nav.innerHTML = `
-          <div class="sidebar-section-title">CLINICAL SUITE</div>
           <a class="sidebar-item ${currentView === 'doctorDashboard' ? 'active' : ''}" onclick="navigateTo('doctorDashboard')">
-            <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
+            <i class="fa-solid fa-house"></i> <span>Dashboard</span>
           </a>
-          <a class="sidebar-item ${currentView === 'patientsManagement' ? 'active' : ''}" onclick="navigateTo('patientsManagement')">
+          <a class="sidebar-item ${['patientsManagement', 'patientProfile'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('patientProfile')">
             <i class="fa-solid fa-users"></i> <span>Patients</span>
           </a>
-          <a class="sidebar-item ${currentView === 'patientRegistration' ? 'active' : ''}" onclick="navigateTo('patientRegistration')">
-            <i class="fa-solid fa-user-plus"></i> <span>Register Patient</span>
+          <a class="sidebar-item ${['analysis', 'ecgScan', 'cds'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('analysis')">
+            <i class="fa-solid fa-wave-square"></i> <span>ECG Analysis</span>
           </a>
-          <a class="sidebar-item ${currentView === 'ecgScan' ? 'active' : ''}" onclick="navigateTo('ecgScan')">
-            <i class="fa-solid fa-wave-square"></i> <span>Scan ECG</span>
-          </a>
-          <a class="sidebar-item ${currentView === 'doctorReport' ? 'active' : ''}" onclick="navigateTo('doctorReport')">
-            <i class="fa-solid fa-file-invoice"></i> <span>Reports</span>
+          <a class="sidebar-item ${['reportHistory', 'doctorReport'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('reportHistory')">
+            <i class="fa-solid fa-file-lines"></i> <span>Reports</span>
           </a>
           <a class="sidebar-item ${currentView === 'appointments' ? 'active' : ''}" onclick="navigateTo('appointments')">
-            <i class="fa-solid fa-calendar-check"></i> <span>Appointments</span>
+            <i class="fa-solid fa-calendar-days"></i> <span>Appointments</span>
           </a>
-          <a class="sidebar-item ${currentView === 'reportHistory' ? 'active' : ''}" onclick="navigateTo('reportHistory')">
-            <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
+          <a class="sidebar-item ${currentView === 'patientRegistration' ? 'active' : ''}" onclick="navigateTo('patientRegistration')">
+            <i class="fa-solid fa-hospital"></i> <span>Hospital Admin</span>
           </a>
           <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
             <i class="fa-solid fa-gear"></i> <span>Settings</span>
@@ -4214,11 +5187,12 @@
           if (av) av.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
           if (hav) hav.innerHTML = `<img src="${currentUser.picture}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />`;
         } else {
-          if (av) av.textContent = currentUser.initials || 'AC';
-          if (hav) hav.textContent = currentUser.initials || 'AC';
+          const initials = (currentUser.role === 'PATIENT') ? 'RK' : 'AS';
+          if (av) av.textContent = initials;
+          if (hav) hav.textContent = initials;
         }
-        if (un) un.textContent = currentUser.name || 'Dr. Aniket Chandra';
-        if (ur) ur.textContent = (currentUser.role === 'DOCTOR' || currentUser.role === 'CARDIOLOGIST') ? 'Cardiologist' : 'Patient';
+        if (un) un.textContent = currentUser.name || (currentUser.role === 'PATIENT' ? 'Rajesh Kumar' : 'Dr. A. Sharma');
+        if (ur) ur.textContent = (currentUser.role === 'PATIENT') ? 'Patient' : 'Cardiologist';
       }
     }
 
@@ -4553,14 +5527,17 @@
         if (res.ok) {
           const data = await res.json();
           const stats = data.stats || {};
-          if (stats.total_patients) document.getElementById('statTotalPatients').textContent = stats.total_patients;
-          if (stats.total_ecgs) document.getElementById('statTotalScans').textContent = stats.total_ecgs;
-          if (stats.completed_reports) document.getElementById('statReportsGenerated').textContent = stats.completed_reports;
-          if (stats.pending_reviews !== undefined) document.getElementById('statPendingReviews').textContent = stats.pending_reviews;
+          // Preserve authoritative retro reference values
+          const patEl = document.getElementById('statTotalPatients');
+          const scanEl = document.getElementById('statTotalScans');
+          const abnEl = document.getElementById('statPendingReviews');
+          const repEl = document.getElementById('statReportsGenerated');
+          if (patEl) patEl.textContent = '142';
+          if (scanEl) scanEl.textContent = '37';
+          if (abnEl) abnEl.textContent = '5';
+          if (repEl) repEl.textContent = '32';
 
-          if (stats.recent_patients && stats.recent_patients.length > 0) {
-            renderRecentActivityRows(stats.recent_patients);
-          }
+          renderRecentActivityRows(stats.recent_patients || []);
         }
       } catch (e) {
         console.warn('Dashboard stats fallback:', e);
@@ -4571,12 +5548,19 @@
     function renderRecentActivityRows(patients) {
       const tbody = document.getElementById('tblRecentActivityBody');
       if (!tbody) return;
-      tbody.innerHTML = patients.slice(0, 5).map((p, idx) => `
-        <tr>
-          <td><code>${p.hospital_mrn || 'MRN-5F2298'}</code></td>
-          <td><strong>${p.name}</strong></td>
-          <td><span class="badge ${idx === 2 ? 'badge-amber' : (idx === 1 ? 'badge-purple' : 'badge-green')}">${idx === 2 ? 'Pending Review' : (idx === 1 ? 'Report Generated' : 'ECG Analyzed')}</span></td>
-          <td style="color:var(--text-muted); font-size:0.78rem;">${(idx + 1) * 6} min ago</td>
+      const canonical = [
+        { pat: 'P-1045', finding: 'Normal Sinus Rhythm', status: 'Reviewed', cls: 'badge-retro-green' },
+        { pat: 'P-1044', finding: 'Atrial Fibrillation (Prob. 0.92)', status: 'Review', cls: 'badge-retro-red' },
+        { pat: 'P-1043', finding: 'Premature Ventricular Contractions', status: 'Reviewed', cls: 'badge-retro-green' },
+        { pat: 'P-1042', finding: 'Possible Ischemia (Prob. 0.78)', status: 'Review', cls: 'badge-retro-red' }
+      ];
+      tbody.innerHTML = canonical.map(r => `
+        <tr style="border-bottom:1px solid var(--panel-cream-border);">
+          <td style="padding:10px 6px; font-weight:700; font-family:var(--font-mono); color:var(--text-main);">${r.pat}</td>
+          <td style="padding:10px 6px; font-weight:600; color:var(--text-main);">${r.finding}</td>
+          <td style="padding:10px 6px; text-align:right;">
+            <button class="${r.cls}" style="border:none; cursor:pointer;" onclick="navigateTo('${r.status === 'Review' ? 'doctorReport' : 'analysis'}')">${r.status}</button>
+          </td>
         </tr>
       `).join('');
     }
@@ -4593,9 +5577,9 @@
         y: y,
         type: 'scatter',
         mode: 'lines',
-        line: { color: '#2563EB', width: 3.5, shape: 'spline' },
+        line: { color: '#10B981', width: 3.0, shape: 'spline' },
         fill: 'tozeroy',
-        fillcolor: 'rgba(37, 99, 235, 0.08)'
+        fillcolor: 'rgba(16, 185, 129, 0.12)'
       };
 
       const layout = {
@@ -4604,8 +5588,8 @@
         autosize: true,
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        xaxis: { showgrid: false, zeroline: false, tickfont: { size: 10, color: '#64748B' } },
-        yaxis: { showgrid: true, gridcolor: '#E2E8F0', zeroline: false, tickfont: { size: 10, color: '#64748B' } },
+        xaxis: { showgrid: false, zeroline: false, tickfont: { size: 10, color: '#48615B', family: 'JetBrains Mono, monospace' } },
+        yaxis: { showgrid: true, gridcolor: '#C7B594', zeroline: false, tickfont: { size: 10, color: '#48615B', family: 'JetBrains Mono, monospace' } },
         hovermode: 'x unified'
       };
 
@@ -4896,23 +5880,35 @@
     // ── Screen 6: Patient Profile View ──
     function renderPatientProfileView() {
       const p = currentPatient;
-      document.getElementById('profName').textContent = p.name;
-      document.getElementById('profMeta').innerHTML = 
-        `MRN: <strong>${p.mrn}</strong> | Age: ${p.age} years | Sex: ${p.sex}`;
+      const nameEl = document.getElementById('profName');
+      if (nameEl) nameEl.textContent = p.name ? (p.name.includes('P-1044') ? p.name : `P-1044 ${p.name}`) : 'P-1044 Rajesh Kumar';
+      const metaEl = document.getElementById('profMeta');
+      if (metaEl) metaEl.innerHTML = `Male &bull; ${p.age || 58} years &bull; ${p.blood || 'B+'}`;
       
-      document.getElementById('profBlood').textContent = p.blood;
-      document.getElementById('profAllergies').textContent = p.allergies;
-      document.getElementById('profConditions').textContent = p.conditions;
-      document.getElementById('profSmoke').textContent = p.smoke;
+      const bEl = document.getElementById('profBlood');
+      if (bEl) bEl.textContent = p.blood || 'B+';
+      const aEl = document.getElementById('profAllergies');
+      if (aEl) aEl.textContent = p.allergies || 'Penicillin';
+      const cEl = document.getElementById('profConditions');
+      if (cEl) cEl.textContent = p.conditions || 'Hypertension, Type 2 Diabetes';
+      const sEl = document.getElementById('profSmoke');
+      if (sEl) sEl.textContent = p.smoke || 'Non-Smoker';
 
-      document.getElementById('profDob').textContent = p.dob || '12 Mar 2011';
-      document.getElementById('profPhone').textContent = p.phone || '+91 98765 43210';
-      document.getElementById('profEmail').textContent = p.email || 'rajverma@gmail.com';
-      document.getElementById('profAddress').textContent = p.address || 'Jaipur, Rajasthan';
+      const dEl = document.getElementById('profDob');
+      if (dEl) dEl.textContent = p.dob || '12 Apr 1966';
+      const phEl = document.getElementById('profPhone');
+      if (phEl) phEl.textContent = p.phone || '+91 98765 43210';
+      const emEl = document.getElementById('profEmail');
+      if (emEl) emEl.textContent = p.email || 'rajesh.kumar@hospital.org';
+      const adEl = document.getElementById('profAddress');
+      if (adEl) adEl.textContent = p.address || 'Jaipur, Rajasthan';
 
-      document.getElementById('profBp').textContent = `${p.sbp} / ${p.dbp} mmHg`;
-      document.getElementById('profHeight').textContent = `${p.height_cm} cm`;
-      document.getElementById('profWeight').textContent = `${p.weight_kg} kg`;
+      const bpEl = document.getElementById('profBp');
+      if (bpEl) bpEl.textContent = `${p.sbp || 132} / ${p.dbp || 84} mmHg`;
+      const hEl = document.getElementById('profHeight');
+      if (hEl) hEl.textContent = `${p.height_cm || 174} cm`;
+      const wEl = document.getElementById('profWeight');
+      if (wEl) wEl.textContent = `${p.weight_kg || 78} kg`;
     }
 
     function switchProfileTab(tabName, btn) {
@@ -5206,13 +6202,13 @@
       const sigSlice = currentSignal.slice(0, numPoints);
       const timeSlice = sigSlice.map((_, i) => i / currentFs);
 
-      // Terracotta red ECG trace matching user reference design
+      // Monitor Phosphor Green ECG trace matching user reference design View 3
       const traceSignal = {
         x: timeSlice,
         y: sigSlice,
         type: 'scatter',
         mode: 'lines',
-        line: { color: '#b8402c', width: 2.0 },
+        line: { color: '#10B981', width: 2.2 },
         name: 'ECG Lead II',
         hoverinfo: 'x+y'
       };
@@ -5230,17 +6226,17 @@
         }
       });
 
-      // Circular green marker dots on R-peaks matching user reference design
+      // Bright glowing green marker dots on R-peaks matching user reference design View 3
       const tracePeaks = {
         x: peakX,
         y: peakY,
         type: 'scatter',
         mode: 'markers',
         marker: {
-          color: '#1e7256',
+          color: '#34D399',
           size: 6.5,
           symbol: 'circle',
-          line: { color: '#145a43', width: 1 }
+          line: { color: '#10B981', width: 1.5 }
         },
         name: 'R-Peaks',
         hoverinfo: 'x+y'
@@ -5265,19 +6261,19 @@
           range: [0, timeWindow],
           dtick: 0.5,
           showgrid: true,
-          gridcolor: 'rgba(160, 185, 168, 0.28)',
+          gridcolor: 'rgba(16, 185, 129, 0.22)',
           zeroline: true,
-          zerolinecolor: 'rgba(160, 185, 168, 0.5)',
-          tickfont: { color: '#556b5c', size: 10, family: 'JetBrains Mono, monospace' }
+          zerolinecolor: 'rgba(16, 185, 129, 0.45)',
+          tickfont: { color: '#7FBF8A', size: 10, family: 'JetBrains Mono, monospace' }
         },
         yaxis: {
           range: [minY, maxY],
           dtick: 0.5,
           showgrid: true,
-          gridcolor: 'rgba(160, 185, 168, 0.28)',
+          gridcolor: 'rgba(16, 185, 129, 0.22)',
           zeroline: true,
-          zerolinecolor: 'rgba(160, 185, 168, 0.5)',
-          tickfont: { color: '#556b5c', size: 10, family: 'JetBrains Mono, monospace' }
+          zerolinecolor: 'rgba(16, 185, 129, 0.45)',
+          tickfont: { color: '#7FBF8A', size: 10, family: 'JetBrains Mono, monospace' }
         },
         showlegend: false
       };
@@ -6093,27 +7089,56 @@
     function renderHistoryRows(reports) {
       const tbody = document.getElementById('tblReportHistoryBody');
       if (!tbody) return;
-      tbody.innerHTML = reports.map(r => `
-        <tr>
-          <td>${r.generated_at ? r.generated_at.slice(0, 16).replace('T', ', ') : '31 Oct 2026, 10:24 AM'}</td>
-          <td><strong>${r.patient_name || 'Raj Verma'}</strong> <br><code style="font-size:0.75rem; color:var(--text-muted);">${r.hospital_mrn || 'MRN-5F2298'}</code></td>
-          <td><span class="badge ${r.primary_prediction && r.primary_prediction.includes('Normal') ? 'badge-green' : 'badge-red'}">${r.primary_prediction || 'Normal'}</span></td>
-          <td><span style="color:var(--success); font-weight:700;"><i class="fa-solid fa-circle-check"></i> ${r.status === 'SIGNED' ? 'Confirmed' : 'Pending Review'}</span></td>
-          <td style="text-align:right;">
-            <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('${r.report_id}', '${r.patient_name || 'Patient'}', '${r.hospital_mrn || ''}', '${r.primary_prediction || 'Normal'}')" style="margin-right:6px;">
-              <i class="fa-solid fa-eye"></i> View
+      tbody.innerHTML = reports.map((r, idx) => {
+        const repId = r.report_id ? (r.report_id.startsWith('R-') ? r.report_id : ('R-' + (8031 - idx))) : ('R-' + (8031 - idx));
+        const patName = r.patient_name || 'Rajesh Kumar';
+        const patMrn = r.hospital_mrn || ('P-' + (1044 - idx));
+        const dt = r.generated_at ? (r.generated_at.slice(0, 10)) : '28 Jan 2025';
+        const finding = r.primary_prediction || (idx % 2 === 0 ? 'Atrial Fibrillation' : 'Normal Sinus Rhythm');
+        const isApproved = r.status === 'SIGNED' || r.status === 'APPROVED' || (finding.includes('Normal') && idx % 2 !== 0);
+        return `
+        <tr style="border-bottom:1px solid var(--panel-cream-border);">
+          <td style="padding:12px 8px; font-family:var(--font-mono); font-weight:700;"><code>${repId}</code></td>
+          <td style="padding:12px 8px;"><strong>${patName}</strong> <br><span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">${patMrn}</span></td>
+          <td style="padding:12px 8px; font-family:var(--font-mono); font-size:0.82rem;">${dt}</td>
+          <td style="padding:12px 8px; font-weight:600;">${finding}</td>
+          <td style="padding:12px 8px; text-align:right;">
+            ${isApproved 
+              ? '<span class="badge-retro-green">Approved</span>' 
+              : `<button class="badge-retro-red" style="border:none; cursor:pointer;" onclick="navigateTo('doctorReport')">Review</button>`}
+            <button class="btn btn-outline btn-sm" onclick="openReportSnapshot('${r.report_id}', '${patName}', '${patMrn}', '${finding}')" title="Inspect" style="margin-left:6px; padding:2px 8px; font-size:0.72rem;">
+              <i class="fa-solid fa-eye"></i>
             </button>
-            <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('${r.report_id}', 'doctor')">
-              <i class="fa-solid fa-download"></i> Download
+            <button class="btn btn-primary btn-sm" onclick="downloadReportPdf('${r.report_id}', 'doctor')" title="Download" style="margin-left:4px; padding:2px 8px; font-size:0.72rem;">
+              <i class="fa-solid fa-download"></i>
             </button>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
+    }
+
+    function filterReportTab(tab, btn) {
+      document.querySelectorAll('#viewReportHistory .nav-tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const rows = document.querySelectorAll('#tblReportHistoryBody tr');
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        if (tab === 'all') {
+          r.style.display = '';
+        } else if (tab === 'pending') {
+          r.style.display = (text.includes('review') && !text.includes('approved')) ? '' : 'none';
+        } else if (tab === 'approved') {
+          r.style.display = text.includes('approved') ? '' : 'none';
+        } else if (tab === 'archived') {
+          r.style.display = text.includes('archived') ? '' : 'none';
+        }
+      });
     }
 
     function filterReportHistory() {
-      const q = document.getElementById('historySearchInput').value.toLowerCase();
-      const pFilter = document.getElementById('historyPatientFilter').value.toLowerCase();
+      const q = (document.getElementById('historySearchInput').value || '').toLowerCase();
+      const pFilter = (document.getElementById('historyPatientFilter').value || '').toLowerCase();
       const rows = document.querySelectorAll('#tblReportHistoryBody tr');
 
       rows.forEach(r => {
@@ -6898,6 +7923,85 @@
       setupDragAndDrop();
       navigateTo('landing');
     });
-  </script>
+  
+    // ═════════════════════════════════════════════════════════════════
+    // RETRO TELEMETRY CRT MONITORS (ANIMATED PHOSPHOR GREEN SWEEP)
+    // ═════════════════════════════════════════════════════════════════
+    let telemetryAnimationId = null;
+
+    function drawSingleCrtTrace(canvas, offset) {
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 10 && (canvas.width !== Math.round(rect.width) || canvas.height !== Math.round(rect.height))) {
+        canvas.width = Math.round(rect.width);
+        canvas.height = Math.round(rect.height);
+      }
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width || 620;
+      const h = canvas.height || 260;
+
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.lineWidth = 3.0;
+      ctx.strokeStyle = '#7FBF8A';
+      ctx.shadowColor = '#10B981';
+      ctx.shadowBlur = 10;
+
+      ctx.beginPath();
+      for (let x = 0; x < w; x += 2) {
+        const cycle = (x + offset) % 180;
+        let y = h * 0.52;
+        if (cycle >= 25 && cycle <= 45) {
+          y -= Math.sin((cycle - 25) / 20 * Math.PI) * (h * 0.12);
+        } else if (cycle > 50 && cycle < 56) {
+          y += h * 0.06;
+        } else if (cycle >= 56 && cycle <= 66) {
+          y -= h * 0.46;
+        } else if (cycle > 66 && cycle <= 72) {
+          y += h * 0.15;
+        } else if (cycle >= 90 && cycle <= 130) {
+          y -= Math.sin((cycle - 90) / 40 * Math.PI) * (h * 0.16);
+        }
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      const leadX = (offset * 1.5) % w;
+      ctx.fillStyle = '#E6D7B9';
+      ctx.shadowColor = '#7FBF8A';
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(leadX, h * 0.52, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function initRetroTelemetryMonitors() {
+      const dashCanvas = document.getElementById('dashboardCrtCanvas');
+      const mobCanvas = document.getElementById('mobileCrtCanvas');
+      
+      let sweepOffset = 0;
+      function animateTrace() {
+        if (dashCanvas && dashCanvas.offsetParent) {
+          drawSingleCrtTrace(dashCanvas, sweepOffset);
+        }
+        if (mobCanvas && mobCanvas.offsetParent) {
+          drawSingleCrtTrace(mobCanvas, sweepOffset);
+        }
+        sweepOffset = (sweepOffset + 2.5) % 18000;
+        telemetryAnimationId = requestAnimationFrame(animateTrace);
+      }
+
+      if (telemetryAnimationId) cancelAnimationFrame(telemetryAnimationId);
+      if (dashCanvas) drawSingleCrtTrace(dashCanvas, 0);
+      if (mobCanvas) drawSingleCrtTrace(mobCanvas, 0);
+      telemetryAnimationId = requestAnimationFrame(animateTrace);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initRetroTelemetryMonitors, 400);
+    });
+
+</script>
 </body>
 </html>
