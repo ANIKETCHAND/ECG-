@@ -154,10 +154,13 @@ def extract_waveform_from_image(
         }
 
     # 5. Resampling to target sampling frequency
-    # Standard ECG strip length is typically 2.5s (in 4x3 12-lead layout) or 10s (rhythm strip)
+    # Standard ECG rhythm strip default duration is 10.0 seconds when calibration is unmeasured
+    is_calibrated = False
     if assumed_duration_sec is None:
-        # Default assume 10.0s if wide image (w > 1200), else 2.5s
-        assumed_duration_sec = 10.0 if w >= 1000 else 2.5
+        assumed_duration_sec = 10.0
+        calibration_status = "UNCALIBRATED_OPTICAL_EXTRACT"
+    else:
+        calibration_status = "USER_SPECIFIED_DURATION"
 
     target_n_samples = int(assumed_duration_sec * target_fs)
     resampled_x = np.linspace(0, w - 1, target_n_samples)
@@ -178,12 +181,14 @@ def extract_waveform_from_image(
         kernel = np.ones(5) / 5.0
         final_signal = np.convolve(final_signal, kernel, mode="same")
 
-    # Baseline center & scale to standard diagnostic ECG voltage (1.2 to 1.5 mV peak)
+    # Baseline center without arbitrary 1.5 mV scaling
+    # Forcing peak amplitude to 1.5 mV destroys ST elevation, ST depression, and LVH criteria.
     baseline_val = float(np.median(final_signal))
     final_signal = final_signal - baseline_val
-    max_peak = float(np.max(np.abs(final_signal)))
-    if max_peak > 1e-4:
-        final_signal = (final_signal / max_peak) * 1.5
+    std_val = float(np.std(final_signal))
+    if std_val > 1e-4:
+        # Standardized signal preserving true relative morphology
+        final_signal = final_signal / std_val
 
     confidence = min(1.0, round(continuity_ratio * 0.95, 2))
 
@@ -192,6 +197,11 @@ def extract_waveform_from_image(
         "signal": final_signal,
         "sampling_rate": target_fs,
         "confidence_score": confidence,
+        "duration_sec": assumed_duration_sec,
+        "calibration_status": calibration_status,
+        "is_calibrated": is_calibrated,
+        "can_evaluate_st": False,
+        "clinical_warning": "ST-segment elevation and amplitude criteria withheld: Missing physical grid calibration.",
         "message": "Waveform successfully extracted and filtered from image.",
         "trace_mask": clean_trace,
     }

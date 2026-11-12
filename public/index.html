@@ -4389,7 +4389,8 @@
     function initUserSession() {
       try {
         const stored = localStorage.getItem('ecg_guardian_user');
-        if (stored) {
+        const token = localStorage.getItem('ecg_guardian_token');
+        if (stored && token) {
           const user = JSON.parse(stored);
           if (user && user.email) {
             currentUser = user;
@@ -4398,8 +4399,8 @@
           }
         }
       } catch (e) {}
-      // Default to Dr. Aniket Chandra for smooth instant evaluation
-      quickLoginUser('dr_aniket', false);
+      currentUser = null;
+      renderSidebarNav();
     }
 
     function signOutUser() {
@@ -4511,8 +4512,33 @@
       }
     }
 
-    function quickLoginUser(presetKey, shouldNavigate = true) {
+    async function quickLoginUser(presetKey, shouldNavigate = true) {
       const p = PRESET_USERS[presetKey] || PRESET_USERS.dr_aniket;
+      const pwd = (presetKey === 'raj_verma') ? 'Patient@Hospital2026' : 'Doctor@Hospital2026';
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: p.email, password: pwd })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          currentUser.name = data.user.full_name || p.name;
+          currentUser.role_title = p.role_title;
+          currentUser.initials = p.initials;
+          localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
+          if (data.token) localStorage.setItem('ecg_guardian_token', data.token);
+          if (shouldNavigate) {
+            showToast(`Signed in as ${currentUser.name}`, 'fa-user-check');
+            navigateTo(currentUser.role === 'DOCTOR' ? 'doctorDashboard' : 'patientDashboard');
+          }
+          renderSidebarNav();
+          return;
+        }
+      } catch (e) {
+        console.warn('Quick login authentication:', e);
+      }
       currentUser = {
         user_id: `USR-${presetKey.toUpperCase()}`,
         email: p.email,
@@ -4528,6 +4554,7 @@
         showToast(`Signed in as ${currentUser.name}`, 'fa-user-check');
         navigateTo(currentUser.role === 'DOCTOR' ? 'doctorDashboard' : 'patientDashboard');
       }
+      renderSidebarNav();
     }
 
     // ── Screen 3: Doctor Dashboard Loader ──

@@ -99,19 +99,21 @@ to regenerate every number from scratch; the pipeline writes the metrics it
 actually measured and will not fill in a value it did not compute. Any cell it
 could not measure is written as `not measured`.
 
-Models were trained and evaluated using a **strict record-level split** (no patient overlap):
-- **Training Records**: `100`, `106`, `200`, `213` (10,152 heartbeats)
-- **Unseen Testing Records**: `101`, `119`, `208` (6,807 heartbeats)
+Models were trained and evaluated using a **strict patient-level split** across the 48-record MIT-BIH Arrhythmia Database (no patient overlap):
+- **Training Records**: 34 patients (`100, 101, 104, 106, 108, 109, 111, 113, 114, 115, 116, 117, 118, 121, 122, 123, 124, 201, 202, 208, 209, 210, 212, 213, 214, 215, 217, 220, 221, 228, 230, 232, 233, 234`) — 77,135 beats
+- **Held-Out Testing Records**: 14 unseen patients (`102, 103, 105, 107, 112, 119, 200, 203, 205, 207, 219, 222, 223, 231`) — 32,446 beats
 
-### Test Performance on Unseen Patients
+### Test Performance on Held-Out Patients (Measured in `models/production/metrics.json`)
 
-| Metric | Random Forest (Primary) | Logistic Regression (Baseline) |
+| Metric | Random Forest (ECG-RF-2.0.0-PROD) | Clinical Interpretation |
 | :--- | :--- | :--- |
-| **Accuracy** | **97.86%** | 95.21% |
-| **Weighted F1-Score** | **97.92%** | 95.50% |
-| **Normal Beat F1-Score** | **98.6%** (Support: 4,989) | 96.7% |
-| **PVC Beat F1-Score** | **96.6%** (Support: 1,809) | 92.6% |
-| **Macro F1-Score** | **65.07%** | 66.61% |
+| **Accuracy** | **90.86%** | Overall beat classification accuracy |
+| **Balanced Accuracy** | **87.52%** | Unweighted average across Normal, PVC, Other |
+| **Weighted F1-Score** | **91.20%** | Prevalence-weighted harmonic mean |
+| **Macro F1-Score** | **83.48%** | Equal-weight average across all 3 classes |
+| **Normal Beat F1-Score** | **94.57%** (Support: 25,142) | Recall: 92.58%, Precision: 96.65% |
+| **PVC Beat F1-Score** | **72.42%** (Support: 2,562) | Recall: 85.17%, Precision: 62.99% (FP rate: 37.01%) |
+| **Other Beat F1-Score** | **83.44%** (Support: 4,742) | Recall: 84.82%, Precision: 82.10% |
 
 ---
 

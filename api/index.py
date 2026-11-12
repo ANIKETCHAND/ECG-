@@ -11,6 +11,7 @@ Endpoints for Vercel deployment:
 
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime, timezone
@@ -28,7 +29,7 @@ import json
 import base64
 import uuid
 import numpy as np
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, File, UploadFile, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -90,6 +91,9 @@ try:
         enforce_signal_limits,
         get_security_settings,
         require_api_key,
+        decode_jwt_token,
+        is_strict_auth_required,
+        get_current_user_strictly,
     )
 except ImportError:  # running with api/ itself on sys.path (Vercel runtime)
     from security import (  # type: ignore[no-redef]
@@ -97,6 +101,9 @@ except ImportError:  # running with api/ itself on sys.path (Vercel runtime)
         enforce_signal_limits,
         get_security_settings,
         require_api_key,
+        decode_jwt_token,
+        is_strict_auth_required,
+        get_current_user_strictly,
     )
 
 _SECURITY: SecuritySettings = get_security_settings()
@@ -361,9 +368,9 @@ def get_authenticated_user_from_request(
     request: Request,
     token: Optional[str] = None,
 ) -> Optional[User]:
-    """Extract and validate authenticated clinical or patient user from session token."""
+    """Extract and validate authenticated clinical or patient user from session or JWT token."""
     tok = token
-    if not tok:
+    if not tok and request:
         auth_hdr = request.headers.get("Authorization") or request.headers.get("authorization")
         if auth_hdr:
             parts = auth_hdr.strip().split()
@@ -371,12 +378,36 @@ def get_authenticated_user_from_request(
                 tok = parts[1]
             elif len(parts) == 1:
                 tok = parts[0]
-    if not tok:
+    if not tok and request:
         tok = request.headers.get("X-Session-Token") or request.headers.get("x-session-token")
-    if not tok:
+    if not tok and request:
         tok = request.query_params.get("token")
     if tok:
-        return AUTH_MANAGER.validate_session(tok)
+        tok_clean = tok.strip()
+        # 1. Check Cryptographic JWT token
+        payload = decode_jwt_token(tok_clean)
+        if payload:
+            exp = payload.get("exp")
+            if exp and time.time() > exp:
+                return None
+            user_id = payload.get("sub") or payload.get("user_id")
+            role_str = payload.get("role", "PATIENT")
+            role_enum = UserRole.__members__.get(role_str, UserRole.PATIENT)
+            return User(
+                user_id=user_id,
+                username=payload.get("username", user_id),
+                password_hash="",
+                salt="",
+                role=role_enum,
+                full_name=payload.get("name", "Authenticated User"),
+                email=payload.get("email", ""),
+                hospital_id=payload.get("hospital_id", "HOSP-APEX"),
+                registration_number=payload.get("registration_number"),
+                is_active=True,
+                created_at=float(payload.get("iat", time.time())),
+            )
+        # 2. Check Database / AuthManager session token
+        return AUTH_MANAGER.validate_session(tok_clean)
     return None
 
 
@@ -470,14 +501,21 @@ def google_auth_endpoint(req: GoogleAuthRequest):
 
 @router.get("/auth/me")
 def get_current_user_endpoint(request: Request, token: Optional[str] = None):
-    """Get active authenticated clinician profile."""
+    """Get active authenticated clinician or patient profile. Anonymous requests receive HTTP 401."""
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user:
         return {"status": "AUTHENTICATED", "user": user.to_dict()}
-    cardiologist = AUTH_MANAGER.get_user_by_username("cardiologist")
-    if cardiologist:
-        return {"status": "DEFAULT", "user": cardiologist.to_dict()}
-    return {"status": "UNAUTHENTICATED", "user": None}
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required. Provide valid Authorization Bearer token.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 @router.post("/auth/logout")
 def logout_endpoint(token: Optional[str] = None):
@@ -931,6 +969,7 @@ def analyze_ecg(req: AnalyzeRequest):
     # 4. Multimodal Medication Safety Check
     med_safety = check_medication_safety(
         medication_names=med_list,
+        patient=pat_context,
         ecg_finding=analysis_res.prediction,
         ecg_measurements={"heart_rate": analysis_res.heart_rate_bpm, "qtc_ms": measurements.qtc_bazett_ms},
         vital_signs=effective_vitals,
@@ -1477,6 +1516,12 @@ def list_patients_endpoint(
 ):
     """List registered patients with search filtering and clinical summaries, scoped by tenancy and role."""
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else "HOSP-APEX")
     if user and user.role != UserRole.PATIENT and user.hospital_id:
         effective_hosp = user.hospital_id
@@ -1536,6 +1581,12 @@ def get_patient_endpoint(patient_identifier: str, request: Request, token: Optio
         raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
 
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user:
         if user.role == UserRole.PATIENT:
             pat_code = (user.registration_number or "").strip().lower()
@@ -1590,6 +1641,12 @@ def update_patient_endpoint(patient_identifier: str, req: PatientUpdateRequest, 
         raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
 
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user:
         if user.role == UserRole.PATIENT:
             pat_code = (user.registration_number or "").strip().lower()
@@ -1787,24 +1844,48 @@ def get_dashboard_stats(hospital_id: Optional[str] = "HOSP-APEX"):
 
 
 @router.post("/review", dependencies=[_protected])
-def record_clinician_review(rev: ReviewRequest):
+def record_clinician_review(rev: ReviewRequest, request: Request = None):
     """Cryptographically seal clinical review and persist to database."""
     target_id = rev.report_id or rev.analysis_id
     if not target_id:
         raise HTTPException(status_code=400, detail="Either report_id or analysis_id must be provided for clinician review.")
 
+    user = get_authenticated_user_from_request(request) if request else None
+
+    # In strict auth mode, require verified clinician session
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required: Only verified clinicians can seal clinical reports.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # RBAC Guard: Patient accounts cannot seal clinical diagnostic reports
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Patient accounts are prohibited from sealing clinical diagnostic reports. Only licensed clinicians may review and sign.",
+        )
+    if not user and str(rev.clinician_role).upper() == "PATIENT":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Patient accounts are prohibited from sealing clinical diagnostic reports. Only licensed clinicians may review and sign.",
+        )
+
     eff_agreement = rev.agreement_status or rev.action or "CONFIRMED"
     eff_interpretation = rev.clinician_interpretation or rev.clinician_diagnosis or rev.notes or "Clinician confirmed finding"
-    eff_reg_num = rev.registration_number or "MED-REG-34667"
+    clinician_name = user.full_name if user else rev.clinician_name
+    clinician_role = (user.role.value if isinstance(user.role, UserRole) else str(user.role)) if user else rev.clinician_role
+    eff_reg_num = (user.registration_number if user and user.registration_number else None) or rev.registration_number or "MED-REG-34667"
     eff_clinical_notes = rev.clinical_notes or rev.notes or ""
     eff_medication = rev.selected_medication or rev.prescribed_medication
-    eff_user_id = rev.clinician_id or f"USER-{hash(rev.clinician_name) & 0xFFFF:04X}"
+    eff_user_id = (user.user_id if user else None) or rev.clinician_id or f"USER-{hash(clinician_name) & 0xFFFF:04X}"
 
     seal_res = REPORT_PERSISTENCE_SERVICE.sign_and_seal_report(
         report_id=target_id,
         clinician_user_id=eff_user_id,
-        clinician_name=rev.clinician_name,
-        clinician_role=rev.clinician_role,
+        clinician_name=clinician_name,
+        clinician_role=clinician_role,
         registration_number=eff_reg_num,
         agreement_status=eff_agreement,
         clinician_interpretation=eff_interpretation,
@@ -1830,8 +1911,8 @@ def record_clinician_review(rev: ReviewRequest):
         "analysis_id": effective_analysis_id,
         "report_id": effective_report_id,
         "report_number": seal_res.get("report_number"),
-        "clinician_name": rev.clinician_name,
-        "clinician_role": rev.clinician_role,
+        "clinician_name": clinician_name,
+        "clinician_role": clinician_role,
         "registration_number": eff_reg_num,
         "agreement_status": eff_agreement,
         "clinician_diagnosis": rev.clinician_diagnosis or eff_interpretation,
@@ -1916,6 +1997,12 @@ def list_reports_endpoint(
         offset=offset,
     )
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user and user.role == UserRole.PATIENT:
         pat_code = (user.registration_number or "").strip().lower()
         user_name = (user.full_name or "").strip().lower()
@@ -1945,6 +2032,12 @@ def get_report_endpoint(report_identifier: str, request: Request, token: Optiona
         raise HTTPException(status_code=404, detail="Report not found in persistent registry.")
 
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     rd = rep.get("report_data") or {}
     if isinstance(rd, str):
         try:
@@ -2394,6 +2487,13 @@ def get_report_pdf_endpoint(report_identifier: str, type: str = "doctor", reques
         except Exception:
             user = None
 
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     if not rep and user:
         # Fallback generation for active user
         p_name = user.full_name or "Patient"
@@ -2841,8 +2941,17 @@ class AssignPatientRequest(BaseModel):
     hospital_id: Optional[str] = "HOSP-APEX"
 
 @router.post("/patients/{patient_identifier}/assign", dependencies=[_protected])
-def assign_patient_endpoint(patient_identifier: str, req: AssignPatientRequest):
+def assign_patient_endpoint(patient_identifier: str, req: AssignPatientRequest, request: Request = None):
     """Assign a patient to an attending doctor or cardiologist."""
+    user = get_authenticated_user_from_request(request) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(status_code=403, detail="Access denied: Patients cannot assign doctors.")
     p = DB_MANAGER.get_patient(patient_identifier) or DB_MANAGER.get_patient_by_mrn(patient_identifier)
     if not p:
         raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
@@ -2894,8 +3003,15 @@ class PatientConsentRequest(BaseModel):
     notes: Optional[str] = "Patient provided informed electronic consent for diagnostic processing."
 
 @router.post("/patients/{patient_identifier}/consent", dependencies=[_protected])
-def record_patient_consent_endpoint(patient_identifier: str, req: PatientConsentRequest):
+def record_patient_consent_endpoint(patient_identifier: str, req: PatientConsentRequest, request: Request = None):
     """Record patient informed consent in accordance with Digital Personal Data Protection (DPDP) Act 2025."""
+    user = get_authenticated_user_from_request(request) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     p = DB_MANAGER.get_patient(patient_identifier) or DB_MANAGER.get_patient_by_mrn(patient_identifier)
     if not p:
         raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
@@ -3055,6 +3171,12 @@ def get_patient_longitudinal_endpoint(patient_identifier: str, request: Request,
         raise HTTPException(status_code=404, detail=f"Patient '{patient_identifier}' not found.")
 
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user and user.role == UserRole.PATIENT:
         is_own = (user.user_id == p.patient_id or (user.registration_number and user.registration_number in p.hospital_mrn))
         if not is_own:

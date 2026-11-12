@@ -33,7 +33,7 @@ Under Chapter II, Rule 4 of the Medical Device Rules (MDR) 2017, and CDSCO class
 | :--- | :--- | :--- | :--- |
 | **EP 1** | Safety & Effectiveness | Software operates under strict Quality Gatekeeper (`evaluate_signal_quality_gate`). Unacceptable/unusable signals trigger automatic abstention with explanatory clinical error notes. | **CONFORMANT** |
 | **EP 2** | Risk Reduction & ISO 14971 | Design controls enforce the Hard Safety Rule: No result is ever returned or guessed on corrupted, flatline, or saturated inputs. | **CONFORMANT** |
-| **EP 3** | Clinical Evaluation | Clinically validated on PhysioNet MIT-BIH Arrhythmia Database (32,446 held-out test beats across Records 100 & 208) with zero patient-level split leakage. | **CONFORMANT** |
+| **EP 3** | Clinical Evaluation | Evaluated on PhysioNet MIT-BIH Arrhythmia Database across 14 strictly held-out test patients (Records 102, 103, 105, 107, 112, 119, 200, 203, 205, 207, 219, 222, 223, 231; 25,000+ test beats) with patient-level split separation. Investigational prototype status. | **CONFORMANT (INVESTIGATIONAL)** |
 | **EP 4** | Traceability & Cyber-Security | PBKDF2-HMAC-SHA256 credential hashing, Google JWKS cryptographic token validation, role-based authorization (RBAC), and SQL injection parameterized queries. | **CONFORMANT** |
 | **EP 5** | Data Privacy (DPDP Act 2025) | Electronic informed consent recording (`/api/patients/{id}/consent`), right-to-erasure workflows, and granular hospital multi-tenant isolation. | **CONFORMANT** |
 
