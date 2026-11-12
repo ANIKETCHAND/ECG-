@@ -13,7 +13,9 @@ This matrix establishes bi-directional traceability linking engineering requirem
 | **SEC-05** | Frontend Auth | Eliminate automatic backdoor login in client web application. | Presentation Tier | `public/index.html:1594-1620` | Manual Walkthrough & `test_api_serverless.py` | **PASS** |
 | **CLIN-01** | Clinical Safety | Withhold potassium-dependent medication recommendations when serum potassium is unrecorded. | Pharmacology Engine | `src/clinical/medication_candidate_engine.py:483-490` | `test_missing_potassium_triggers_mandatory_withholding` | **PASS** |
 | **CLIN-02** | Clinical Safety | Withhold renally eliminated drug candidates when serum creatinine or eGFR is unrecorded. | Pharmacology Engine | `src/clinical/medication_candidate_engine.py:503-510` | `test_missing_creatinine_triggers_mandatory_withholding` | **PASS** |
+| **CLIN-03** | Clinical Safety | Enforce hypokalemia contraindication safety gate (<3.5 mEq/L) blocking torsadogenic and antiarrhythmic agents. | Pharmacology Engine | `src/clinical/medication_candidate_engine.py:465-475` | `test_hypokalemia_contraindication_blocks_torsadogenic_candidates` | **PASS** |
 | **BIO-01** | Biomedical | Optical waveform extractor must not scale uncalibrated signals to 1.5 mV and must disable ST analysis. | Waveform Extractor | `src/ecg_input/waveform_extractor.py:184-205` | `test_uncalibrated_optical_waveform_marks_safety_flags` | **PASS** |
+| **BIO-02** | Biomedical | Dynamic morphology-aware Q-onset fiducial detection replaces fixed pre-R offset for accurate QT/QTc. | Measurement Engine | `src/measurements/measurement_engine.py:165-205` | `test_dynamic_q_onset_computes_physiologic_qt` | **PASS** |
 | **ML-01** | Governance | Production model catalog must enforce strict patient-level split with zero train/test leakage. | Model Registry | `models/registry/catalog.json`, `models/production/metrics.json` | `test_production_model_has_strict_record_split`, `test_training_integrity.py` | **PASS** |
 | **ML-02** | Governance | Prohibit promotion of synthetic-trained placeholder models to production. | Model Registry Loader | `src/ml/models/registry.py:145-180` | `test_training_integrity.py` | **PASS** |
 | **DATA-01** | Persistence | Dual persistence architecture ensures zero patient record loss across serverless container recycle. | Persistence Tier | `src/database/db_manager.py`, `src/database/supabase_client.py` | `test_supabase_database_audit.py` | **PASS** |
@@ -23,7 +25,7 @@ This matrix establishes bi-directional traceability linking engineering requirem
 
 ## 2. Traceability Verification Summary
 
-- **Total Requirements Mapped**: 12 critical engineering requirements
-- **Implemented in Codebase**: 100% (12 / 12)
-- **Automated Test Coverage**: 100% automated regression verification
-- **Current Verification Status**: All 12 requirements verified passing with zero regressions.
+- **Total Requirements Mapped**: 14 critical engineering requirements
+- **Implemented in Codebase**: 100% (14 / 14)
+- **Automated Test Coverage**: 100% automated regression verification (573 passing tests)
+- **Current Verification Status**: All 14 requirements verified passing with zero regressions.

@@ -7,7 +7,7 @@ ECG Guardian is engineered to satisfy the rigorous technical, clinical, and qual
 | Standard / Regulation | Classification / Scope | Status in Architecture |
 | :--- | :--- | :--- |
 | **CDSCO MDR 2017 (India)** | Class B SaMD (Low-Moderate Risk) | Technical Dossier aligned with rule 32; EP checklist complete |
-| **IEC 62304:2006/AMD 1:2015** | Class B Medical Device Software Lifecycle | Architecture modularized; regression test suite (568 tests) automated |
+| **IEC 62304:2006/AMD 1:2015** | Class B Medical Device Software Lifecycle | Architecture modularized; regression test suite (573 tests) automated |
 | **ISO 14971:2019** | Application of Risk Management to Medical Devices | FMEA risk management file with mitigations established |
 | **ISO 13485:2016** | Medical Devices — Quality Management Systems | Document version control, traceability, and sign-off governance |
 | **IEC 81001-5-1:2021** | Health Software — Health IT Systems Security | Zero-trust authentication, RBAC, encrypted storage, audit trails |
