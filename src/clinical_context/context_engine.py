@@ -117,7 +117,9 @@ class ClinicalContextFusionEngine:
             return statements
 
         # 3. Patient Demographics & Blood Group
-        demo_str = f"Age: {patient.age if patient.age is not None else 'NOT PROVIDED'}, Sex: {patient.sex or 'NOT PROVIDED'}, Blood Group: {patient.blood_group or 'NOT PROVIDED'}"
+        rh_str = f" ({patient.rh_factor})" if patient.rh_factor and patient.rh_factor != "UNKNOWN" else ""
+        bmi_str = f", Height: {patient.height_cm:.0f}cm, Weight: {patient.weight_kg:.1f}kg, BMI: {patient.bmi:.1f}" if patient.height_cm and patient.weight_kg and patient.bmi else ""
+        demo_str = f"Age: {patient.age if patient.age is not None else 'NOT PROVIDED'}, Sex: {patient.sex or 'NOT PROVIDED'}, Blood Group: {(patient.blood_group or 'NOT PROVIDED') + rh_str}{bmi_str}"
         statements.append(
             SourcedStatement(
                 category="PATIENT_CONTEXT",
@@ -127,7 +129,19 @@ class ClinicalContextFusionEngine:
         )
 
         # 4. Patient Medical & Cardiac History
-        all_conditions = patient.existing_conditions + patient.cardiac_history
+        conds = getattr(patient, "existing_conditions", [])
+        if isinstance(conds, str):
+            conds = [c.strip() for c in conds.split(",") if c.strip()]
+        elif not isinstance(conds, list):
+            conds = list(conds) if conds else []
+
+        cardiac = getattr(patient, "cardiac_history", [])
+        if isinstance(cardiac, str):
+            cardiac = [c.strip() for c in cardiac.split(",") if c.strip()]
+        elif not isinstance(cardiac, list):
+            cardiac = list(cardiac) if cardiac else []
+
+        all_conditions = conds + cardiac
         if all_conditions:
             statements.append(
                 SourcedStatement(
@@ -141,6 +155,53 @@ class ClinicalContextFusionEngine:
                 SourcedStatement(
                     category="PATIENT_CONTEXT",
                     statement="Documented cardiac and medical history: None documented",
+                    source_tag=InformationSource.RECORDED_HISTORY,
+                )
+            )
+
+        # 4b. Surgical and Hospitalization History
+        if getattr(patient, "previous_surgeries", None):
+            statements.append(
+                SourcedStatement(
+                    category="PATIENT_CONTEXT",
+                    statement=f"Previous surgical procedures: {', '.join(patient.previous_surgeries)}",
+                    source_tag=InformationSource.RECORDED_HISTORY,
+                )
+            )
+        if getattr(patient, "previous_hospitalizations", None):
+            statements.append(
+                SourcedStatement(
+                    category="PATIENT_CONTEXT",
+                    statement=f"Previous hospitalizations: {', '.join(patient.previous_hospitalizations)}",
+                    source_tag=InformationSource.RECORDED_HISTORY,
+                )
+            )
+
+        # 4c. Allergies Profile (Drug, Food, Other)
+        allergy_parts = []
+        if patient.allergies:
+            drug_allergies = [f"{getattr(a, 'allergen', getattr(a, 'substance', str(a)))} ({getattr(a, 'severity', 'documented')})" for a in patient.allergies]
+            allergy_parts.append(f"Drug Allergies: {', '.join(drug_allergies)}")
+        if getattr(patient, "food_allergies", None):
+            food_names = [getattr(a, "allergen", str(a)) for a in patient.food_allergies]
+            allergy_parts.append(f"Food Allergies: {', '.join(food_names)}")
+        if getattr(patient, "other_allergies", None):
+            other_names = [getattr(a, "allergen", str(a)) for a in patient.other_allergies]
+            allergy_parts.append(f"Other Allergies: {', '.join(other_names)}")
+
+        if allergy_parts:
+            statements.append(
+                SourcedStatement(
+                    category="PATIENT_CONTEXT",
+                    statement="; ".join(allergy_parts),
+                    source_tag=InformationSource.RECORDED_HISTORY,
+                )
+            )
+        else:
+            statements.append(
+                SourcedStatement(
+                    category="PATIENT_CONTEXT",
+                    statement="Allergies: No known drug, food, or environmental allergies documented",
                     source_tag=InformationSource.RECORDED_HISTORY,
                 )
             )
@@ -176,21 +237,26 @@ class ClinicalContextFusionEngine:
             )
 
         # 6. Vital Signs (Point-in-Time filtered)
-        vitals = patient.get_latest_vitals_before(as_of_timestamp)
-        if vitals and (vitals.systolic_bp_mmhg is not None or vitals.spo2_percent is not None):
+        vitals = patient.get_latest_vitals_before(as_of_timestamp) if hasattr(patient, "get_latest_vitals_before") else None
+        v_temp = getattr(vitals, "temperature_celsius", getattr(vitals, "temperature_c", None)) if vitals else None
+        if vitals and (getattr(vitals, "systolic_bp_mmhg", None) is not None or getattr(vitals, "spo2_percent", None) is not None or v_temp is not None):
             v_parts = []
-            if vitals.systolic_bp_mmhg is not None and vitals.diastolic_bp_mmhg is not None:
+            if getattr(vitals, "systolic_bp_mmhg", None) is not None and getattr(vitals, "diastolic_bp_mmhg", None) is not None:
                 v_parts.append(f"BP: {int(vitals.systolic_bp_mmhg)}/{int(vitals.diastolic_bp_mmhg)} mmHg")
-            if vitals.spo2_percent is not None:
+            if getattr(vitals, "heart_rate_bpm", None) is not None:
+                v_parts.append(f"HR: {int(vitals.heart_rate_bpm)} bpm")
+            if getattr(vitals, "spo2_percent", None) is not None:
                 v_parts.append(f"SpO2: {vitals.spo2_percent:.0f}%")
-            if vitals.respiratory_rate_bpm is not None:
+            if getattr(vitals, "respiratory_rate_bpm", None) is not None:
                 v_parts.append(f"RR: {vitals.respiratory_rate_bpm:.0f}/min")
+            if v_temp is not None:
+                v_parts.append(f"Temp: {v_temp:.1f}°C")
             statements.append(
                 SourcedStatement(
                     category="VITAL_SIGN",
                     statement=f"Bedside vitals: {', '.join(v_parts)}",
                     source_tag=InformationSource.VITAL_SIGN,
-                    timestamp=vitals.recorded_at,
+                    timestamp=getattr(vitals, "recorded_at", None),
                 )
             )
         else:
@@ -203,17 +269,30 @@ class ClinicalContextFusionEngine:
             )
 
         # 7. Laboratory Results (Point-in-Time filtered)
-        labs = patient.get_latest_labs_before(as_of_timestamp)
-        if labs and (labs.potassium_mmol_l is not None or labs.serum_creatinine_mg_dl is not None or labs.troponin_i_ng_ml is not None):
+        labs = patient.get_latest_labs_before(as_of_timestamp) if hasattr(patient, "get_latest_labs_before") else None
+        if labs and (labs.potassium_mmol_l is not None or labs.serum_creatinine_mg_dl is not None or labs.troponin_i_ng_ml is not None or labs.sodium_mmol_l is not None or labs.alt_u_l is not None):
             l_parts = []
             if labs.potassium_mmol_l is not None:
                 l_parts.append(f"Potassium: {labs.potassium_mmol_l:.2f} mmol/L")
+            if labs.sodium_mmol_l is not None:
+                l_parts.append(f"Sodium: {labs.sodium_mmol_l:.1f} mmol/L")
             if labs.serum_creatinine_mg_dl is not None:
                 l_parts.append(f"Creatinine: {labs.serum_creatinine_mg_dl:.2f} mg/dL")
             if labs.egfr_ml_min is not None:
                 l_parts.append(f"eGFR: {labs.egfr_ml_min:.0f} mL/min")
             if labs.troponin_i_ng_ml is not None:
                 l_parts.append(f"Troponin I: {labs.troponin_i_ng_ml:.3f} ng/mL")
+            if labs.alt_u_l is not None or labs.ast_u_l is not None or labs.bilirubin_mg_dl is not None:
+                lft_items = []
+                if labs.alt_u_l is not None:
+                    lft_items.append(f"ALT: {labs.alt_u_l:.0f} U/L")
+                if labs.ast_u_l is not None:
+                    lft_items.append(f"AST: {labs.ast_u_l:.0f} U/L")
+                if labs.bilirubin_mg_dl is not None:
+                    lft_items.append(f"Bilirubin: {labs.bilirubin_mg_dl:.1f} mg/dL")
+                if labs.alk_phos_u_l is not None:
+                    lft_items.append(f"Alk Phos: {labs.alk_phos_u_l:.0f} U/L")
+                l_parts.append(f"LFTs: ({', '.join(lft_items)})")
             statements.append(
                 SourcedStatement(
                     category="LABORATORY",
@@ -247,6 +326,18 @@ class ClinicalContextFusionEngine:
                 SourcedStatement(
                     category="MEDICATION",
                     statement="Active medication regimen: None documented",
+                    source_tag=InformationSource.MEDICATION_REGIMEN,
+                )
+            )
+
+        # 8b. Past & Discontinued Medications
+        past_meds = getattr(patient, "past_medications", None)
+        if past_meds:
+            past_names = [getattr(m, "drug_name", str(m)) for m in past_meds]
+            statements.append(
+                SourcedStatement(
+                    category="MEDICATION",
+                    statement=f"Discontinued / Past medications: {', '.join(past_names)}",
                     source_tag=InformationSource.MEDICATION_REGIMEN,
                 )
             )

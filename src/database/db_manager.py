@@ -44,15 +44,35 @@ class PatientRecord:
     date_of_birth: Optional[str] = None
     emergency_contact: Optional[str] = None
     blood_group: Optional[str] = None
+    rh_factor: Optional[str] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    bmi: Optional[float] = None
     known_allergies: Optional[str] = None
+    food_allergies: Optional[str] = None
+    other_allergies: Optional[str] = None
     existing_conditions: Optional[str] = None
     current_medications: Optional[str] = None
+    past_medications: Optional[str] = None
+    discontinued_medications: Optional[str] = None
     previous_cardiac_history: Optional[str] = None
     family_history: Optional[str] = None
+    previous_surgeries: Optional[str] = None
+    previous_hospitalizations: Optional[str] = None
     smoking_status: Optional[str] = None
     other_relevant_history: Optional[str] = None
     past_medical_history: Optional[str] = None
     other_clinical_information: Optional[str] = None
+    diabetes: Optional[str] = None
+    hypertension: Optional[str] = None
+    coronary_artery_disease: Optional[str] = None
+    previous_heart_attack: Optional[str] = None
+    heart_failure: Optional[str] = None
+    arrhythmia_history: Optional[str] = None
+    kidney_disease: Optional[str] = None
+    liver_disease: Optional[str] = None
+    thyroid_disorders: Optional[str] = None
+    other_diagnosed_diseases: Optional[str] = None
     updated_at: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,9 +108,14 @@ class DatabaseManager:
 
     @contextmanager
     def _db(self) -> Generator[sqlite3.Connection, None, None]:
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA busy_timeout = 30000")
+        except Exception:
+            pass
         try:
             yield conn
         finally:
@@ -192,6 +217,46 @@ class DatabaseManager:
                     cursor.execute("ALTER TABLE patients ADD COLUMN past_medical_history TEXT")
                 if "other_clinical_information" not in p_cols:
                     cursor.execute("ALTER TABLE patients ADD COLUMN other_clinical_information TEXT")
+                if "rh_factor" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN rh_factor TEXT")
+                if "height_cm" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN height_cm REAL")
+                if "weight_kg" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN weight_kg REAL")
+                if "bmi" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN bmi REAL")
+                if "previous_surgeries" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN previous_surgeries TEXT")
+                if "previous_hospitalizations" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN previous_hospitalizations TEXT")
+                if "past_medications" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN past_medications TEXT")
+                if "discontinued_medications" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN discontinued_medications TEXT")
+                if "food_allergies" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN food_allergies TEXT")
+                if "other_allergies" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN other_allergies TEXT")
+                if "diabetes" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN diabetes TEXT")
+                if "hypertension" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN hypertension TEXT")
+                if "coronary_artery_disease" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN coronary_artery_disease TEXT")
+                if "previous_heart_attack" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN previous_heart_attack TEXT")
+                if "heart_failure" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN heart_failure TEXT")
+                if "arrhythmia_history" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN arrhythmia_history TEXT")
+                if "kidney_disease" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN kidney_disease TEXT")
+                if "liver_disease" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN liver_disease TEXT")
+                if "thyroid_disorders" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN thyroid_disorders TEXT")
+                if "other_diagnosed_diseases" not in p_cols:
+                    cursor.execute("ALTER TABLE patients ADD COLUMN other_diagnosed_diseases TEXT")
 
                 # 5. ECG Records Table
                 cursor.execute("""
@@ -265,6 +330,23 @@ class DatabaseManager:
                     FOREIGN KEY (record_id) REFERENCES ecg_records(record_id) ON DELETE CASCADE
                 )
                 """)
+
+                cursor.execute("PRAGMA table_info(clinician_reviews)")
+                crv_cols = [row["name"] for row in cursor.fetchall()]
+                if "clinician_diagnosis" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN clinician_diagnosis TEXT")
+                if "selected_medication" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN selected_medication TEXT")
+                if "medication_dosage" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN medication_dosage TEXT")
+                if "treatment_instructions" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN treatment_instructions TEXT")
+                if "follow_up_instructions" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN follow_up_instructions TEXT")
+                if "prescriptions_json" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN prescriptions_json TEXT")
+                if "rejected_candidates_json" not in crv_cols:
+                    cursor.execute("ALTER TABLE clinician_reviews ADD COLUMN rejected_candidates_json TEXT")
 
                 # 8. Clinical Reports Table
                 cursor.execute("""
@@ -390,6 +472,51 @@ class DatabaseManager:
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
                 )
                 """)
+
+                # Incremental migrations for vitals, labs, allergies, and medications
+                cursor.execute("PRAGMA table_info(vital_signs)")
+                vs_cols = [row["name"] for row in cursor.fetchall()]
+                if "height_cm" not in vs_cols:
+                    cursor.execute("ALTER TABLE vital_signs ADD COLUMN height_cm REAL")
+                if "weight_kg" not in vs_cols:
+                    cursor.execute("ALTER TABLE vital_signs ADD COLUMN weight_kg REAL")
+                if "bmi" not in vs_cols:
+                    cursor.execute("ALTER TABLE vital_signs ADD COLUMN bmi REAL")
+
+                cursor.execute("PRAGMA table_info(laboratory_results)")
+                lr_cols = [row["name"] for row in cursor.fetchall()]
+                if "sodium_mmol_l" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN sodium_mmol_l REAL")
+                if "alt_u_l" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN alt_u_l REAL")
+                if "ast_u_l" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN ast_u_l REAL")
+                if "bilirubin_mg_dl" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN bilirubin_mg_dl REAL")
+                if "alk_phos_u_l" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN alk_phos_u_l REAL")
+                if "lft_summary" not in lr_cols:
+                    cursor.execute("ALTER TABLE laboratory_results ADD COLUMN lft_summary TEXT")
+
+                cursor.execute("PRAGMA table_info(patient_allergies)")
+                pa_cols = [row["name"] for row in cursor.fetchall()]
+                if "allergy_type" not in pa_cols:
+                    cursor.execute("ALTER TABLE patient_allergies ADD COLUMN allergy_type TEXT DEFAULT 'DRUG'")
+                if "previous_reactions" not in pa_cols:
+                    cursor.execute("ALTER TABLE patient_allergies ADD COLUMN previous_reactions TEXT")
+
+                cursor.execute("PRAGMA table_info(patient_medications)")
+                pm_cols = [row["name"] for row in cursor.fetchall()]
+                if "brand_name" not in pm_cols:
+                    cursor.execute("ALTER TABLE patient_medications ADD COLUMN brand_name TEXT")
+                if "status" not in pm_cols:
+                    cursor.execute("ALTER TABLE patient_medications ADD COLUMN status TEXT DEFAULT 'CURRENT'")
+                if "discontinued_date" not in pm_cols:
+                    cursor.execute("ALTER TABLE patient_medications ADD COLUMN discontinued_date TEXT")
+                if "discontinue_reason" not in pm_cols:
+                    cursor.execute("ALTER TABLE patient_medications ADD COLUMN discontinue_reason TEXT")
+                if "adverse_reactions" not in pm_cols:
+                    cursor.execute("ALTER TABLE patient_medications ADD COLUMN adverse_reactions TEXT")
 
                 # 14. Users Table (Phase 1 Database Hardening)
                 cursor.execute("""
@@ -760,37 +887,70 @@ class DatabaseManager:
         date_of_birth: Optional[str] = None,
         emergency_contact: Optional[str] = None,
         blood_group: Optional[str] = None,
+        rh_factor: Optional[str] = None,
+        height_cm: Optional[float] = None,
+        weight_kg: Optional[float] = None,
+        bmi: Optional[float] = None,
         known_allergies: Optional[str] = None,
+        food_allergies: Optional[str] = None,
+        other_allergies: Optional[str] = None,
         existing_conditions: Optional[str] = None,
         current_medications: Optional[str] = None,
+        past_medications: Optional[str] = None,
+        discontinued_medications: Optional[str] = None,
         previous_cardiac_history: Optional[str] = None,
         family_history: Optional[str] = None,
+        previous_surgeries: Optional[str] = None,
+        previous_hospitalizations: Optional[str] = None,
         smoking_status: Optional[str] = None,
         other_relevant_history: Optional[str] = None,
         past_medical_history: Optional[str] = None,
         other_clinical_information: Optional[str] = None,
+        diabetes: Optional[str] = None,
+        hypertension: Optional[str] = None,
+        coronary_artery_disease: Optional[str] = None,
+        previous_heart_attack: Optional[str] = None,
+        heart_failure: Optional[str] = None,
+        arrhythmia_history: Optional[str] = None,
+        kidney_disease: Optional[str] = None,
+        liver_disease: Optional[str] = None,
+        thyroid_disorders: Optional[str] = None,
+        other_diagnosed_diseases: Optional[str] = None,
     ) -> PatientRecord:
         created_at = datetime.now().isoformat()
+        if bmi is None and height_cm and weight_kg and height_cm > 0:
+            bmi = round(float(weight_kg) / ((float(height_cm) / 100.0) ** 2), 1)
+
+        cols = [
+            "patient_id", "hospital_mrn", "hospital_id", "name", "age", "sex", "contact", "created_at",
+            "date_of_birth", "emergency_contact", "blood_group", "rh_factor", "height_cm", "weight_kg", "bmi",
+            "known_allergies", "food_allergies", "other_allergies",
+            "existing_conditions", "current_medications", "past_medications", "discontinued_medications",
+            "previous_cardiac_history", "family_history", "previous_surgeries", "previous_hospitalizations",
+            "smoking_status", "other_relevant_history", "past_medical_history", "other_clinical_information",
+            "diabetes", "hypertension", "coronary_artery_disease", "previous_heart_attack",
+            "heart_failure", "arrhythmia_history", "kidney_disease", "liver_disease",
+            "thyroid_disorders", "other_diagnosed_diseases", "updated_at"
+        ]
+        vals = [
+            patient_id, hospital_mrn, hospital_id, name, age, sex, contact, created_at,
+            date_of_birth, emergency_contact, blood_group, rh_factor, height_cm, weight_kg, bmi,
+            known_allergies, food_allergies, other_allergies,
+            existing_conditions, current_medications, past_medications, discontinued_medications,
+            previous_cardiac_history, family_history, previous_surgeries, previous_hospitalizations,
+            smoking_status, other_relevant_history, past_medical_history, other_clinical_information,
+            diabetes, hypertension, coronary_artery_disease, previous_heart_attack,
+            heart_failure, arrhythmia_history, kidney_disease, liver_disease,
+            thyroid_disorders, other_diagnosed_diseases, created_at
+        ]
+        placeholders = ", ".join(["?"] * len(cols))
+        col_names = ", ".join(cols)
+
         with self._lock:
             with self._db() as conn:
                 conn.execute(
-                    """
-                    INSERT INTO patients (
-                        patient_id, hospital_mrn, hospital_id, name, age, sex, contact, created_at,
-                        date_of_birth, emergency_contact, blood_group, known_allergies,
-                        existing_conditions, current_medications, previous_cardiac_history,
-                        family_history, smoking_status, other_relevant_history,
-                        past_medical_history, other_clinical_information, updated_at
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        patient_id, hospital_mrn, hospital_id, name, age, sex, contact, created_at,
-                        date_of_birth, emergency_contact, blood_group, known_allergies,
-                        existing_conditions, current_medications, previous_cardiac_history,
-                        family_history, smoking_status, other_relevant_history,
-                        past_medical_history, other_clinical_information, created_at,
-                    ),
+                    f"INSERT INTO patients ({col_names}) VALUES ({placeholders})",
+                    vals,
                 )
                 conn.commit()
         return PatientRecord(
@@ -805,28 +965,60 @@ class DatabaseManager:
             date_of_birth=date_of_birth,
             emergency_contact=emergency_contact,
             blood_group=blood_group,
+            rh_factor=rh_factor,
+            height_cm=height_cm,
+            weight_kg=weight_kg,
+            bmi=bmi,
             known_allergies=known_allergies,
+            food_allergies=food_allergies,
+            other_allergies=other_allergies,
             existing_conditions=existing_conditions,
             current_medications=current_medications,
+            past_medications=past_medications,
+            discontinued_medications=discontinued_medications,
             previous_cardiac_history=previous_cardiac_history,
             family_history=family_history,
+            previous_surgeries=previous_surgeries,
+            previous_hospitalizations=previous_hospitalizations,
             smoking_status=smoking_status,
             other_relevant_history=other_relevant_history,
             past_medical_history=past_medical_history,
             other_clinical_information=other_clinical_information,
+            diabetes=diabetes,
+            hypertension=hypertension,
+            coronary_artery_disease=coronary_artery_disease,
+            previous_heart_attack=previous_heart_attack,
+            heart_failure=heart_failure,
+            arrhythmia_history=arrhythmia_history,
+            kidney_disease=kidney_disease,
+            liver_disease=liver_disease,
+            thyroid_disorders=thyroid_disorders,
+            other_diagnosed_diseases=other_diagnosed_diseases,
             updated_at=created_at,
         )
 
     def update_patient(self, patient_id: str, **kwargs) -> bool:
         valid_cols = {
             "name", "age", "sex", "contact", "date_of_birth", "emergency_contact",
-            "blood_group", "known_allergies", "existing_conditions", "current_medications",
-            "previous_cardiac_history", "family_history", "smoking_status", "other_relevant_history",
-            "past_medical_history", "other_clinical_information"
+            "blood_group", "rh_factor", "height_cm", "weight_kg", "bmi",
+            "known_allergies", "food_allergies", "other_allergies",
+            "existing_conditions", "current_medications", "past_medications", "discontinued_medications",
+            "previous_cardiac_history", "family_history", "previous_surgeries", "previous_hospitalizations",
+            "smoking_status", "other_relevant_history", "past_medical_history", "other_clinical_information",
+            "diabetes", "hypertension", "coronary_artery_disease", "previous_heart_attack",
+            "heart_failure", "arrhythmia_history", "kidney_disease", "liver_disease",
+            "thyroid_disorders", "other_diagnosed_diseases"
         }
         updates = {k: v for k, v in kwargs.items() if k in valid_cols}
         if not updates:
             return False
+        # Calculate BMI if height and weight updated or either one provided
+        if "height_cm" in updates and "weight_kg" in updates:
+            h = updates.get("height_cm")
+            w = updates.get("weight_kg")
+            if h and w and float(h) > 0:
+                updates["bmi"] = round(float(w) / ((float(h) / 100.0) ** 2), 1)
+
         updates["updated_at"] = datetime.now().isoformat()
         set_clauses = [f"{col} = ?" for col in updates.keys()]
         values = list(updates.values()) + [patient_id]
@@ -838,6 +1030,11 @@ class DatabaseManager:
 
     def _row_to_patient(self, row: sqlite3.Row) -> PatientRecord:
         d = dict(row)
+        def _to_bool(val: Any) -> Optional[bool]:
+            if val is None:
+                return None
+            return str(val).strip().lower() in ("1", "true", "yes", "t")
+
         return PatientRecord(
             patient_id=d.get("patient_id", ""),
             hospital_mrn=d.get("hospital_mrn", ""),
@@ -850,15 +1047,35 @@ class DatabaseManager:
             date_of_birth=d.get("date_of_birth"),
             emergency_contact=d.get("emergency_contact"),
             blood_group=d.get("blood_group"),
+            rh_factor=d.get("rh_factor"),
+            height_cm=d.get("height_cm"),
+            weight_kg=d.get("weight_kg"),
+            bmi=d.get("bmi"),
             known_allergies=d.get("known_allergies"),
+            food_allergies=d.get("food_allergies"),
+            other_allergies=d.get("other_allergies"),
             existing_conditions=d.get("existing_conditions"),
             current_medications=d.get("current_medications"),
+            past_medications=d.get("past_medications"),
+            discontinued_medications=d.get("discontinued_medications"),
             previous_cardiac_history=d.get("previous_cardiac_history"),
             family_history=d.get("family_history"),
+            previous_surgeries=d.get("previous_surgeries"),
+            previous_hospitalizations=d.get("previous_hospitalizations"),
             smoking_status=d.get("smoking_status"),
             other_relevant_history=d.get("other_relevant_history"),
             past_medical_history=d.get("past_medical_history"),
             other_clinical_information=d.get("other_clinical_information"),
+            diabetes=_to_bool(d.get("diabetes")),
+            hypertension=_to_bool(d.get("hypertension")),
+            coronary_artery_disease=_to_bool(d.get("coronary_artery_disease")),
+            previous_heart_attack=_to_bool(d.get("previous_heart_attack")),
+            heart_failure=_to_bool(d.get("heart_failure")),
+            arrhythmia_history=_to_bool(d.get("arrhythmia_history")),
+            kidney_disease=_to_bool(d.get("kidney_disease")),
+            liver_disease=_to_bool(d.get("liver_disease")),
+            thyroid_disorders=_to_bool(d.get("thyroid_disorders")),
+            other_diagnosed_diseases=d.get("other_diagnosed_diseases"),
             updated_at=d.get("updated_at"),
         )
 
@@ -1215,22 +1432,31 @@ class DatabaseManager:
         spo2_percent: Optional[float] = None,
         respiratory_rate_bpm: Optional[float] = None,
         temperature_celsius: Optional[float] = None,
+        temperature_c: Optional[float] = None,
+        height_cm: Optional[float] = None,
+        weight_kg: Optional[float] = None,
+        bmi: Optional[float] = None,
         recorded_at: Optional[str] = None,
         source: str = "VITAL-SIGN",
         entered_by: Optional[str] = "Triage Staff",
     ) -> bool:
         t_rec = recorded_at or datetime.now().isoformat()
+        eff_temp = temperature_celsius if temperature_celsius is not None else temperature_c
+        if bmi is None and height_cm and weight_kg and height_cm > 0:
+            bmi = round(float(weight_kg) / ((float(height_cm) / 100.0) ** 2), 1)
         with self._lock:
             with self._db() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO vital_signs
                     (vital_id, patient_id, heart_rate_bpm, systolic_bp_mmhg, diastolic_bp_mmhg,
-                     spo2_percent, respiratory_rate_bpm, temperature_celsius, recorded_at, source, entered_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     spo2_percent, respiratory_rate_bpm, temperature_celsius, height_cm, weight_kg, bmi,
+                     recorded_at, source, entered_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (vital_id, patient_id, heart_rate_bpm, systolic_bp_mmhg, diastolic_bp_mmhg,
-                     spo2_percent, respiratory_rate_bpm, temperature_celsius, t_rec, source, entered_by),
+                     spo2_percent, respiratory_rate_bpm, eff_temp, height_cm, weight_kg, bmi,
+                     t_rec, source, entered_by),
                 )
                 conn.commit()
         return True
@@ -1261,10 +1487,16 @@ class DatabaseManager:
         magnesium_mg_dl: Optional[float] = None,
         serum_creatinine_mg_dl: Optional[float] = None,
         egfr_ml_min: Optional[float] = None,
+        sodium_mmol_l: Optional[float] = None,
         troponin_i_ng_ml: Optional[float] = None,
         troponin_t_ng_ml: Optional[float] = None,
         bnp_pg_ml: Optional[float] = None,
         hemoglobin_g_dl: Optional[float] = None,
+        alt_u_l: Optional[float] = None,
+        ast_u_l: Optional[float] = None,
+        bilirubin_mg_dl: Optional[float] = None,
+        alk_phos_u_l: Optional[float] = None,
+        lft_summary: Optional[str] = None,
         additional_dict: Optional[Dict[str, Any]] = None,
         recorded_at: Optional[str] = None,
         source: str = "LABORATORY",
@@ -1278,13 +1510,15 @@ class DatabaseManager:
                     """
                     INSERT OR REPLACE INTO laboratory_results
                     (lab_id, patient_id, panel_name, potassium_mmol_l, magnesium_mg_dl,
-                     serum_creatinine_mg_dl, egfr_ml_min, troponin_i_ng_ml, troponin_t_ng_ml,
-                     bnp_pg_ml, hemoglobin_g_dl, additional_json, recorded_at, source, entered_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     serum_creatinine_mg_dl, egfr_ml_min, sodium_mmol_l, troponin_i_ng_ml, troponin_t_ng_ml,
+                     bnp_pg_ml, hemoglobin_g_dl, alt_u_l, ast_u_l, bilirubin_mg_dl, alk_phos_u_l,
+                     lft_summary, additional_json, recorded_at, source, entered_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (lab_id, patient_id, panel_name, potassium_mmol_l, magnesium_mg_dl,
-                     serum_creatinine_mg_dl, egfr_ml_min, troponin_i_ng_ml, troponin_t_ng_ml,
-                     bnp_pg_ml, hemoglobin_g_dl, add_json, t_rec, source, entered_by),
+                     serum_creatinine_mg_dl, egfr_ml_min, sodium_mmol_l, troponin_i_ng_ml, troponin_t_ng_ml,
+                     bnp_pg_ml, hemoglobin_g_dl, alt_u_l, ast_u_l, bilirubin_mg_dl, alk_phos_u_l,
+                     lft_summary, add_json, t_rec, source, entered_by),
                 )
                 conn.commit()
         return True
@@ -1360,6 +1594,8 @@ class DatabaseManager:
         allergen: str,
         reaction: Optional[str] = None,
         severity: str = "MODERATE",
+        allergy_type: str = "DRUG",
+        previous_reactions: Optional[str] = None,
         recorded_at: Optional[str] = None,
         source: str = "PATIENT-HISTORY",
         entered_by: Optional[str] = "Clinical Staff",
@@ -1370,10 +1606,10 @@ class DatabaseManager:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO patient_allergies
-                    (allergy_id, patient_id, allergen, reaction, severity, recorded_at, source, entered_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (allergy_id, patient_id, allergen, reaction, severity, allergy_type, previous_reactions, recorded_at, source, entered_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (allergy_id, patient_id, allergen, reaction, severity, t_rec, source, entered_by),
+                    (allergy_id, patient_id, allergen, reaction, severity, allergy_type, previous_reactions, t_rec, source, entered_by),
                 )
                 conn.commit()
         return True
@@ -1400,6 +1636,7 @@ class DatabaseManager:
         patient_id: str,
         drug_name: str,
         generic_name: Optional[str] = None,
+        brand_name: Optional[str] = None,
         dosage: Optional[str] = None,
         unit: Optional[str] = None,
         frequency: Optional[str] = None,
@@ -1407,6 +1644,10 @@ class DatabaseManager:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         is_active: bool = True,
+        status: str = "CURRENT",
+        discontinued_date: Optional[str] = None,
+        discontinue_reason: Optional[str] = None,
+        adverse_reactions: Optional[str] = None,
         indication: Optional[str] = None,
         recorded_at: Optional[str] = None,
         source: str = "MEDICATION-RECORD",
@@ -1418,14 +1659,14 @@ class DatabaseManager:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO patient_medications
-                    (medication_id, patient_id, drug_name, generic_name, dosage, unit,
-                     frequency, route, start_date, end_date, is_active, indication,
-                     recorded_at, source, entered_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (medication_id, patient_id, drug_name, generic_name, brand_name, dosage, unit,
+                     frequency, route, start_date, end_date, is_active, status, discontinued_date,
+                     discontinue_reason, adverse_reactions, indication, recorded_at, source, entered_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (medication_id, patient_id, drug_name, generic_name, dosage, unit,
-                     frequency, route, start_date, end_date, 1 if is_active else 0,
-                     indication, t_rec, source, entered_by),
+                    (medication_id, patient_id, drug_name, generic_name, brand_name, dosage, unit,
+                     frequency, route, start_date, end_date, 1 if is_active else 0, status,
+                     discontinued_date, discontinue_reason, adverse_reactions, indication, t_rec, source, entered_by),
                 )
                 conn.commit()
         return True
@@ -1474,12 +1715,34 @@ class DatabaseManager:
         cond_list: List[str] = []
         if p_row.existing_conditions:
             cond_list = [c.strip() for c in p_row.existing_conditions.split(",") if c.strip()]
+        for specific_cond, label in [
+            (p_row.diabetes, "Diabetes"),
+            (p_row.hypertension, "Hypertension"),
+            (p_row.coronary_artery_disease, "Coronary Artery Disease"),
+            (p_row.previous_heart_attack, "Previous Heart Attack"),
+            (p_row.heart_failure, "Heart Failure"),
+            (p_row.arrhythmia_history, "Arrhythmia History"),
+            (p_row.kidney_disease, "Kidney Disease"),
+            (p_row.liver_disease, "Liver Disease"),
+            (p_row.thyroid_disorders, "Thyroid Disorder"),
+            (p_row.other_diagnosed_diseases, "Other Diagnosed Diseases"),
+        ]:
+            if specific_cond and specific_cond not in ["None", "No", "0", "false", False] and label not in cond_list:
+                is_affirmative = (specific_cond is True) or str(specific_cond).strip().lower() in ["yes", "1", "true", "t"]
+                cond_list.append(label if is_affirmative else f"{label} ({specific_cond})")
+
         cardiac_list: List[str] = []
         if p_row.previous_cardiac_history:
             cardiac_list = [c.strip() for c in p_row.previous_cardiac_history.split(",") if c.strip()]
         fam_list: List[str] = []
         if p_row.family_history:
             fam_list = [c.strip() for c in p_row.family_history.split(",") if c.strip()]
+        surg_list: List[str] = []
+        if p_row.previous_surgeries:
+            surg_list = [s.strip() for s in p_row.previous_surgeries.split(",") if s.strip()]
+        hosp_list: List[str] = []
+        if p_row.previous_hospitalizations:
+            hosp_list = [h.strip() for h in p_row.previous_hospitalizations.split(",") if h.strip()]
 
         # 2. Vitals (time-filtered)
         vitals_raw = self.get_patient_vitals(patient_id, as_of_timestamp=as_of_timestamp)
@@ -1491,6 +1754,9 @@ class DatabaseManager:
                 spo2_percent=v.get("spo2_percent"),
                 respiratory_rate_bpm=v.get("respiratory_rate_bpm"),
                 temperature_celsius=v.get("temperature_celsius"),
+                height_cm=v.get("height_cm") or p_row.height_cm,
+                weight_kg=v.get("weight_kg") or p_row.weight_kg,
+                bmi=v.get("bmi") or p_row.bmi,
                 recorded_at=v.get("recorded_at"),
                 source=v.get("source", "VITAL-SIGN"),
                 entered_by=v.get("entered_by"),
@@ -1507,10 +1773,16 @@ class DatabaseManager:
                 magnesium_mg_dl=l.get("magnesium_mg_dl"),
                 serum_creatinine_mg_dl=l.get("serum_creatinine_mg_dl"),
                 egfr_ml_min=l.get("egfr_ml_min"),
+                sodium_mmol_l=l.get("sodium_mmol_l"),
                 troponin_i_ng_ml=l.get("troponin_i_ng_ml"),
                 troponin_t_ng_ml=l.get("troponin_t_ng_ml"),
                 bnp_pg_ml=l.get("bnp_pg_ml"),
                 hemoglobin_g_dl=l.get("hemoglobin_g_dl"),
+                alt_u_l=l.get("alt_u_l"),
+                ast_u_l=l.get("ast_u_l"),
+                bilirubin_mg_dl=l.get("bilirubin_mg_dl"),
+                alk_phos_u_l=l.get("alk_phos_u_l"),
+                lft_summary=l.get("lft_summary"),
                 recorded_at=l.get("recorded_at"),
                 source=l.get("source", "LABORATORY"),
                 entered_by=l.get("entered_by"),
@@ -1542,6 +1814,8 @@ class DatabaseManager:
                 allergen=a["allergen"],
                 reaction=a.get("reaction"),
                 severity=a.get("severity", "MODERATE"),
+                allergy_type=a.get("allergy_type", "DRUG"),
+                previous_reactions=a.get("previous_reactions"),
                 recorded_at=a.get("recorded_at"),
                 source=a.get("source", "PATIENT-HISTORY"),
                 entered_by=a.get("entered_by"),
@@ -1554,12 +1828,25 @@ class DatabaseManager:
                 if alg.strip():
                     allergy_objs.append(Allergy(allergen=alg.strip()))
 
+        food_allergy_objs: List[Allergy] = [a for a in allergy_objs if a.allergy_type == "FOOD"]
+        if not food_allergy_objs and p_row.food_allergies and p_row.food_allergies != "None":
+            for fa in p_row.food_allergies.split(","):
+                if fa.strip():
+                    food_allergy_objs.append(Allergy(allergen=fa.strip(), allergy_type="FOOD"))
+
+        other_allergy_objs: List[Allergy] = [a for a in allergy_objs if a.allergy_type in ["ENVIRONMENTAL", "OTHER"]]
+        if not other_allergy_objs and p_row.other_allergies and p_row.other_allergies != "None":
+            for oa in p_row.other_allergies.split(","):
+                if oa.strip():
+                    other_allergy_objs.append(Allergy(allergen=oa.strip(), allergy_type="OTHER"))
+
         # 6. Medications (time-filtered)
         meds_raw = self.get_patient_medications(patient_id, as_of_timestamp=as_of_timestamp)
         meds_objs = [
             Medication(
                 drug_name=m["drug_name"],
                 generic_name=m.get("generic_name"),
+                brand_name=m.get("brand_name"),
                 dosage=m.get("dosage"),
                 unit=m.get("unit"),
                 frequency=m.get("frequency"),
@@ -1567,17 +1854,53 @@ class DatabaseManager:
                 start_date=m.get("start_date"),
                 end_date=m.get("end_date"),
                 is_active=bool(m.get("is_active", 1)),
+                status=m.get("status", "CURRENT"),
+                discontinued_date=m.get("discontinued_date"),
+                discontinue_reason=m.get("discontinue_reason"),
+                adverse_reactions=m.get("adverse_reactions"),
                 indication=m.get("indication"),
                 recorded_at=m.get("recorded_at"),
                 source=m.get("source", "MEDICATION-RECORD"),
                 entered_by=m.get("entered_by"),
             )
-            for m in meds_raw
+            for m in meds_raw if bool(m.get("is_active", 1))
         ]
         if not meds_objs and p_row.current_medications and p_row.current_medications != "None":
             for med_str in p_row.current_medications.split(","):
                 if med_str.strip():
                     meds_objs.append(Medication(drug_name=med_str.strip()))
+
+        past_meds_objs = [
+            Medication(
+                drug_name=m["drug_name"],
+                generic_name=m.get("generic_name"),
+                brand_name=m.get("brand_name"),
+                dosage=m.get("dosage"),
+                unit=m.get("unit"),
+                frequency=m.get("frequency"),
+                route=m.get("route", "Oral"),
+                start_date=m.get("start_date"),
+                end_date=m.get("end_date"),
+                is_active=False,
+                status=m.get("status", "PREVIOUS"),
+                discontinued_date=m.get("discontinued_date"),
+                discontinue_reason=m.get("discontinue_reason"),
+                adverse_reactions=m.get("adverse_reactions"),
+                indication=m.get("indication"),
+                recorded_at=m.get("recorded_at"),
+                source=m.get("source", "MEDICATION-RECORD"),
+                entered_by=m.get("entered_by"),
+            )
+            for m in meds_raw if not bool(m.get("is_active", 1))
+        ]
+        if not past_meds_objs and p_row.past_medications and p_row.past_medications != "None":
+            for pmed in p_row.past_medications.split(","):
+                if pmed.strip():
+                    past_meds_objs.append(Medication(drug_name=pmed.strip(), is_active=False, status="PREVIOUS"))
+        if p_row.discontinued_medications and p_row.discontinued_medications != "None":
+            for dmed in p_row.discontinued_medications.split(","):
+                if dmed.strip():
+                    past_meds_objs.append(Medication(drug_name=dmed.strip(), is_active=False, status="DISCONTINUED"))
 
         # 7. Previous ECG records
         with self._db() as conn:
@@ -1596,13 +1919,23 @@ class DatabaseManager:
             date_of_birth=p_row.date_of_birth,
             sex=p_row.sex,
             blood_group=p_row.blood_group,
+            rh_factor=p_row.rh_factor,
+            height_cm=p_row.height_cm,
+            weight_kg=p_row.weight_kg,
+            contact=p_row.contact,
+            emergency_contact=p_row.emergency_contact,
             allergies=allergy_objs,
+            food_allergies=food_allergy_objs,
+            other_allergies=other_allergy_objs,
             smoking_status=p_row.smoking_status,
             alcohol_status=None,
             existing_conditions=cond_list,
             cardiac_history=cardiac_list,
             family_history=fam_list,
+            previous_surgeries=surg_list,
+            previous_hospitalizations=hosp_list,
             current_medications=meds_objs,
+            past_medications=past_meds_objs,
             symptoms=symp_objs,
             vital_signs=vitals_objs,
             laboratory_results=labs_objs,

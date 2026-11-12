@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -54,6 +55,7 @@ class ReportPersistenceService:
         except (PermissionError, OSError):
             self.local_reports_dir = Path("/tmp") / "reports"
             self.local_reports_dir.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
 
     def generate_report_number(self, sequence_hint: Optional[int] = None) -> str:
         """Generate human-readable, hospital-standard report number: ECG-YYYY-XXXXXX."""
@@ -62,6 +64,37 @@ class ReportPersistenceService:
         return f"ECG-{year}-{suffix}"
 
     def save_report_snapshot(
+        self,
+        report_data: Dict[str, Any],
+        pdf_bytes: Optional[bytes] = None,
+        patient_pdf_bytes: Optional[bytes] = None,
+        patient_id: Optional[str] = None,
+        ecg_id: Optional[str] = None,
+        analysis_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        status: str = "DRAFT",
+        report_title: str = "Clinical ECG Analysis Report",
+        force_new_version: bool = False,
+        report_id: Optional[str] = None,
+        report_number: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        with self._lock:
+            return self._save_report_snapshot_impl(
+                report_data=report_data,
+                pdf_bytes=pdf_bytes,
+                patient_pdf_bytes=patient_pdf_bytes,
+                patient_id=patient_id,
+                ecg_id=ecg_id,
+                analysis_id=analysis_id,
+                user_id=user_id,
+                status=status,
+                report_title=report_title,
+                force_new_version=force_new_version,
+                report_id=report_id,
+                report_number=report_number,
+            )
+
+    def _save_report_snapshot_impl(
         self,
         report_data: Dict[str, Any],
         pdf_bytes: Optional[bytes] = None,
@@ -107,15 +140,37 @@ class ReportPersistenceService:
         eff_report_number = report_number or self.generate_report_number()
         timestamp_now = datetime.now().isoformat()
 
-        # Enrich snapshot with permanent report metadata
+        # Check if existing report is SIGNED to protect clinical sign-off from accidental downgrade
+        existing_check = None
+        if report_id:
+            existing_check = self.get_report(report_id) or self.get_report_by_analysis_id(report_id)
+        elif eff_analysis_id:
+            existing_check = self.get_report_by_analysis_id(eff_analysis_id)
+
+        eff_status = status
         enriched_report_data = dict(report_data)
+
+        if existing_check and existing_check.get("status") == "SIGNED" and status in ("PENDING_REVIEW", "DRAFT"):
+            eff_status = "SIGNED"
+            ex_data = existing_check.get("report_data") or {}
+            if isinstance(ex_data, str):
+                try:
+                    ex_data = json.loads(ex_data)
+                except Exception:
+                    ex_data = {}
+            if "clinician_review" in ex_data and "clinician_review" not in enriched_report_data:
+                enriched_report_data["clinician_review"] = ex_data["clinician_review"]
+            if "approved_treatment_plan" in ex_data and "approved_treatment_plan" not in enriched_report_data:
+                enriched_report_data["approved_treatment_plan"] = ex_data["approved_treatment_plan"]
+
+        # Enrich snapshot with permanent report metadata
         enriched_report_data["report_meta"] = {
             "report_id": report_uuid,
             "report_number": eff_report_number,
             "patient_id": eff_patient_id,
             "ecg_id": eff_ecg_id,
             "analysis_id": eff_analysis_id,
-            "report_status": status,
+            "report_status": eff_status,
             "report_version": 1,
             "generated_at": timestamp_now,
         }
@@ -222,7 +277,7 @@ class ReportPersistenceService:
                         "report_number": eff_report_number,
                         "patient_id": eff_patient_id if len(eff_patient_id) == 36 else str(uuid.uuid5(uuid.NAMESPACE_DNS, eff_patient_id)),
                         "ecg_id": eff_ecg_id if len(eff_ecg_id) == 36 else str(uuid.uuid5(uuid.NAMESPACE_DNS, eff_ecg_id)),
-                        "report_status": status,
+                        "report_status": eff_status,
                         "report_title": report_title,
                         "report_data": enriched_report_data,
                         "report_version": 1,
@@ -239,14 +294,26 @@ class ReportPersistenceService:
             try:
                 p_existing = DB_MANAGER.get_patient(eff_patient_id)
                 if not p_existing:
-                    DB_MANAGER.create_patient(
-                        patient_id=eff_patient_id,
-                        hospital_mrn=patient_info.get("hospital_mrn") or f"MRN-{eff_patient_id[:6].upper()}",
-                        name=patient_info.get("patient_name") or "Anonymous Patient",
-                        age=patient_info.get("patient_age"),
-                        sex=patient_info.get("patient_sex"),
-                        blood_group=patient_info.get("blood_group"),
-                    )
+                    mrn_candidate = patient_info.get("hospital_mrn") or f"MRN-{eff_patient_id.upper()}"
+                    try:
+                        DB_MANAGER.create_patient(
+                            patient_id=eff_patient_id,
+                            hospital_mrn=mrn_candidate,
+                            name=patient_info.get("patient_name") or "Anonymous Patient",
+                            age=patient_info.get("patient_age"),
+                            sex=patient_info.get("patient_sex"),
+                            blood_group=patient_info.get("blood_group"),
+                        )
+                    except Exception:
+                        # Retry with unique suffix if MRN was already taken
+                        DB_MANAGER.create_patient(
+                            patient_id=eff_patient_id,
+                            hospital_mrn=f"MRN-{eff_patient_id.upper()}-{uuid.uuid4().hex[:6].upper()}",
+                            name=patient_info.get("patient_name") or "Anonymous Patient",
+                            age=patient_info.get("patient_age"),
+                            sex=patient_info.get("patient_sex"),
+                            blood_group=patient_info.get("blood_group"),
+                        )
                 elif patient_info.get("patient_name"):
                     DB_MANAGER.update_patient(eff_patient_id, name=patient_info["patient_name"])
             except Exception:
@@ -285,7 +352,7 @@ class ReportPersistenceService:
                 record_id=eff_ecg_id,
                 analysis_id=eff_analysis_id,
                 report_type="CLINICAL_PDF",
-                status=status,
+                status=eff_status,
                 report_sha256=report_sha256,
                 report_number=eff_report_number,
                 report_data=enriched_report_data,
@@ -317,7 +384,7 @@ class ReportPersistenceService:
                 details={
                     "report_id": report_uuid,
                     "report_number": eff_report_number,
-                    "status": status,
+                    "status": eff_status,
                     "patient_id": eff_patient_id,
                     "sha256": report_sha256,
                 },
@@ -505,6 +572,9 @@ class ReportPersistenceService:
         medication_dosage: Optional[str] = None,
         treatment_instructions: Optional[str] = None,
         follow_up_instructions: Optional[str] = None,
+        clinician_diagnosis: Optional[str] = None,
+        prescriptions: Optional[List[Dict[str, Any]]] = None,
+        rejected_medications: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """
         Record physician sign-off, freeze the report snapshot, update status to SIGNED,
@@ -513,10 +583,27 @@ class ReportPersistenceService:
         now_ts = datetime.now().isoformat()
         review_id = f"REV-{uuid.uuid4().hex[:8].upper()}"
 
-        # Fetch current report snapshot
+        # Fetch current report snapshot (by report_id, report_number, or analysis_id)
         report_row = self.get_report(report_id)
         if not report_row:
+            report_row = self.get_report_by_analysis_id(report_id)
+        if not report_row:
+            # Create baseline report snapshot so clinician review and sealing can be stored
+            self.save_report_snapshot(
+                report_data={
+                    "analysis_id": report_id,
+                    "findings": [clinician_interpretation or "Clinical Review"],
+                    "model_prediction": clinician_interpretation or "Clinical Review",
+                },
+                report_id=report_id,
+                analysis_id=report_id,
+                status="PENDING_REVIEW",
+            )
+            report_row = self.get_report(report_id) or self.get_report_by_analysis_id(report_id)
+        if not report_row:
             return {"status": PersistenceStatus.SAVE_FAILED.value, "error": f"Report {report_id} not found."}
+
+        actual_report_id = report_row.get("report_id") or report_row.get("id") or report_id
 
         report_data = report_row.get("report_data") or {}
         if isinstance(report_data, str):
@@ -528,6 +615,8 @@ class ReportPersistenceService:
         treatment_plan = {
             "selected_medication": selected_medication or "None",
             "medication_dosage": medication_dosage or "N/A",
+            "prescriptions": prescriptions or [],
+            "rejected_medications": rejected_medications or [],
             "instructions": treatment_instructions or clinical_notes or "Maintain standard cardiovascular care.",
             "follow_up_instructions": follow_up_instructions or "Routine follow-up in 12 months.",
             "approved_by": clinician_name,
@@ -542,9 +631,12 @@ class ReportPersistenceService:
             "clinician_role": clinician_role,
             "registration_number": registration_number,
             "agreement_status": agreement_status,
+            "clinician_diagnosis": clinician_diagnosis,
             "clinician_interpretation": clinician_interpretation,
             "clinical_notes": clinical_notes,
             "treatment_plan": treatment_plan,
+            "prescriptions": prescriptions or [],
+            "rejected_medications": rejected_medications or [],
             "reviewed_at": now_ts,
             "status": "SIGNED",
         }
@@ -566,7 +658,7 @@ class ReportPersistenceService:
             user_id=clinician_user_id,
             status="SIGNED",
             force_new_version=True,
-            report_id=report_id,
+            report_id=actual_report_id,
             report_number=existing_rep_num,
         )
 

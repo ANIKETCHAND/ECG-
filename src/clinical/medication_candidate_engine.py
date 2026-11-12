@@ -304,12 +304,29 @@ class MultimodalMedicationCandidateEngine:
                 raw_associations = {}
 
         # Comprehensive Multi-Disease Detection for Guideline Therapy Mapping
-        cond_str = (
-            str(p_dict.get("conditions", "")) + " " +
-            str(p_dict.get("existing_conditions", "")) + " " +
-            str(p_dict.get("cardiac_history", "")) + " " +
-            str(p_dict.get("medical_history", ""))
-        ).lower()
+        cond_parts = [
+            str(p_dict.get("conditions", "")),
+            str(p_dict.get("existing_conditions", "")),
+            str(p_dict.get("cardiac_history", "")),
+            str(p_dict.get("medical_history", "")),
+        ]
+        for c_field, c_label in [
+            ("diabetes", "diabetes mellitus"),
+            ("hypertension", "hypertension"),
+            ("coronary_artery_disease", "coronary artery disease"),
+            ("previous_heart_attack", "myocardial infarction"),
+            ("heart_failure", "heart failure"),
+            ("arrhythmia_history", "arrhythmia history"),
+            ("kidney_disease", "chronic kidney disease ckd renal"),
+            ("liver_disease", "liver disease cirrhosis hepatic"),
+            ("thyroid_disorders", "thyroid disorder"),
+            ("other_diagnosed_diseases", "other diagnosed diseases"),
+        ]:
+            val = p_dict.get(c_field)
+            if val and str(val).lower() not in ["none", "no", "0", "false", ""]:
+                cond_parts.append(c_label)
+        cond_str = " ".join(cond_parts).lower()
+
         sym_str = str(p_dict.get("symptoms", "")).lower()
         finding_u = ecg_finding.upper()
         is_pvc = "PVC" in finding_u or ("VENTRICULAR" in finding_u and "SUPRA" not in finding_u)
@@ -362,12 +379,13 @@ class MultimodalMedicationCandidateEngine:
             raw_associations["beta_blocker"] = max(raw_associations.get("beta_blocker", 0.0), 0.90)
 
         # 3. Deterministic Safety Verification & Gate Enforcement
-        hr_val = float(ecg_params.get("heart_rate_bpm") or v_dict.get("heart_rate") or 72.0)
+        hr_val = float(ecg_params.get("heart_rate_bpm") or v_dict.get("heart_rate") or v_dict.get("heart_rate_bpm") or 72.0)
         qtc_val = float(ecg_params.get("qtc_bazett_ms") or ecg_params.get("qtc_ms") or 420.0)
         pr_val = float(ecg_params.get("pr_interval_ms") or 160.0)
-        sbp_val = float(v_dict.get("systolic_bp") or 124.0)
-        k_val = float(l_dict.get("potassium_meq_l") or l_dict.get("serum_potassium") or 4.2)
-        cr_val = float(l_dict.get("creatinine_mg_dl") or l_dict.get("serum_creatinine") or 0.95)
+        sbp_val = float(v_dict.get("systolic_bp") or v_dict.get("systolic_bp_mmhg") or v_dict.get("sbp") or 124.0)
+        k_val = float(l_dict.get("potassium_mmol_l") or l_dict.get("potassium_meq_l") or l_dict.get("serum_potassium") or l_dict.get("potassium") or 4.2)
+        cr_val = float(l_dict.get("serum_creatinine_mg_dl") or l_dict.get("creatinine_mg_dl") or l_dict.get("serum_creatinine") or l_dict.get("creatinine") or 0.95)
+        trop_val = float(l_dict.get("troponin_i_ng_ml") or l_dict.get("troponin") or 0.0)
 
         allergies_str = str(p_dict.get("allergies") or p_dict.get("known_allergies") or "").lower()
         curr_meds_str = str(p_dict.get("current_medications") or "").lower()
@@ -397,21 +415,22 @@ class MultimodalMedicationCandidateEngine:
             c_lab_checks = []
 
             # A. Allergy Verification
+            allergies_norm = allergies_str.replace("-", " ")
             drug_name_tokens = [drug_key.replace("_", " ")]
             if "beta" in drug_key:
-                drug_name_tokens.extend(["beta blocker", "metoprolol", "bisoprolol", "carvedilol"])
+                drug_name_tokens.extend(["beta blocker", "beta", "metoprolol", "bisoprolol", "carvedilol", "atenolol"])
             elif "calcium" in drug_key:
-                drug_name_tokens.extend(["calcium channel blocker", "diltiazem", "verapamil", "amlodipine"])
+                drug_name_tokens.extend(["calcium channel blocker", "ccb", "diltiazem", "verapamil", "amlodipine"])
             elif "antiarrhythmic" in drug_key:
-                drug_name_tokens.extend(["amiodarone", "sotalol", "iodine"])
+                drug_name_tokens.extend(["amiodarone", "sotalol", "flecainide", "iodine"])
             elif "statin" in drug_key:
-                drug_name_tokens.extend(["statin", "atorvastatin", "rosuvastatin"])
+                drug_name_tokens.extend(["statin", "atorvastatin", "rosuvastatin", "simvastatin"])
             elif "antiplatelet" in drug_key:
                 drug_name_tokens.extend(["aspirin", "clopidogrel", "plavix", "salicylate", "nsaid"])
             elif "ace" in drug_key:
-                drug_name_tokens.extend(["ace inhibitor", "lisinopril", "enalapril", "arb", "losartan"])
+                drug_name_tokens.extend(["ace inhibitor", "ace", "lisinopril", "enalapril", "arb", "losartan", "angioedema"])
 
-            matched_allergy = any(tok in allergies_str for tok in drug_name_tokens if len(tok) > 3)
+            matched_allergy = any((tok in allergies_str or tok in allergies_norm) for tok in drug_name_tokens if len(tok) >= 3)
             if matched_allergy:
                 c_status = "BLOCKED"
                 c_allergy = "ALLERGY_ALERT"
@@ -469,13 +488,62 @@ class MultimodalMedicationCandidateEngine:
                 c_lab_checks.append(f"Serum K+: {k_val:.1f} mEq/L")
 
             # Renal Function Gate
-            if drug_key in ["anticoagulant_doac", "ace_inhibitor_arb"]:
-                if cr_val > 2.5:
+            egfr_val = float(l_dict.get("egfr_ml_min") or l_dict.get("egfr") or max(15.0, 110.0 - (float(p_dict.get("age") or 55.0) * 0.6) - (cr_val * 22.0)))
+            c_lab_checks.append(f"Serum Cr: {cr_val:.2f} mg/dL, eGFR: {egfr_val:.0f} mL/min")
+
+            if drug_key == "biguanide":
+                if egfr_val < 30.0 or cr_val > 2.5:
+                    c_status = "BLOCKED"
+                    msg = f"Severe Renal Impairment (eGFR {egfr_val:.0f} mL/min < 30 mL/min). Metformin contraindicated due to risk of fatal lactic acidosis (FDA Black Box / ADA 2024 / KDIGO)."
+                    c_contraindications.append(msg)
+                    contraindications_found.append(f"{display_name}: {msg}")
+                elif egfr_val < 45.0:
                     if c_status != "BLOCKED":
                         c_status = "REVIEW_REQUIRED"
-                    msg = f"Severe Renal Impairment (Serum Creatinine {cr_val:.2f} mg/dL). Renal dosage titration or alternative required."
+                    c_contraindications.append(f"Moderate CKD (eGFR {egfr_val:.0f} mL/min). Dose cap of 1000 mg/day indicated (KDIGO/ADA).")
+
+            if drug_key == "antiarrhythmic_class_3":
+                if egfr_val < 40.0:
+                    if c_status != "BLOCKED":
+                        c_status = "REVIEW_REQUIRED"
+                    msg = f"Renal Impairment (eGFR {egfr_val:.0f} mL/min < 40 mL/min). Sotalol accumulation risk; contraindicated or requires strict dose reduction (FDA Label)."
                     c_contraindications.append(msg)
-                c_lab_checks.append(f"Serum Cr: {cr_val:.2f} mg/dL")
+                    contraindications_found.append(f"{display_name}: {msg}")
+
+            if drug_key in ["anticoagulant_doac", "ace_inhibitor_arb"]:
+                if cr_val > 2.5 or egfr_val < 30.0:
+                    if c_status != "BLOCKED":
+                        c_status = "REVIEW_REQUIRED"
+                    msg = f"Severe Renal Impairment (Serum Creatinine {cr_val:.2f} mg/dL, eGFR {egfr_val:.0f} mL/min). Renal dosage titration or alternative required (KDIGO)."
+                    c_contraindications.append(msg)
+                    contraindications_found.append(f"{display_name}: {msg}")
+
+            # Hepatic Function Gate
+            alt_val = float(l_dict.get("alt_u_l") or l_dict.get("alt") or 0.0)
+            ast_val = float(l_dict.get("ast_u_l") or l_dict.get("ast") or 0.0)
+            bili_val = float(l_dict.get("bilirubin_mg_dl") or l_dict.get("bilirubin") or 0.0)
+            has_liver = any(k in cond_str for k in ["liver", "hepatic", "cirrhosis", "hepatitis", "jaundice"])
+
+            if alt_val > 0.0 or ast_val > 0.0 or bili_val > 0.0:
+                c_lab_checks.append(f"LFTs: ALT {alt_val:.0f} U/L, AST {ast_val:.0f} U/L, Bilirubin {bili_val:.1f} mg/dL")
+
+            if drug_key == "statin":
+                if (alt_val >= 120.0 or ast_val >= 120.0 or bili_val >= 2.0 or "cirrhosis" in cond_str):
+                    c_status = "BLOCKED"
+                    msg = f"Active Hepatic Impairment / Transaminitis (ALT {alt_val:.0f} U/L, AST {ast_val:.0f} U/L, Bilirubin {bili_val:.1f} mg/dL). Statins contraindicated in decompensated liver disease (FDA Label / ESC 2019)."
+                    c_contraindications.append(msg)
+                    contraindications_found.append(f"{display_name}: {msg}")
+                elif has_liver:
+                    if c_status != "BLOCKED":
+                        c_status = "REVIEW_REQUIRED"
+                    c_contraindications.append("Documented liver disease: Monitor LFTs before initiation and periodically (FDA Label).")
+
+            if drug_key == "antiarrhythmic_class_3" and (alt_val >= 120.0 or ast_val >= 120.0 or bili_val >= 2.0 or has_liver):
+                if c_status != "BLOCKED":
+                    c_status = "REVIEW_REQUIRED"
+                msg = "Documented hepatic impairment / transaminitis: Amiodarone carries risk of hepatotoxicity. Baseline and serial LFT monitoring mandatory (FDA / openFDA)."
+                c_contraindications.append(msg)
+                contraindications_found.append(f"{display_name}: {msg}")
 
             # E. Drug-Drug Interactions
             if drug_key == "beta_blocker" and ("diltiazem" in curr_meds_str or "verapamil" in curr_meds_str):
@@ -548,7 +616,26 @@ class MultimodalMedicationCandidateEngine:
         has_doc_afib = any(k in cond_str for k in ["atrial fibrillation", "afib", "a-fib", "af"])
         has_documented_history = (has_doc_htn or has_doc_dm or has_doc_dyslip or has_doc_cad or has_doc_hf or has_doc_arrh or has_doc_afib)
 
-        if not is_reliable and not has_documented_history:
+        # Check potential clinical emergency or severe contraindication (Section 5 requirement)
+        emergency_triggers = []
+        if k_val >= 6.2:
+            emergency_triggers.append(f"Critical Hyperkalemia (K+ {k_val:.1f} mmol/L >= 6.2)")
+        if hr_val < 42.0:
+            emergency_triggers.append(f"Severe Symptomatic Bradycardia (HR {hr_val:.0f} bpm < 42)")
+        if sbp_val < 85.0 and bool(v_dict.get("systolic_bp") or v_dict.get("systolic_bp_mmhg") or v_dict.get("sbp")):
+            emergency_triggers.append(f"Profound Hemodynamic Shock / Hypotension (SBP {sbp_val:.0f} mmHg < 85)")
+        if trop_val >= 1.0 and any(k in sym_str for k in ["chest pain", "angina", "pressure", "substernal"]):
+            emergency_triggers.append(f"Suspected Acute Myocardial Infarction / ACS with Critical Troponin Elevation ({trop_val:.2f} ng/mL)")
+
+        if emergency_triggers:
+            status = "EMERGENCY_ESCALATION"
+            status_reason = (
+                f"POTENTIAL CLINICAL EMERGENCY ESCALATION: {'; '.join(emergency_triggers)}. "
+                "Routine elective oral medication recommendations withheld. Urgent bedside clinical evaluation, "
+                "stabilization, and cardiology emergency escalation required."
+            )
+            candidates = []
+        elif not is_reliable and not has_documented_history:
             status = "WITHHELD"
             status_reason = " ".join(withheld_reasons) if withheld_reasons else "ECG finding reliability unverified; recommendations withheld for clinician review."
         elif has_documented_history and len(candidates) > 0:
@@ -616,15 +703,38 @@ def build_authoritative_clinical_analysis(
     m = ecg_measurements or {}
     sq = signal_quality_info or {}
 
+    def _parse_list(val: Any) -> List[str]:
+        if isinstance(val, list):
+            return [str(item).strip() for item in val if str(item).strip() and str(item).strip().lower() not in ("none", "none documented", "no known allergies", "no allergies")]
+        if isinstance(val, str) and val.strip() and val.strip().lower() not in ("none", "none documented", "no known allergies", "no allergies"):
+            return [item.strip() for item in val.split(",") if item.strip()]
+        return []
+
     patient_ctx = PatientContext(
         patient_id=p.get("patient_id") or "PAT-ANON",
-        hospital_mrn=p.get("mrn") or p.get("patient_mrn") or "NOT ASSIGNED",
+        hospital_mrn=p.get("mrn") or p.get("patient_mrn") or p.get("hospital_mrn") or "NOT ASSIGNED",
         name=p.get("name") or p.get("patient_name") or "Anonymous",
         age=int(p.get("age")) if p.get("age") is not None and str(p.get("age")).isdigit() else None,
         sex=p.get("sex") or p.get("patient_sex"),
         blood_group=p.get("blood_group"),
+        rh_factor=p.get("rh_factor"),
+        date_of_birth=p.get("date_of_birth") or p.get("dob"),
         smoking_status=p.get("smoking_status"),
         contact=p.get("contact"),
+        emergency_contact=p.get("emergency_contact"),
+        height_cm=float(p.get("height_cm")) if p.get("height_cm") is not None else None,
+        weight_kg=float(p.get("weight_kg")) if p.get("weight_kg") is not None else None,
+        bmi=float(p.get("bmi")) if p.get("bmi") is not None else (
+            round(float(p.get("weight_kg")) / ((float(p.get("height_cm")) / 100.0) ** 2), 1)
+            if p.get("weight_kg") and p.get("height_cm") and float(p.get("height_cm")) > 0
+            else None
+        ),
+        previous_surgeries=_parse_list(p.get("previous_surgeries") or p.get("surgeries")),
+        previous_hospitalizations=_parse_list(p.get("previous_hospitalizations") or p.get("hospitalizations")),
+        food_allergies=_parse_list(p.get("food_allergies")),
+        other_allergies=_parse_list(p.get("other_allergies")),
+        past_medications=_parse_list(p.get("past_medications")),
+        discontinued_medications=_parse_list(p.get("discontinued_medications")),
     )
 
     meas_data = ECGMeasurementsData(
@@ -653,16 +763,21 @@ def build_authoritative_clinical_analysis(
     )
 
     # Clean list fields
-    symptoms = [s.strip() for s in (p.get("symptoms") or "").split(",") if s.strip()] if isinstance(p.get("symptoms"), str) else (p.get("symptoms") or [])
-    history = [h.strip() for h in (p.get("conditions") or p.get("existing_conditions") or "").split(",") if h.strip()] if isinstance(p.get("conditions") or p.get("existing_conditions"), str) else (p.get("conditions") or p.get("existing_conditions") or [])
-    allergies = [a.strip() for a in (p.get("allergies") or p.get("known_allergies") or "").split(",") if a.strip()] if isinstance(p.get("allergies") or p.get("known_allergies"), str) else (p.get("allergies") or p.get("known_allergies") or [])
-    current_meds = [m.strip() for m in (p.get("current_medications") or "").split(",") if m.strip()] if isinstance(p.get("current_medications"), str) else (p.get("current_medications") or [])
+    symptoms = _parse_list(p.get("symptoms"))
+    history = _parse_list(p.get("conditions") or p.get("existing_conditions"))
+    allergies = _parse_list(p.get("allergies") or p.get("known_allergies"))
+    current_meds = _parse_list(p.get("current_medications"))
 
     clinical_ctx = ClinicalContextData(
         symptoms=symptoms,
         medical_history=history,
         allergies=allergies,
+        food_allergies=patient_ctx.food_allergies,
+        other_allergies=patient_ctx.other_allergies,
         current_medications=current_meds,
+        past_medications=patient_ctx.past_medications,
+        previous_surgeries=patient_ctx.previous_surgeries,
+        previous_hospitalizations=patient_ctx.previous_hospitalizations,
         vitals=v,
         laboratory_results=l,
     )

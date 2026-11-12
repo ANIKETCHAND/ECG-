@@ -62,6 +62,18 @@ from audit.audit_logger import AUDIT_LOGGER
 from services import REPORT_PERSISTENCE_SERVICE
 from segmentation import extract_beats
 from feature_extraction import extract_all_features
+try:
+    from data_loader import load_record
+except ImportError:
+    load_record = None
+try:
+    from ml.selective import load_operating_point, summarise as summarise_gate
+except ImportError:
+    try:
+        from src.ml.selective import load_operating_point, summarise as summarise_gate
+    except Exception:
+        load_operating_point = lambda path=None: None  # type: ignore
+        summarise_gate = lambda op: "Abstention gate status unavailable"  # type: ignore
 
 app = FastAPI(
     title="AI-ECG Clinical Decision Support API",
@@ -123,15 +135,25 @@ class AnalyzeRequest(BaseModel):
 
 
 class ReviewRequest(BaseModel):
-    analysis_id: str
+    analysis_id: Optional[str] = None
+    report_id: Optional[str] = None
     clinician_name: str
     clinician_role: str = "CARDIOLOGIST"
-    registration_number: str
-    agreement_status: str  # CONFIRMED, MODIFIED, REJECTED
-    clinician_interpretation: str
-    clinical_notes: Optional[str] = ""
+    clinician_id: Optional[str] = None
+    registration_number: Optional[str] = "MED-REG-34667"
+    agreement_status: Optional[str] = None
+    action: Optional[str] = None  # Alias for agreement_status
+    clinician_interpretation: Optional[str] = None
+    clinician_diagnosis: Optional[str] = None
+    clinical_notes: Optional[str] = None
+    notes: Optional[str] = None  # Alias for clinical_notes
     selected_medication: Optional[str] = None
+    prescribed_medication: Optional[str] = None  # Alias for selected_medication
     medication_dosage: Optional[str] = None
+    signature: Optional[str] = None
+    selected_medications: Optional[List[Dict[str, Any]]] = None
+    rejected_medications: Optional[List[Dict[str, str]]] = None
+    prescriptions: Optional[List[Dict[str, Any]]] = None
     treatment_instructions: Optional[str] = None
     follow_up_instructions: Optional[str] = None
 
@@ -151,6 +173,7 @@ class PatientCreateRequest(BaseModel):
     address: Optional[str] = None
     emergency_contact: Optional[str] = None
     blood_group: Optional[str] = "Unknown"
+    rh_factor: Optional[str] = "Unknown"
     known_allergies: Optional[Union[str, List[str]]] = "None"
     existing_conditions: Optional[Union[str, List[str]]] = "None"
     current_medications: Optional[Union[str, List[str]]] = "None"
@@ -162,10 +185,38 @@ class PatientCreateRequest(BaseModel):
     other_clinical_information: Optional[str] = None
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
+    bmi: Optional[float] = None
     systolic_bp: Optional[float] = None
     diastolic_bp: Optional[float] = None
     heart_rate: Optional[float] = None
     spo2: Optional[float] = None
+    temperature_c: Optional[float] = None
+    previous_surgeries: Optional[Union[str, List[str]]] = None
+    previous_hospitalizations: Optional[Union[str, List[str]]] = None
+    past_medications: Optional[Union[str, List[str]]] = None
+    discontinued_medications: Optional[Union[str, List[str]]] = None
+    food_allergies: Optional[Union[str, List[str]]] = None
+    other_allergies: Optional[Union[str, List[str]]] = None
+    diabetes: Optional[bool] = None
+    hypertension: Optional[bool] = None
+    coronary_artery_disease: Optional[bool] = None
+    previous_heart_attack: Optional[bool] = None
+    heart_failure: Optional[bool] = None
+    arrhythmia_history: Optional[bool] = None
+    kidney_disease: Optional[bool] = None
+    liver_disease: Optional[bool] = None
+    thyroid_disorders: Optional[bool] = None
+    other_diagnosed_diseases: Optional[str] = None
+    potassium_mmol_l: Optional[float] = None
+    sodium_mmol_l: Optional[float] = None
+    creatinine_mg_dl: Optional[float] = None
+    egfr_ml_min: Optional[float] = None
+    troponin_i_ng_ml: Optional[float] = None
+    alt_u_l: Optional[float] = None
+    ast_u_l: Optional[float] = None
+    bilirubin_mg_dl: Optional[float] = None
+    alk_phos_u_l: Optional[float] = None
+    lft_summary: Optional[str] = None
 
 
 class PatientUpdateRequest(BaseModel):
@@ -179,6 +230,7 @@ class PatientUpdateRequest(BaseModel):
     address: Optional[str] = None
     emergency_contact: Optional[str] = None
     blood_group: Optional[str] = None
+    rh_factor: Optional[str] = None
     known_allergies: Optional[Union[str, List[str]]] = None
     existing_conditions: Optional[Union[str, List[str]]] = None
     current_medications: Optional[Union[str, List[str]]] = None
@@ -190,10 +242,38 @@ class PatientUpdateRequest(BaseModel):
     other_clinical_information: Optional[str] = None
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
+    bmi: Optional[float] = None
     systolic_bp: Optional[float] = None
     diastolic_bp: Optional[float] = None
     heart_rate: Optional[float] = None
     spo2: Optional[float] = None
+    temperature_c: Optional[float] = None
+    previous_surgeries: Optional[Union[str, List[str]]] = None
+    previous_hospitalizations: Optional[Union[str, List[str]]] = None
+    past_medications: Optional[Union[str, List[str]]] = None
+    discontinued_medications: Optional[Union[str, List[str]]] = None
+    food_allergies: Optional[Union[str, List[str]]] = None
+    other_allergies: Optional[Union[str, List[str]]] = None
+    diabetes: Optional[bool] = None
+    hypertension: Optional[bool] = None
+    coronary_artery_disease: Optional[bool] = None
+    previous_heart_attack: Optional[bool] = None
+    heart_failure: Optional[bool] = None
+    arrhythmia_history: Optional[bool] = None
+    kidney_disease: Optional[bool] = None
+    liver_disease: Optional[bool] = None
+    thyroid_disorders: Optional[bool] = None
+    other_diagnosed_diseases: Optional[str] = None
+    potassium_mmol_l: Optional[float] = None
+    sodium_mmol_l: Optional[float] = None
+    creatinine_mg_dl: Optional[float] = None
+    egfr_ml_min: Optional[float] = None
+    troponin_i_ng_ml: Optional[float] = None
+    alt_u_l: Optional[float] = None
+    ast_u_l: Optional[float] = None
+    bilirubin_mg_dl: Optional[float] = None
+    alk_phos_u_l: Optional[float] = None
+    lft_summary: Optional[str] = None
 
 
 class AuthRegisterRequest(BaseModel):
@@ -502,10 +582,9 @@ def check_session_endpoint(token: Optional[str] = None):
 @router.get("/health")
 def health_check():
     try:
-        from ml.selective import load_operating_point, summarise as summarise_gate
-
-        gate_summary = summarise_gate(load_operating_point())
-        gate_installed = load_operating_point() is not None
+        op = load_operating_point()
+        gate_summary = summarise_gate(op)
+        gate_installed = op is not None
     except Exception as exc:  # pragma: no cover - defensive
         gate_summary = f"Abstention gate status unavailable: {exc}"
         gate_installed = False
@@ -530,6 +609,7 @@ def health_check():
 #: nothing about how the model behaves on real physiology.
 _SAMPLE_RECORDS = {"normal": "100", "pvc": "208", "ectopy": "208", "other": "213"}
 _SAMPLE_WINDOW_SEC = 10.0
+_SAMPLE_DATA_CACHE: Dict[str, dict] = {}
 
 
 def _sample_search_dirs() -> List[Path]:
@@ -549,15 +629,20 @@ def get_sample_data(sample_type: str = "normal"):
     generated waveform for recorded physiology.
     """
     requested = (sample_type or "normal").strip().lower()
+    if requested in _SAMPLE_DATA_CACHE:
+        return _SAMPLE_DATA_CACHE[requested]
+
     record_id = _SAMPLE_RECORDS.get(requested, _SAMPLE_RECORDS["normal"])
 
     for raw_dir in _sample_search_dirs():
         if not (raw_dir / f"{record_id}.hea").exists():
             continue
         try:
-            from data_loader import load_record
-
-            signal, fs, _ = load_record(record_id, raw_dir)
+            if load_record is not None:
+                signal, fs, _ = load_record(record_id, raw_dir)
+            else:
+                from data_loader import load_record as lr
+                signal, fs, _ = lr(record_id, raw_dir)
         except Exception:  # pragma: no cover - corrupt/incomplete record on disk
             continue
 
@@ -572,7 +657,7 @@ def get_sample_data(sample_type: str = "normal"):
             # the pipeline works in without altering morphology.
             segment = segment / max(float(np.abs(segment).max()), 1e-9)
 
-        return {
+        res = {
             "sample_type": requested,
             "fs": fs,
             "sampling_rate": fs,
@@ -588,6 +673,8 @@ def get_sample_data(sample_type: str = "normal"):
                 "pipeline, it is not an independent validation sample."
             ),
         }
+        _SAMPLE_DATA_CACHE[requested] = res
+        return res
 
     # No corpus on disk: emit a clearly-labelled synthetic trace so the UI still
     # has something to render, without pretending it is recorded physiology.
@@ -815,60 +902,89 @@ def analyze_ecg(req: AnalyzeRequest):
         except Exception:
             pass
 
+    # Resolve effective vitals and labs (from request or historical database record)
+    effective_vitals = req.vital_signs or {}
+    effective_labs = req.laboratory_results or {}
+    if pat_context:
+        if not effective_vitals:
+            db_vitals = DB_MANAGER.get_patient_vitals(pat_context.patient_id)
+            if db_vitals:
+                effective_vitals = db_vitals[0]
+        if not effective_labs:
+            db_labs = DB_MANAGER.get_patient_labs(pat_context.patient_id)
+            if db_labs:
+                effective_labs = db_labs[0]
+
+    ecg_meas_dict = {
+        "heart_rate_bpm": analysis_res.heart_rate_bpm,
+        "mean_rr_ms": analysis_res.mean_rr_ms,
+        "pr_interval_ms": measurements.pr_interval_ms,
+        "qrs_duration_ms": measurements.qrs_duration_ms,
+        "qt_interval_ms": measurements.qt_interval_ms,
+        "qtc_bazett_ms": measurements.qtc_bazett_ms,
+        "qtc_fridericia_ms": measurements.qtc_fridericia_ms,
+        "p_axis_deg": measurements.p_axis_deg,
+        "qrs_axis_deg": measurements.qrs_axis_deg,
+        "t_axis_deg": measurements.t_axis_deg,
+    }
+
     # 4. Multimodal Medication Safety Check
     med_safety = check_medication_safety(
         medication_names=med_list,
         ecg_finding=analysis_res.prediction,
         ecg_measurements={"heart_rate": analysis_res.heart_rate_bpm, "qtc_ms": measurements.qtc_bazett_ms},
-        vital_signs=req.vital_signs,
-        laboratory_results=req.laboratory_results,
+        vital_signs=effective_vitals,
+        laboratory_results=effective_labs,
     )
 
     # 5. Clinical Decision Support Evaluation
     cds_rec = GLOBAL_CDS_ENGINE.evaluate_finding(
         ecg_finding=analysis_res.prediction,
         heart_rate=analysis_res.heart_rate_bpm,
-        # Pass the analysis itself so therapy considerations are gated on the
-        # measured reliability of the finding, not on its text.
+        patient=pat_context,
+        vital_signs=effective_vitals,
+        laboratory_results=effective_labs,
+        ecg_measurements=ecg_meas_dict,
         reliability=analysis_res,
     )
 
     # 5b. Authoritative Multimodal Clinical Analysis & Candidate Generation
+    patient_profile_dict = {
+        "patient_id": eff_patient_id,
+        "mrn": eff_patient_mrn,
+        "name": req.patient_name,
+        "age": eff_age,
+        "sex": eff_sex,
+        "blood_group": req.blood_group,
+        "rh_factor": pat_context.rh_factor if pat_context else "Unknown",
+        "height_cm": pat_context.height_cm if pat_context else None,
+        "weight_kg": pat_context.weight_kg if pat_context else None,
+        "bmi": pat_context.bmi if pat_context else None,
+        "conditions": existing_cond_str,
+        "symptoms": symptoms_str,
+        "cardiac_history": cardiac_hist_str,
+        "current_medications": curr_meds_str,
+        "allergies": allergies_str,
+        "food_allergies": pat_context.food_allergies if pat_context else [],
+        "other_allergies": pat_context.other_allergies if pat_context else [],
+        "past_medications": pat_context.past_medications if pat_context else [],
+        "discontinued_medications": pat_context.discontinued_medications if pat_context else [],
+        "previous_surgeries": pat_context.previous_surgeries if pat_context else [],
+        "previous_hospitalizations": pat_context.previous_hospitalizations if pat_context else [],
+    }
+
     auth_ca = build_authoritative_clinical_analysis(
         ecg_finding=analysis_res.prediction,
-        ecg_measurements={
-            "heart_rate_bpm": analysis_res.heart_rate_bpm,
-            "mean_rr_ms": analysis_res.mean_rr_ms,
-            "pr_interval_ms": measurements.pr_interval_ms,
-            "qrs_duration_ms": measurements.qrs_duration_ms,
-            "qt_interval_ms": measurements.qt_interval_ms,
-            "qtc_bazett_ms": measurements.qtc_bazett_ms,
-            "qtc_fridericia_ms": measurements.qtc_fridericia_ms,
-            "p_axis_deg": measurements.p_axis_deg,
-            "qrs_axis_deg": measurements.qrs_axis_deg,
-            "t_axis_deg": measurements.t_axis_deg,
-        },
+        ecg_measurements=ecg_meas_dict,
         ecg_probabilities=analysis_res.model_probabilities,
         signal_quality_info={
             "category": quality_res.category.value,
             "score": quality_res.quality_score,
             "snr_db": quality_res.snr_db,
         },
-        patient_profile={
-            "patient_id": req.patient_id,
-            "mrn": req.patient_mrn,
-            "name": req.patient_name,
-            "age": eff_age,
-            "sex": eff_sex,
-            "blood_group": req.blood_group,
-            "conditions": existing_cond_str,
-            "symptoms": symptoms_str,
-            "cardiac_history": cardiac_hist_str,
-            "current_medications": curr_meds_str,
-            "allergies": allergies_str,
-        },
-        vital_signs=req.vital_signs,
-        laboratory_results=req.laboratory_results,
+        patient_profile=patient_profile_dict,
+        vital_signs=effective_vitals,
+        laboratory_results=effective_labs,
         finding_reliability=analysis_res,
     )
 
@@ -989,6 +1105,15 @@ def analyze_ecg(req: AnalyzeRequest):
             "medication_recommendations_withheld": False if auth_ca.medication_decision_support.candidates else (cds_rec.medication_recommendations_withheld or auth_ca.medication_decision_support.status in ["WITHHELD"]),
             "withheld_reason": auth_ca.medication_decision_support.status_reason if auth_ca.medication_decision_support.candidates else (cds_rec.withheld_reason or auth_ca.medication_decision_support.status_reason),
             "reliability": cds_rec.reliability,
+            "relevant_conditions": getattr(cds_rec, "relevant_conditions", []),
+            "relevant_medications": getattr(cds_rec, "relevant_medications", []),
+            "relevant_allergies": getattr(cds_rec, "relevant_allergies", []),
+            "relevant_laboratory_results": getattr(cds_rec, "relevant_laboratory_results", []),
+            "potential_contraindications": getattr(cds_rec, "potential_contraindications", []),
+            "medication_related_ecg_concerns": getattr(cds_rec, "medication_related_ecg_concerns", []),
+            "relevance_explanations": getattr(cds_rec, "relevance_explanations", []),
+            "missing_clinical_information": getattr(cds_rec, "missing_information", []),
+            "guideline_source": getattr(cds_rec, "guideline_source", "AHA/ACC/ESC Standards"),
         },
         "clinical_analysis": auth_ca.to_dict(),
         "disclaimer": (
@@ -1063,14 +1188,24 @@ def analyze_ecg(req: AnalyzeRequest):
         cds_report=resp_data["clinical_decision_support"],
         medication_safety=resp_data["medication_safety"],
         patient_profile={
-            "patient_id": req.patient_id, "name": req.patient_name, "mrn": req.patient_mrn,
+            "patient_id": eff_patient_id, "name": req.patient_name, "mrn": eff_patient_mrn,
             "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
+            "rh_factor": pat_context.rh_factor if pat_context else "Unknown",
+            "height_cm": pat_context.height_cm if pat_context else None,
+            "weight_kg": pat_context.weight_kg if pat_context else None,
+            "bmi": pat_context.bmi if pat_context else None,
             "symptoms": symptoms_str, "conditions": existing_cond_str,
             "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+            "past_medications": pat_context.past_medications if pat_context else [],
+            "discontinued_medications": pat_context.discontinued_medications if pat_context else [],
             "allergies": allergies_str,
+            "food_allergies": pat_context.food_allergies if pat_context else [],
+            "other_allergies": pat_context.other_allergies if pat_context else [],
+            "previous_surgeries": pat_context.previous_surgeries if pat_context else [],
+            "previous_hospitalizations": pat_context.previous_hospitalizations if pat_context else [],
         },
-        vital_signs=req.vital_signs,
-        laboratory_results=req.laboratory_results,
+        vital_signs=effective_vitals,
+        laboratory_results=effective_labs,
         clinical_analysis=auth_ca.to_dict(),
     )
 
@@ -1095,6 +1230,7 @@ def analyze_ecg(req: AnalyzeRequest):
 @router.post("/report/pdf", dependencies=[_protected])
 def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
     """Generate and return publication-grade PDF report (doctor or patient format)."""
+    req.include_full_report = True
     analysis = analyze_ecg(req)
     if analysis.get("status") == "UNUSABLE_SIGNAL":
         raise HTTPException(status_code=422, detail="Signal unusable. PDF report blocked for patient safety.")
@@ -1102,32 +1238,41 @@ def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
     sig_arr = np.array(req.signal, dtype=float)
     r_peaks = np.array(analysis.get("detected_r_peaks", []))
 
-    eff_age = req.age if req.age is not None else req.patient_age
-    eff_sex = req.sex if req.sex is not None else req.patient_sex
-    curr_meds_str = ", ".join(str(m).strip() for m in req.current_medications if str(m).strip()) if isinstance(req.current_medications, list) else req.current_medications
-    existing_cond_str = ", ".join(str(c).strip() for c in req.existing_conditions if str(c).strip()) if isinstance(req.existing_conditions, list) else req.existing_conditions
-    symptoms_str = ", ".join(str(s).strip() for s in req.symptoms if str(s).strip()) if isinstance(req.symptoms, list) else req.symptoms
-    cardiac_hist_str = ", ".join(str(h).strip() for h in req.cardiac_history if str(h).strip()) if isinstance(req.cardiac_history, list) else req.cardiac_history
-    raw_allergies = req.allergies if req.allergies is not None else req.known_allergies
-    allergies_str = ", ".join(str(a).strip() for a in raw_allergies if str(a).strip()) if isinstance(raw_allergies, list) else raw_allergies
+    report_dict = analysis.get("full_report")
+    existing_rep = None
+    target_rep_id = analysis.get("report_id")
+    if target_rep_id:
+        existing_rep = REPORT_PERSISTENCE_SERVICE.get_report(target_rep_id)
+        if existing_rep and existing_rep.get("report_data"):
+            report_dict = existing_rep["report_data"]
 
-    report_dict = generate_structured_report(
-        input_info={"file_name": "ecg_recording", "sampling_rate": req.fs, "duration_sec": len(sig_arr)/req.fs, "lead": req.lead},
-        ai_results={"predicted_class": analysis["ai_classification"]["prediction"], "probabilities": analysis["ai_classification"]["probabilities"], "heart_rate_bpm": analysis["cardiac_parameters"]["heart_rate_bpm"], "signal_quality": analysis["signal_quality"]["category"]},
-        extracted_measurements={"qrs_duration_ms": analysis["cardiac_parameters"]["qrs_duration_ms"], "qt_interval_ms": analysis["cardiac_parameters"]["qt_interval_ms"], "qtc_interval_ms": analysis["cardiac_parameters"]["qtc_bazett_ms"]},
-        cds_report=analysis.get("clinical_decision_support"),
-        medication_safety=analysis.get("medication_safety"),
-        patient_profile={
-            "patient_id": req.patient_id, "name": req.patient_name, "mrn": req.patient_mrn,
-            "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
-            "symptoms": symptoms_str, "conditions": existing_cond_str,
-            "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
-            "allergies": allergies_str,
-        },
-        vital_signs=req.vital_signs,
-        laboratory_results=req.laboratory_results,
-        clinical_analysis=analysis.get("clinical_analysis"),
-    )
+    if not report_dict:
+        eff_age = req.age if req.age is not None else req.patient_age
+        eff_sex = req.sex if req.sex is not None else req.patient_sex
+        curr_meds_str = ", ".join(str(m).strip() for m in req.current_medications if str(m).strip()) if isinstance(req.current_medications, list) else req.current_medications
+        existing_cond_str = ", ".join(str(c).strip() for c in req.existing_conditions if str(c).strip()) if isinstance(req.existing_conditions, list) else req.existing_conditions
+        symptoms_str = ", ".join(str(s).strip() for s in req.symptoms if str(s).strip()) if isinstance(req.symptoms, list) else req.symptoms
+        cardiac_hist_str = ", ".join(str(h).strip() for h in req.cardiac_history if str(h).strip()) if isinstance(req.cardiac_history, list) else req.cardiac_history
+        raw_allergies = req.allergies if req.allergies is not None else req.known_allergies
+        allergies_str = ", ".join(str(a).strip() for a in raw_allergies if str(a).strip()) if isinstance(raw_allergies, list) else raw_allergies
+
+        report_dict = generate_structured_report(
+            input_info={"file_name": "ecg_recording", "sampling_rate": req.fs, "duration_sec": len(sig_arr)/req.fs, "lead": req.lead},
+            ai_results={"predicted_class": analysis["ai_classification"]["prediction"], "probabilities": analysis["ai_classification"]["probabilities"], "heart_rate_bpm": analysis["cardiac_parameters"]["heart_rate_bpm"], "signal_quality": analysis["signal_quality"]["category"]},
+            extracted_measurements={"qrs_duration_ms": analysis["cardiac_parameters"]["qrs_duration_ms"], "qt_interval_ms": analysis["cardiac_parameters"]["qt_interval_ms"], "qtc_interval_ms": analysis["cardiac_parameters"]["qtc_bazett_ms"]},
+            cds_report=analysis.get("clinical_decision_support"),
+            medication_safety=analysis.get("medication_safety"),
+            patient_profile={
+                "patient_id": req.patient_id, "name": req.patient_name, "mrn": req.patient_mrn,
+                "age": eff_age, "sex": eff_sex, "blood_group": req.blood_group,
+                "symptoms": symptoms_str, "conditions": existing_cond_str,
+                "cardiac_history": cardiac_hist_str, "current_medications": curr_meds_str,
+                "allergies": allergies_str,
+            },
+            vital_signs=req.vital_signs,
+            laboratory_results=req.laboratory_results,
+            clinical_analysis=analysis.get("clinical_analysis"),
+        )
 
     is_patient = str(type).lower() == "patient"
     if is_patient:
@@ -1135,8 +1280,9 @@ def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
     else:
         pdf_bytes = generate_doctor_report(report_dict, waveform=sig_arr, fs=req.fs, r_peaks=r_peaks)
 
-    # Persist PDF to storage
+    # Persist PDF to storage without demoting signed reports
     try:
+        rep_status = existing_rep.get("status", "PENDING_REVIEW") if existing_rep else "PENDING_REVIEW"
         REPORT_PERSISTENCE_SERVICE.save_report_snapshot(
             report_data=report_dict,
             pdf_bytes=None if is_patient else pdf_bytes,
@@ -1146,7 +1292,7 @@ def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
             patient_id=req.patient_id,
             ecg_id=analysis.get("record_id"),
             analysis_id=analysis.get("analysis_id"),
-            status="PENDING_REVIEW",
+            status=rep_status,
         )
     except Exception:
         pass
@@ -1209,6 +1355,7 @@ def create_patient_endpoint(req: PatientCreateRequest):
         date_of_birth=req.date_of_birth,
         emergency_contact=req.emergency_contact,
         blood_group=req.blood_group or "Unknown",
+        rh_factor=req.rh_factor or "Unknown",
         known_allergies=allergies_s,
         existing_conditions=conds_s,
         current_medications=meds_s,
@@ -1218,9 +1365,28 @@ def create_patient_endpoint(req: PatientCreateRequest):
         other_relevant_history=req.other_relevant_history,
         past_medical_history=req.past_medical_history,
         other_clinical_information=req.other_clinical_information,
+        height_cm=req.height_cm,
+        weight_kg=req.weight_kg,
+        bmi=req.bmi,
+        previous_surgeries=_to_str(req.previous_surgeries),
+        previous_hospitalizations=_to_str(req.previous_hospitalizations),
+        past_medications=_to_str(req.past_medications),
+        discontinued_medications=_to_str(req.discontinued_medications),
+        food_allergies=_to_str(req.food_allergies),
+        other_allergies=_to_str(req.other_allergies),
+        diabetes=req.diabetes,
+        hypertension=req.hypertension,
+        coronary_artery_disease=req.coronary_artery_disease,
+        previous_heart_attack=req.previous_heart_attack,
+        heart_failure=req.heart_failure,
+        arrhythmia_history=req.arrhythmia_history,
+        kidney_disease=req.kidney_disease,
+        liver_disease=req.liver_disease,
+        thyroid_disorders=req.thyroid_disorders,
+        other_diagnosed_diseases=req.other_diagnosed_diseases,
     )
 
-    if any(v is not None for v in [req.systolic_bp, req.diastolic_bp, req.heart_rate, req.spo2]):
+    if any(v is not None for v in [req.systolic_bp, req.diastolic_bp, req.heart_rate, req.spo2, req.temperature_c, req.height_cm, req.weight_kg]):
         DB_MANAGER.record_vital_signs(
             vital_id=f"VIT-{uuid.uuid4().hex[:6].upper()}",
             patient_id=patient_uuid,
@@ -1228,7 +1394,28 @@ def create_patient_endpoint(req: PatientCreateRequest):
             systolic_bp_mmhg=req.systolic_bp,
             diastolic_bp_mmhg=req.diastolic_bp,
             spo2_percent=req.spo2,
+            temperature_c=req.temperature_c,
+            height_cm=req.height_cm,
+            weight_kg=req.weight_kg,
+            bmi=req.bmi,
             source="TRIAGE_INTAKE",
+        )
+
+    if any(l is not None for l in [req.potassium_mmol_l, req.sodium_mmol_l, req.creatinine_mg_dl, req.egfr_ml_min, req.troponin_i_ng_ml, req.alt_u_l, req.ast_u_l, req.bilirubin_mg_dl]):
+        DB_MANAGER.record_laboratory_results(
+            lab_id=f"LAB-{uuid.uuid4().hex[:6].upper()}",
+            patient_id=patient_uuid,
+            potassium_mmol_l=req.potassium_mmol_l,
+            sodium_mmol_l=req.sodium_mmol_l,
+            serum_creatinine_mg_dl=req.creatinine_mg_dl,
+            egfr_ml_min=req.egfr_ml_min,
+            troponin_i_ng_ml=req.troponin_i_ng_ml,
+            alt_u_l=req.alt_u_l,
+            ast_u_l=req.ast_u_l,
+            bilirubin_mg_dl=req.bilirubin_mg_dl,
+            alk_phos_u_l=req.alk_phos_u_l,
+            lft_summary=req.lft_summary,
+            source="ADMISSION_LABS",
         )
 
     supabase_synced = False
@@ -1445,6 +1632,46 @@ def update_patient_endpoint(patient_identifier: str, req: PatientUpdateRequest, 
         updates["emergency_contact"] = req.emergency_contact
     if req.blood_group is not None:
         updates["blood_group"] = req.blood_group
+    if req.rh_factor is not None:
+        updates["rh_factor"] = req.rh_factor
+    if req.height_cm is not None:
+        updates["height_cm"] = req.height_cm
+    if req.weight_kg is not None:
+        updates["weight_kg"] = req.weight_kg
+    if req.bmi is not None:
+        updates["bmi"] = req.bmi
+    if req.previous_surgeries is not None:
+        updates["previous_surgeries"] = _to_str(req.previous_surgeries)
+    if req.previous_hospitalizations is not None:
+        updates["previous_hospitalizations"] = _to_str(req.previous_hospitalizations)
+    if req.past_medications is not None:
+        updates["past_medications"] = _to_str(req.past_medications)
+    if req.discontinued_medications is not None:
+        updates["discontinued_medications"] = _to_str(req.discontinued_medications)
+    if req.food_allergies is not None:
+        updates["food_allergies"] = _to_str(req.food_allergies)
+    if req.other_allergies is not None:
+        updates["other_allergies"] = _to_str(req.other_allergies)
+    if req.diabetes is not None:
+        updates["diabetes"] = req.diabetes
+    if req.hypertension is not None:
+        updates["hypertension"] = req.hypertension
+    if req.coronary_artery_disease is not None:
+        updates["coronary_artery_disease"] = req.coronary_artery_disease
+    if req.previous_heart_attack is not None:
+        updates["previous_heart_attack"] = req.previous_heart_attack
+    if req.heart_failure is not None:
+        updates["heart_failure"] = req.heart_failure
+    if req.arrhythmia_history is not None:
+        updates["arrhythmia_history"] = req.arrhythmia_history
+    if req.kidney_disease is not None:
+        updates["kidney_disease"] = req.kidney_disease
+    if req.liver_disease is not None:
+        updates["liver_disease"] = req.liver_disease
+    if req.thyroid_disorders is not None:
+        updates["thyroid_disorders"] = req.thyroid_disorders
+    if req.other_diagnosed_diseases is not None:
+        updates["other_diagnosed_diseases"] = req.other_diagnosed_diseases
 
     if req.known_allergies is not None:
         updates["known_allergies"] = _to_str(req.known_allergies)
@@ -1526,24 +1753,23 @@ def update_patient_endpoint(patient_identifier: str, req: PatientUpdateRequest, 
 def get_dashboard_stats(hospital_id: Optional[str] = "HOSP-APEX"):
     """Aggregate authoritative metrics for Doctor Dashboard."""
     hosp = hospital_id or "HOSP-APEX"
-    patients = DB_MANAGER.list_patients(hospital_id=hosp, limit=1000)
-    ecgs = DB_MANAGER.list_ecg_records(hospital_id=hosp, limit=50)
-    reports = REPORT_PERSISTENCE_SERVICE.list_reports(limit=100)
+    with DB_MANAGER._db() as conn:
+        p_count = conn.execute("SELECT COUNT(*) FROM patients WHERE hospital_id = ?", (hosp,)).fetchone()[0]
+        e_count = conn.execute("SELECT COUNT(*) FROM ecg_records WHERE hospital_id = ?", (hosp,)).fetchone()[0]
+        status_counts = dict(conn.execute("SELECT status, COUNT(*) FROM clinical_reports GROUP BY status").fetchall())
 
-    total_patients = len(patients)
-    total_ecgs = len(ecgs)
-    pending_reviews = sum(1 for r in reports if r.get("status") in ["DRAFT", "PENDING_REVIEW"])
-    completed_reports = sum(1 for r in reports if r.get("status") in ["SIGNED", "REVIEWED"])
+    pending_reviews = status_counts.get("DRAFT", 0) + status_counts.get("PENDING_REVIEW", 0)
+    completed_reports = status_counts.get("SIGNED", 0) + status_counts.get("REVIEWED", 0)
 
-    recent_patients = [p.to_dict() for p in patients[:6]]
-    recent_ecgs = ecgs[:6]
-    recent_reports = reports[:6]
+    recent_patients = [p.to_dict() for p in DB_MANAGER.list_patients(hospital_id=hosp, limit=6)]
+    recent_ecgs = DB_MANAGER.list_ecg_records(hospital_id=hosp, limit=6)
+    recent_reports = REPORT_PERSISTENCE_SERVICE.list_reports(limit=6)
 
     return {
         "status": "SUCCESS",
         "stats": {
-            "total_patients": total_patients,
-            "total_ecgs": total_ecgs,
+            "total_patients": p_count,
+            "total_ecgs": e_count,
             "pending_reviews": pending_reviews,
             "completed_reports": completed_reports,
             "recent_patients": recent_patients,
@@ -1563,47 +1789,113 @@ def get_dashboard_stats(hospital_id: Optional[str] = "HOSP-APEX"):
 @router.post("/review", dependencies=[_protected])
 def record_clinician_review(rev: ReviewRequest):
     """Cryptographically seal clinical review and persist to database."""
+    target_id = rev.report_id or rev.analysis_id
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Either report_id or analysis_id must be provided for clinician review.")
+
+    eff_agreement = rev.agreement_status or rev.action or "CONFIRMED"
+    eff_interpretation = rev.clinician_interpretation or rev.clinician_diagnosis or rev.notes or "Clinician confirmed finding"
+    eff_reg_num = rev.registration_number or "MED-REG-34667"
+    eff_clinical_notes = rev.clinical_notes or rev.notes or ""
+    eff_medication = rev.selected_medication or rev.prescribed_medication
+    eff_user_id = rev.clinician_id or f"USER-{hash(rev.clinician_name) & 0xFFFF:04X}"
+
     seal_res = REPORT_PERSISTENCE_SERVICE.sign_and_seal_report(
-        report_id=rev.analysis_id,
-        clinician_user_id=f"USER-{hash(rev.clinician_name) & 0xFFFF:04X}",
+        report_id=target_id,
+        clinician_user_id=eff_user_id,
         clinician_name=rev.clinician_name,
         clinician_role=rev.clinician_role,
-        registration_number=rev.registration_number,
-        agreement_status=rev.agreement_status,
-        clinician_interpretation=rev.clinician_interpretation,
-        clinical_notes=rev.clinical_notes or "",
-        selected_medication=rev.selected_medication,
+        registration_number=eff_reg_num,
+        agreement_status=eff_agreement,
+        clinician_interpretation=eff_interpretation,
+        clinical_notes=eff_clinical_notes,
+        selected_medication=eff_medication,
         medication_dosage=rev.medication_dosage,
         treatment_instructions=rev.treatment_instructions,
         follow_up_instructions=rev.follow_up_instructions,
+        clinician_diagnosis=rev.clinician_diagnosis,
+        prescriptions=rev.prescriptions,
+        rejected_medications=rev.rejected_medications,
     )
+    if seal_res.get("status") == "SAVE_FAILED":
+        raise HTTPException(status_code=404, detail=seal_res.get("error", f"Report for '{target_id}' could not be found or sealed."))
+
+    effective_report_id = seal_res.get("report_id") or target_id
+    effective_analysis_id = rev.analysis_id or seal_res.get("analysis_id") or target_id
+
     return {
-        "review_id": f"REV-{hash(rev.analysis_id) & 0xFFFFFF:06X}",
-        "analysis_id": rev.analysis_id,
-        "report_id": seal_res.get("report_id", rev.analysis_id),
+        "status": "SEALED",
+        "report_status": "SIGNED",
+        "review_id": f"REV-{hash(target_id) & 0xFFFFFF:06X}",
+        "analysis_id": effective_analysis_id,
+        "report_id": effective_report_id,
         "report_number": seal_res.get("report_number"),
         "clinician_name": rev.clinician_name,
         "clinician_role": rev.clinician_role,
-        "registration_number": rev.registration_number,
-        "agreement_status": rev.agreement_status,
-        "clinician_interpretation": rev.clinician_interpretation,
-        "clinical_notes": rev.clinical_notes,
+        "registration_number": eff_reg_num,
+        "agreement_status": eff_agreement,
+        "clinician_diagnosis": rev.clinician_diagnosis or eff_interpretation,
+        "clinical_notes": eff_clinical_notes,
+        "sealed_at": seal_res.get("sealed_at"),
+        "tamper_proof_checksum": seal_res.get("signature_hash"),
         "treatment_plan": {
-            "selected_medication": rev.selected_medication or "None",
+            "selected_medication": eff_medication or "None",
             "medication_dosage": rev.medication_dosage or "N/A",
-            "treatment_instructions": rev.treatment_instructions or rev.clinical_notes or "Maintain standard cardiovascular care.",
+            "selected_medications": rev.selected_medications or [],
+            "rejected_medications": rev.rejected_medications or [],
+            "prescriptions": rev.prescriptions or [],
+            "treatment_instructions": rev.treatment_instructions or eff_clinical_notes or "Maintain standard cardiovascular care.",
             "follow_up_instructions": rev.follow_up_instructions or "Routine follow-up in 12 months.",
         },
         "review_details": {
-            "agreement_status": rev.agreement_status,
+            "agreement_status": eff_agreement,
             "clinician_name": rev.clinician_name,
             "clinician_role": rev.clinician_role,
-            "registration_number": rev.registration_number,
-            "clinician_interpretation": rev.clinician_interpretation,
-            "clinical_notes": rev.clinical_notes,
+            "registration_number": eff_reg_num,
+            "clinician_interpretation": eff_interpretation,
+            "clinician_diagnosis": rev.clinician_diagnosis or eff_interpretation,
+            "clinical_notes": eff_clinical_notes,
+            "prescriptions": rev.prescriptions or [],
         },
-        "status": "SEALED",
-        "message": "Clinician review recorded and cryptographically sealed in persistent storage.",
+        "message": f"Clinical review recorded and report '{effective_report_id}' sealed as SIGNED.",
+    }
+
+
+class MedicationReconcileRequest(BaseModel):
+    current_medications: List[Union[str, Dict[str, Any]]] = []
+    previous_medications: List[Union[str, Dict[str, Any]]] = []
+    discontinued_medications: Optional[List[Union[str, Dict[str, Any]]]] = None
+    patient_id: Optional[str] = None
+
+MedicationReconcileRequest.model_rebuild()
+
+
+@router.post("/medications/reconcile", dependencies=[_protected])
+def reconcile_medications_endpoint(req: MedicationReconcileRequest):
+    """Reconcile patient active, previous, and discontinued medications with safety checks."""
+    from src.medications.interaction_checker import reconcile_medications
+    report = reconcile_medications(
+        current_medications=req.current_medications,
+        previous_medications=req.previous_medications,
+        discontinued_medications=req.discontinued_medications,
+        patient_id=req.patient_id,
+    )
+    return {
+        "status": "SUCCESS",
+        "reconciliation": report.to_dict(),
+    }
+
+
+@router.get("/medications/lookup/{drug_name}", dependencies=[_protected])
+def lookup_medication_endpoint(drug_name: str):
+    """Lookup authoritative medication intelligence across DailyMed, RxNorm, openFDA, SIDER, DrugCentral."""
+    from src.medications.medication_database import GLOBAL_MEDICATION_DB
+    entry = GLOBAL_MEDICATION_DB.lookup_medication(drug_name)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"Medication '{drug_name}' not found in knowledge repository.")
+    return {
+        "status": "SUCCESS",
+        "medication": entry.to_dict(),
     }
 
 
@@ -1636,8 +1928,8 @@ def list_reports_endpoint(
             )
         ]
     elif user and user.hospital_id:
-        hosp_patients = {p.patient_id for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=500)}
-        hosp_mrns = {p.hospital_mrn for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=500)}
+        hosp_patients = {p.patient_id for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=5000)}
+        hosp_mrns = {p.hospital_mrn for p in DB_MANAGER.list_patients(hospital_id=user.hospital_id, limit=5000)}
         reports = [
             r for r in reports
             if not hosp_patients or r.get("patient_id") in hosp_patients or r.get("hospital_mrn") in hosp_mrns

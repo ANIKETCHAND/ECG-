@@ -120,6 +120,13 @@ class ClinicalRecommendation:
     withheld_medication_recommendations: List[Dict[str, str]] = field(default_factory=list)
     withheld_reason: Optional[str] = None
     reliability: Optional[Dict[str, Any]] = None
+    relevant_conditions: List[Dict[str, str]] = field(default_factory=list)
+    relevant_medications: List[Dict[str, str]] = field(default_factory=list)
+    relevant_allergies: List[Dict[str, str]] = field(default_factory=list)
+    relevant_laboratory_results: List[Dict[str, str]] = field(default_factory=list)
+    potential_contraindications: List[str] = field(default_factory=list)
+    medication_related_ecg_concerns: List[Dict[str, str]] = field(default_factory=list)
+    relevance_explanations: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -128,6 +135,334 @@ class ClinicalRecommendation:
 class ClinicalDecisionSupportEngine:
     """Generates evidence-backed clinical decision support considerations."""
 
+    def explain_clinical_context_relevance(
+        self,
+        ecg_finding: str,
+        heart_rate: Optional[float] = None,
+        patient: Optional[Any] = None,
+        vital_signs: Optional[Dict[str, Any]] = None,
+        laboratory_results: Optional[Dict[str, Any]] = None,
+        ecg_measurements: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Explain WHY patient factors are relevant to the active ECG interpretation.
+
+        Uses clinician-reviewed, evidence-based guidelines (ACC/AHA, ESC, KDIGO, ADA).
+        Avoids unsupported causal claims and provides traceable citations.
+        """
+        p_dict = {}
+        if patient is not None:
+            p_dict = patient.to_dict() if hasattr(patient, "to_dict") else (patient if isinstance(patient, dict) else vars(patient))
+
+        v_dict = vital_signs or (p_dict.get("vital_signs") if isinstance(p_dict.get("vital_signs"), dict) else {}) or (p_dict.get("vitals") if isinstance(p_dict.get("vitals"), dict) else {}) or {}
+        l_dict = laboratory_results or (p_dict.get("laboratory_results") if isinstance(p_dict.get("laboratory_results"), dict) else {}) or (p_dict.get("labs") if isinstance(p_dict.get("labs"), dict) else {}) or {}
+        m_dict = ecg_measurements or {}
+
+        finding_u = str(ecg_finding or "").upper()
+        cond_parts = [
+            str(p_dict.get("conditions", "")),
+            str(p_dict.get("existing_conditions", "")),
+            str(p_dict.get("cardiac_history", "")),
+            str(p_dict.get("previous_cardiac_history", "")),
+            str(p_dict.get("past_medical_history", "")),
+        ]
+        for c_field, c_label in [
+            ("diabetes", "diabetes mellitus"),
+            ("hypertension", "hypertension"),
+            ("coronary_artery_disease", "coronary artery disease"),
+            ("previous_heart_attack", "myocardial infarction"),
+            ("heart_failure", "heart failure"),
+            ("arrhythmia_history", "arrhythmia history"),
+            ("kidney_disease", "chronic kidney disease ckd renal"),
+            ("liver_disease", "liver disease cirrhosis hepatic"),
+            ("thyroid_disorders", "thyroid disorder"),
+            ("other_diagnosed_diseases", "other diagnosed diseases"),
+        ]:
+            val = p_dict.get(c_field)
+            if val and str(val).lower() not in ["none", "no", "0", "false", ""]:
+                cond_parts.append(c_label)
+        cond_str = " ".join(cond_parts).lower()
+
+        allergies_parts = [
+            str(p_dict.get("allergies") or ""),
+            str(p_dict.get("known_allergies") or ""),
+            str(p_dict.get("food_allergies") or ""),
+            str(p_dict.get("other_allergies") or ""),
+        ]
+        allergies_str = " ".join(allergies_parts).lower().strip()
+
+        meds_parts = [
+            str(p_dict.get("current_medications") or ""),
+            str(p_dict.get("past_medications") or ""),
+            str(p_dict.get("discontinued_medications") or ""),
+        ]
+        curr_meds_str = " ".join(meds_parts).lower().strip()
+
+        relevant_conditions: List[Dict[str, str]] = []
+        relevant_medications: List[Dict[str, str]] = []
+        relevant_allergies: List[Dict[str, str]] = []
+        relevant_labs: List[Dict[str, str]] = []
+        potential_contraindications: List[str] = []
+        med_ecg_concerns: List[Dict[str, str]] = []
+        relevance_explanations: List[Dict[str, str]] = []
+        missing_info: List[str] = []
+
+        # 1. Condition Relevance Explainability
+        if any(k in cond_str for k in ["hypertension", "htn", "high blood pressure"]):
+            exp = {
+                "factor": "Hypertension",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Chronic left ventricular afterload promotes left ventricular hypertrophy (LVH), repolarization strain, and atrial dilation predisposing to supraventricular ectopy / atrial fibrillation.",
+                "clinical_guideline": "2017 ACC/AHA / 2024 ESC Hypertension Guidelines",
+            }
+            relevant_conditions.append({"condition": "Hypertension", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["diabetes", "dm", "t2dm", "t1dm"]):
+            exp = {
+                "factor": "Diabetes Mellitus",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Diabetic autonomic neuropathy blunts heart rate variability, causes resting sinus tachycardia, and elevates risk of asymptomatic / silent myocardial ischemia.",
+                "clinical_guideline": "2024 ADA Standards of Care / 2023 ESC CVD in Diabetes",
+            }
+            relevant_conditions.append({"condition": "Diabetes Mellitus", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["cad", "coronary", "myocardial infarction", "prior mi", "infarction", "stent", "cabg"]):
+            exp = {
+                "factor": "Coronary Artery Disease / Prior MI",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Ischemic or scarred myocardium creates localized conduction deceleration, fragmented QRS complexes, pathologic Q waves, and re-entrant ventricular ectopy substrate.",
+                "clinical_guideline": "2017 AHA/ACC/HRS Ventricular Arrhythmia Guidelines",
+            }
+            relevant_conditions.append({"condition": "Coronary Artery Disease / Prior MI", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["heart failure", "hf", "chf", "hfref", "hfpef", "cardiomyopathy"]):
+            exp = {
+                "factor": "Heart Failure",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Elevated ventricular diastolic pressures and neurohormonal remodeling cause intraventricular conduction delays (LBBB), secondary ST-T changes, and increased ectopy burden.",
+                "clinical_guideline": "2022 AHA/ACC/HFSA Heart Failure Guideline",
+            }
+            relevant_conditions.append({"condition": "Heart Failure", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["ckd", "kidney", "renal", "nephropathy"]):
+            exp = {
+                "factor": "Chronic Kidney Disease",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Impaired electrolyte filtration predisposes to hyperkalemia (peaked T waves, QRS widening) and reduced renal excretion of antiarrhythmic and cardiorenal drugs.",
+                "clinical_guideline": "2024 KDIGO Clinical Practice Guideline",
+            }
+            relevant_conditions.append({"condition": "Chronic Kidney Disease", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["liver", "hepatic", "cirrhosis", "hepatitis"]):
+            exp = {
+                "factor": "Liver Disease / Hepatic Impairment",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Cirrhotic cardiomyopathy presents with baseline electrophysiological QTc prolongation and blunted chronotropic response; reduced hepatic CYP drug clearance.",
+                "clinical_guideline": "2023 EASL Practice Guidelines",
+            }
+            relevant_conditions.append({"condition": "Liver Disease", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["thyroid", "hypothyroid", "hyperthyroid", "graves", "hashimoto"]):
+            exp = {
+                "factor": "Thyroid Disorder",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Thyroid status directly regulates cardiac beta-receptors; hyperthyroidism promotes sinus tachycardia and AFib, while hypothyroidism causes bradycardia, low voltage, and QTc prolongation.",
+                "clinical_guideline": "2022 American Thyroid Association Guidelines",
+            }
+            relevant_conditions.append({"condition": "Thyroid Disorder", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        if any(k in cond_str for k in ["arrhythmia", "pvc", "afib", "a-fib", "flutter", "svt"]):
+            exp = {
+                "factor": "Documented Arrhythmia History",
+                "category": "EXISTING_CONDITION",
+                "ecg_relationship": "Historical dysrhythmia indicates pre-existing electrophysiological substrate; active finding must be compared against baseline ECG recordings.",
+                "clinical_guideline": "2019/2020 ESC Arrhythmia Guidelines",
+            }
+            relevant_conditions.append({"condition": "Arrhythmia History", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        # 2. Medication ECG Concerns & Relevance
+        hr_val = float(heart_rate or m_dict.get("heart_rate_bpm") or v_dict.get("heart_rate") or 72.0)
+        qtc_val = float(m_dict.get("qtc_bazett_ms") or m_dict.get("qtc_ms") or 420.0)
+
+        if any(k in curr_meds_str for k in ["amiodarone", "sotalol", "dronedarone", "flecainide"]):
+            exp = {
+                "factor": "Class I/III Antiarrhythmics",
+                "category": "MEDICATION_REGIMEN",
+                "ecg_relationship": "Blocks cardiac potassium or sodium channels; prolongs repolarization (QTc interval) or conduction (QRS width). Strict surveillance required to avoid Torsades de Pointes.",
+                "clinical_guideline": "AHA/ACC/HRS Antiarrhythmic Safety Standards",
+            }
+            relevant_medications.append({"medication": "Class I/III Antiarrhythmic", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+            if qtc_val >= 470.0:
+                med_ecg_concerns.append({
+                    "concern": "Antiarrhythmic QTc Prolongation Risk",
+                    "mechanism": f"Current antiarrhythmic therapy combined with measured QTc of {qtc_val:.0f} ms exceeds safe threshold. Risk of ventricular tachyarrhythmia.",
+                    "action": "Urgent ECG over-read and serum potassium/magnesium check mandatory.",
+                })
+
+        if any(k in curr_meds_str for k in ["metoprolol", "bisoprolol", "carvedilol", "atenolol", "diltiazem", "verapamil"]):
+            exp = {
+                "factor": "AV Nodal Blocking Agents (Beta-Blocker / Non-DHP CCB)",
+                "category": "MEDICATION_REGIMEN",
+                "ecg_relationship": "Suppresses sinoatrial node firing and prolongs AV conduction. Can induce sinus bradycardia, sinus pause, or higher-degree AV block.",
+                "clinical_guideline": "2018 ACC/AHA/HRS Bradycardia Guideline",
+            }
+            relevant_medications.append({"medication": "AV Nodal Blocker", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+            if hr_val < 55.0:
+                med_ecg_concerns.append({
+                    "concern": "Medication-Induced Bradycardia",
+                    "mechanism": f"Heart rate {hr_val:.0f} bpm under AV nodal blockade. Patient at risk of symptomatic chronotropic incompetence or syncope.",
+                    "action": "Consider dose titration or temporary withholding under physician direction.",
+                })
+
+        if any(k in curr_meds_str for k in ["digoxin", "lanoxin"]):
+            exp = {
+                "factor": "Digoxin",
+                "category": "MEDICATION_REGIMEN",
+                "ecg_relationship": "Inhibits Na+/K+-ATPase; characteristic 'sagging' ST-T depression ('digitalis effect'); toxicity triggers PVCs, bidirectional VT, and AV junctional rhythms.",
+                "clinical_guideline": "ACC/AHA HF Guidelines",
+            }
+            relevant_medications.append({"medication": "Digoxin", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+            relevance_explanations.append(exp)
+
+        # 3. Laboratory Relevance
+        k_val = l_dict.get("potassium_mmol_l") or l_dict.get("potassium_meq_l") or l_dict.get("serum_potassium") or l_dict.get("potassium")
+        if k_val is not None:
+            k_f = float(k_val)
+            if k_f < 3.5:
+                exp = {
+                    "factor": f"Hypokalemia (K+ {k_f:.2f} mmol/L)",
+                    "category": "LABORATORY_PANEL",
+                    "ecg_relationship": "Low serum potassium hyperpolarizes myocardial resting potential, promotes early afterdepolarizations, prolongs QTc, and directly triggers ventricular ectopy / PVCs.",
+                    "clinical_guideline": "AHA Arrhythmia Prevention Standards",
+                }
+                relevant_labs.append({"lab": f"Potassium: {k_f:.2f} mmol/L (LOW)", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append(f"Hypokalemia ({k_f:.2f} mmol/L) potentiates fatal arrhythmias with Class III antiarrhythmics or Digoxin. Repletion required.")
+            elif k_f >= 5.2:
+                exp = {
+                    "factor": f"Hyperkalemia (K+ {k_f:.2f} mmol/L)",
+                    "category": "LABORATORY_PANEL",
+                    "ecg_relationship": "Elevated serum potassium decreases resting membrane potential, leading to peaked T waves, flattened P waves, PR prolongation, and terminal sinoventricular conduction arrest.",
+                    "clinical_guideline": "ERC / AHA Resuscitation Guidelines",
+                }
+                relevant_labs.append({"lab": f"Potassium: {k_f:.2f} mmol/L (HIGH)", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append(f"Hyperkalemia ({k_f:.2f} mmol/L) contraindicates potassium repletion, potassium-sparing diuretics, and ACEi/ARBs.")
+
+        cr_val = l_dict.get("serum_creatinine_mg_dl") or l_dict.get("creatinine_mg_dl") or l_dict.get("serum_creatinine") or l_dict.get("creatinine")
+        egfr_val = l_dict.get("egfr_ml_min") or l_dict.get("egfr")
+        if cr_val is not None or egfr_val is not None:
+            cr_f = float(cr_val) if cr_val is not None else 1.0
+            egfr_f = float(egfr_val) if egfr_val is not None else max(15.0, 110.0 - (float(p_dict.get("age") or 55.0) * 0.6) - (cr_f * 22.0))
+            if cr_f > 1.5 or egfr_f < 60.0:
+                exp = {
+                    "factor": f"Renal Dysfunction (Cr {cr_f:.2f} mg/dL, eGFR {egfr_f:.0f} mL/min)",
+                    "category": "LABORATORY_PANEL",
+                    "ecg_relationship": "Decreased glomerular filtration impairs renal clearance of renally eliminated cardiovascular agents (sotalol, flecainide, digoxin, DOACs, metformin).",
+                    "clinical_guideline": "KDIGO 2024 Clinical Practice Guideline",
+                }
+                relevant_labs.append({"lab": f"Creatinine: {cr_f:.2f} mg/dL, eGFR: {egfr_f:.0f} mL/min", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                if egfr_f < 30.0:
+                    potential_contraindications.append(f"Severe CKD (eGFR {egfr_f:.0f} mL/min < 30) strictly contraindicates Metformin (lactic acidosis) and requires DOAC dose reduction / avoidance.")
+
+        # LFTs
+        alt_val = l_dict.get("alt_u_l") or l_dict.get("alt")
+        ast_val = l_dict.get("ast_u_l") or l_dict.get("ast")
+        bili_val = l_dict.get("bilirubin_mg_dl") or l_dict.get("bilirubin")
+        if alt_val is not None or ast_val is not None or bili_val is not None:
+            alt_f = float(alt_val or 0.0)
+            ast_f = float(ast_val or 0.0)
+            bili_f = float(bili_val or 0.0)
+            if alt_f >= 120.0 or ast_f >= 120.0 or bili_f >= 2.0:
+                exp = {
+                    "factor": f"Hepatic Transaminitis (ALT {alt_f:.0f} U/L, AST {ast_f:.0f} U/L, Bilirubin {bili_f:.1f} mg/dL)",
+                    "category": "LABORATORY_PANEL",
+                    "ecg_relationship": "Severe hepatocellular injury impairs hepatic CYP-mediated drug clearance and alters systemic volume dynamics; high risk of hepatotoxic drug accumulation.",
+                    "clinical_guideline": "FDA Drug Labeling / EASL Guidelines",
+                }
+                relevant_labs.append({"lab": f"LFTs elevated (ALT {alt_f:.0f}, AST {ast_f:.0f}, Bili {bili_f:.1f})", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append(f"Active hepatic failure / transaminitis contraindicates statin initiation and warrants extreme caution with Amiodarone.")
+
+        # 4. Allergy Relevance
+        if allergies_str and allergies_str not in ("none", "no known allergies", "none documented"):
+            if "beta" in allergies_str:
+                exp = {
+                    "factor": "Documented Beta-Blocker Allergy",
+                    "category": "ALLERGIC_HYPERSENSITIVITY",
+                    "ecg_relationship": "Anaphylaxis or severe bronchospasm risk; first-line rate control and ectopy suppression must be achieved via Non-DHP CCB or other non-beta agent.",
+                    "clinical_guideline": "DailyMed Product Labeling / ACC Guidelines",
+                }
+                relevant_allergies.append({"allergy": "Beta-Blockers", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append("Beta-blocker class contraindicated due to documented hypersensitivity.")
+
+            if any(k in allergies_str for k in ["sulfa", "sulfonamide"]):
+                exp = {
+                    "factor": "Sulfa Hypersensitivity",
+                    "category": "ALLERGIC_HYPERSENSITIVITY",
+                    "ecg_relationship": "Cross-reactivity risk with sulfonamide-derived diuretics (furosemide, bumetanide, torsemide) and certain antiarrhythmics (sotalol).",
+                    "clinical_guideline": "FDA SPL / DailyMed",
+                }
+                relevant_allergies.append({"allergy": "Sulfa Drugs", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+
+            if any(k in allergies_str for k in ["aspirin", "nsaid", "salicylate"]):
+                exp = {
+                    "factor": "Aspirin / NSAID Hypersensitivity",
+                    "category": "ALLERGIC_HYPERSENSITIVITY",
+                    "ecg_relationship": "Contraindicates aspirin for secondary ischemic cardioprotection; alternative antiplatelet (clopidogrel) indicated.",
+                    "clinical_guideline": "2023 ESC ACS Guidelines",
+                }
+                relevant_allergies.append({"allergy": "Aspirin / NSAIDs", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append("Aspirin contraindicated due to documented hypersensitivity. Use Clopidogrel.")
+
+            if any(k in allergies_str for k in ["ace", "lisinopril", "ramipril", "angioedema"]):
+                exp = {
+                    "factor": "ACE Inhibitor Allergy / Angioedema",
+                    "category": "ALLERGIC_HYPERSENSITIVITY",
+                    "ecg_relationship": "Risk of life-threatening angioedema; ACE inhibitors strictly contraindicated; ARB or ARNI substituted under close observation.",
+                    "clinical_guideline": "2022 AHA/ACC HF Guidelines",
+                }
+                relevant_allergies.append({"allergy": "ACE Inhibitors", "relevance": exp["ecg_relationship"], "guideline": exp["clinical_guideline"]})
+                relevance_explanations.append(exp)
+                potential_contraindications.append("ACE inhibitors strictly contraindicated due to history of hypersensitivity/angioedema.")
+
+        # 5. Missing Clinical Information Audit
+        has_bp = bool(v_dict.get("systolic_bp") or v_dict.get("systolic_bp_mmhg") or v_dict.get("blood_pressure") or v_dict.get("sbp"))
+        if not has_bp:
+            missing_info.append("Blood pressure not recorded: hemodynamic stability during dysrhythmia cannot be verified.")
+        if k_val is None:
+            missing_info.append("Serum potassium not recorded: electrolyte trigger for arrhythmia cannot be excluded.")
+        if cr_val is None and egfr_val is None:
+            missing_info.append("Renal function (Creatinine/eGFR) not recorded: antiarrhythmic and cardiorenal clearance unverified.")
+        if not p_dict.get("current_medications") or str(p_dict.get("current_medications")).lower() in ["none recorded", "none documented", ""]:
+            missing_info.append("Complete medication history unverified: drug-induced arrhythmia or interactions cannot be ruled out.")
+        if not allergies_str or allergies_str in ["none", "none documented", ""]:
+            missing_info.append("Allergy status unverified: patient hypersensitivities require bedside confirmation.")
+
+        return {
+            "relevant_conditions": relevant_conditions,
+            "relevant_medications": relevant_medications,
+            "relevant_allergies": relevant_allergies,
+            "relevant_laboratory_results": relevant_labs,
+            "potential_contraindications": potential_contraindications,
+            "medication_related_ecg_concerns": med_ecg_concerns,
+            "relevance_explanations": relevance_explanations,
+            "missing_information": missing_info,
+        }
+
     def evaluate_finding(
         self,
         ecg_finding: str,
@@ -135,6 +470,9 @@ class ClinicalDecisionSupportEngine:
         patient: Optional[Any] = None,
         machine_finding: Optional[str] = None,
         reliability: Optional[Union["FindingReliability", Dict[str, Any], Any]] = None,
+        vital_signs: Optional[Dict[str, Any]] = None,
+        laboratory_results: Optional[Dict[str, Any]] = None,
+        ecg_measurements: Optional[Dict[str, Any]] = None,
     ) -> ClinicalRecommendation:
         """Build traceable clinical considerations for an ECG finding.
 
@@ -174,11 +512,13 @@ class ClinicalDecisionSupportEngine:
             }
             missing = [
                 "Symptoms: Not provided",
-                "Vital signs: Not provided",
-                "Laboratory data: Not provided",
                 "Medication history: Not provided",
                 "Medical history: Not provided",
             ]
+            if not vital_signs:
+                missing.append("Vital signs: Not provided")
+            if not laboratory_results:
+                missing.append("Laboratory data: Not provided")
         else:
             p_dict = patient.to_dict() if hasattr(patient, "to_dict") else (patient if isinstance(patient, dict) else vars(patient))
             p_ctx = {
@@ -192,9 +532,9 @@ class ClinicalDecisionSupportEngine:
             }
             if not p_dict.get("symptoms"):
                 missing.append("Symptoms: Not provided")
-            if not p_dict.get("vital_signs") and not p_dict.get("vitals"):
+            if not vital_signs and not p_dict.get("vital_signs") and not p_dict.get("vitals"):
                 missing.append("Vital signs: Not provided")
-            if not p_dict.get("laboratory_results") and not p_dict.get("labs"):
+            if not laboratory_results and not p_dict.get("laboratory_results") and not p_dict.get("labs"):
                 missing.append("Laboratory data: Not provided")
             if not p_dict.get("previous_ecg_ids"):
                 missing.append("Previous ECG: None available")
@@ -424,6 +764,27 @@ class ClinicalDecisionSupportEngine:
 
         rec.patient_context = p_ctx
         rec.missing_information = missing
+
+        # Integrate contextual explainability & Section 3 evidence
+        relevance_data = self.explain_clinical_context_relevance(
+            ecg_finding=ecg_finding,
+            heart_rate=heart_rate,
+            patient=patient,
+            vital_signs=vital_signs,
+            laboratory_results=laboratory_results,
+            ecg_measurements=ecg_measurements,
+        )
+        rec.relevant_conditions = relevance_data["relevant_conditions"]
+        rec.relevant_medications = relevance_data["relevant_medications"]
+        rec.relevant_allergies = relevance_data["relevant_allergies"]
+        rec.relevant_laboratory_results = relevance_data["relevant_laboratory_results"]
+        rec.potential_contraindications = list(set(rec.contraindication_warnings + relevance_data["potential_contraindications"]))
+        rec.medication_related_ecg_concerns = relevance_data["medication_related_ecg_concerns"]
+        rec.relevance_explanations = relevance_data["relevance_explanations"]
+        for m_item in relevance_data["missing_information"]:
+            if m_item not in rec.missing_information:
+                rec.missing_information.append(m_item)
+
         return rec
 
 

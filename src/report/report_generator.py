@@ -67,9 +67,14 @@ def generate_structured_report(
         "patient_age": prof.get("patient_age") if prof.get("patient_age") is not None else (prof.get("age") if prof.get("age") is not None else (extracted_measurements.get("patient_age") if extracted_measurements else "NOT PROVIDED")),
         "patient_sex": prof.get("patient_sex") or prof.get("sex") or (extracted_measurements.get("patient_sex") if extracted_measurements else "NOT PROVIDED"),
         "blood_group": prof.get("blood_group") or "NOT PROVIDED",
+        "rh_factor": prof.get("rh_factor") or "NOT PROVIDED",
+        "height_cm": prof.get("height_cm") or "NOT PROVIDED",
+        "weight_kg": prof.get("weight_kg") or "NOT PROVIDED",
+        "bmi": prof.get("bmi") or "NOT PROVIDED",
         "blood_group_policy_note": "Documented for transfusion/clinical safety; excluded from ML predictive models per institutional feature governance.",
         "date_of_birth": prof.get("date_of_birth") or prof.get("dob") or "NOT PROVIDED",
         "contact": prof.get("contact") or "NOT PROVIDED",
+        "emergency_contact": prof.get("emergency_contact") or "NOT PROVIDED",
         "recording_date": prof.get("recording_date") or (extracted_measurements.get("recording_date") if extracted_measurements else timestamp_str),
     }
 
@@ -79,6 +84,8 @@ def generate_structured_report(
         "symptom_onset": prof.get("symptom_onset") or "NOT PROVIDED",
         "existing_conditions": prof.get("existing_conditions") or prof.get("conditions") or "NOT PROVIDED",
         "cardiac_history": prof.get("cardiac_history") or prof.get("previous_cardiac_history") or "NOT PROVIDED",
+        "previous_surgeries": prof.get("previous_surgeries") or "NOT PROVIDED",
+        "previous_hospitalizations": prof.get("previous_hospitalizations") or "NOT PROVIDED",
         "family_history": prof.get("family_history") or "NOT PROVIDED",
         "smoking_status": prof.get("smoking_status") or "NOT PROVIDED",
     }
@@ -96,22 +103,43 @@ def generate_structured_report(
     else:
         meds_display = str(meds_val)
 
+    def _fmt_list_or_str(v: Any, default: str = "None documented") -> str:
+        if v is None:
+            return default
+        if isinstance(v, list):
+            items = [str(getattr(x, "allergen", getattr(x, "drug_name", x))).strip() for x in v if str(x).strip()]
+            return ", ".join(items) if items else default
+        s = str(v).strip()
+        return s if s else default
+
     allergies_and_medications = {
         "known_allergies": allergies_display,
+        "food_allergies": _fmt_list_or_str(prof.get("food_allergies")),
+        "other_allergies": _fmt_list_or_str(prof.get("other_allergies")),
         "current_medications": meds_display,
+        "past_medications": _fmt_list_or_str(prof.get("past_medications")),
+        "discontinued_medications": _fmt_list_or_str(prof.get("discontinued_medications")),
         "reconciliation_status": "DOCUMENTED" if meds_val else "NOT PROVIDED",
     }
 
     # 4. Vital Signs & Laboratory Context (Zero Fabrication)
     vitals_data = {}
     if vital_signs:
+        hr_val = vital_signs.get("heart_rate") or vital_signs.get("heart_rate_bpm") or vital_signs.get("hr")
+        sbp_val = vital_signs.get("systolic_bp") if vital_signs.get("systolic_bp") is not None else (vital_signs.get("systolic_bp_mmhg") if vital_signs.get("systolic_bp_mmhg") is not None else vital_signs.get("sbp"))
+        dbp_val = vital_signs.get("diastolic_bp") if vital_signs.get("diastolic_bp") is not None else (vital_signs.get("diastolic_bp_mmhg") if vital_signs.get("diastolic_bp_mmhg") is not None else vital_signs.get("dbp"))
+        spo2_val = vital_signs.get("spo2") if vital_signs.get("spo2") is not None else vital_signs.get("spo2_percent")
+        rr_val = vital_signs.get("respiratory_rate") or vital_signs.get("respiratory_rate_bpm") or vital_signs.get("rr")
+        temp_val = vital_signs.get("temperature_c") if vital_signs.get("temperature_c") is not None else (vital_signs.get("temperature_celsius") if vital_signs.get("temperature_celsius") is not None else vital_signs.get("temperature"))
+
+        bp_str = f"{sbp_val}/{dbp_val} mmHg" if (sbp_val is not None or dbp_val is not None) else "NOT PROVIDED"
         vitals_data = {
             "status": "RECORDED",
-            "heart_rate_bpm": vital_signs.get("heart_rate") or "NOT PROVIDED",
-            "blood_pressure": f"{vital_signs.get('systolic_bp', 'N/A')}/{vital_signs.get('diastolic_bp', 'N/A')} mmHg" if ("systolic_bp" in vital_signs or "diastolic_bp" in vital_signs) else "NOT PROVIDED",
-            "spo2_percent": f"{vital_signs.get('spo2')}%" if vital_signs.get("spo2") is not None else "NOT PROVIDED",
-            "respiratory_rate_bpm": vital_signs.get("respiratory_rate") or "NOT PROVIDED",
-            "temperature_c": f"{vital_signs.get('temperature_c')} °C" if vital_signs.get("temperature_c") is not None else "NOT PROVIDED",
+            "heart_rate_bpm": hr_val if hr_val is not None else "NOT PROVIDED",
+            "blood_pressure": bp_str,
+            "spo2_percent": f"{spo2_val}%" if spo2_val is not None else "NOT PROVIDED",
+            "respiratory_rate_bpm": rr_val if rr_val is not None else "NOT PROVIDED",
+            "temperature_c": f"{temp_val} °C" if temp_val is not None else "NOT PROVIDED",
             "recorded_at": vital_signs.get("recorded_at") or timestamp_str,
         }
     else:
@@ -127,17 +155,33 @@ def generate_structured_report(
 
     labs_data = {}
     if laboratory_results:
+        k_val = laboratory_results.get("potassium") if laboratory_results.get("potassium") is not None else (laboratory_results.get("potassium_mmol_l") if laboratory_results.get("potassium_mmol_l") is not None else (laboratory_results.get("potassium_meq_l") if laboratory_results.get("potassium_meq_l") is not None else laboratory_results.get("serum_potassium")))
+        na_val = laboratory_results.get("sodium") if laboratory_results.get("sodium") is not None else (laboratory_results.get("sodium_mmol_l") if laboratory_results.get("sodium_mmol_l") is not None else laboratory_results.get("serum_sodium"))
+        mg_val = laboratory_results.get("magnesium") if laboratory_results.get("magnesium") is not None else laboratory_results.get("magnesium_mg_dl")
+        ca_val = laboratory_results.get("calcium") if laboratory_results.get("calcium") is not None else laboratory_results.get("calcium_mg_dl")
+        cr_val = laboratory_results.get("creatinine") if laboratory_results.get("creatinine") is not None else (laboratory_results.get("serum_creatinine_mg_dl") if laboratory_results.get("serum_creatinine_mg_dl") is not None else (laboratory_results.get("creatinine_mg_dl") if laboratory_results.get("creatinine_mg_dl") is not None else laboratory_results.get("serum_creatinine")))
+        egfr_val = laboratory_results.get("egfr") if laboratory_results.get("egfr") is not None else laboratory_results.get("egfr_ml_min")
+        trop_val = laboratory_results.get("troponin") if laboratory_results.get("troponin") is not None else (laboratory_results.get("troponin_i_ng_ml") if laboratory_results.get("troponin_i_ng_ml") is not None else (laboratory_results.get("troponin_t_ng_ml") if laboratory_results.get("troponin_t_ng_ml") is not None else laboratory_results.get("troponin_ng_ml")))
+        bnp_val = laboratory_results.get("bnp") if laboratory_results.get("bnp") is not None else laboratory_results.get("bnp_pg_ml")
+        hgb_val = laboratory_results.get("hemoglobin") if laboratory_results.get("hemoglobin") is not None else laboratory_results.get("hemoglobin_g_dl")
+        alt_val = laboratory_results.get("alt") if laboratory_results.get("alt") is not None else laboratory_results.get("alt_u_l")
+        ast_val = laboratory_results.get("ast") if laboratory_results.get("ast") is not None else laboratory_results.get("ast_u_l")
+        bili_val = laboratory_results.get("bilirubin") if laboratory_results.get("bilirubin") is not None else laboratory_results.get("bilirubin_mg_dl")
+
         labs_data = {
             "status": "RECORDED",
-            "potassium_meq_l": f"{laboratory_results.get('potassium')} mEq/L" if laboratory_results.get("potassium") is not None else "NOT PROVIDED",
-            "sodium_meq_l": f"{laboratory_results.get('sodium')} mEq/L" if laboratory_results.get("sodium") is not None else "NOT PROVIDED",
-            "magnesium_mg_dl": f"{laboratory_results.get('magnesium')} mg/dL" if laboratory_results.get("magnesium") is not None else "NOT PROVIDED",
-            "calcium_mg_dl": f"{laboratory_results.get('calcium')} mg/dL" if laboratory_results.get("calcium") is not None else "NOT PROVIDED",
-            "creatinine_mg_dl": f"{laboratory_results.get('creatinine')} mg/dL" if laboratory_results.get("creatinine") is not None else "NOT PROVIDED",
-            "egfr_ml_min": f"{laboratory_results.get('egfr')} mL/min/1.73m²" if laboratory_results.get("egfr") is not None else "NOT PROVIDED",
-            "troponin_ng_ml": f"{laboratory_results.get('troponin')} ng/mL" if laboratory_results.get("troponin") is not None else "NOT PROVIDED",
-            "bnp_pg_ml": f"{laboratory_results.get('bnp')} pg/mL" if laboratory_results.get("bnp") is not None else "NOT PROVIDED",
-            "hemoglobin_g_dl": f"{laboratory_results.get('hemoglobin')} g/dL" if laboratory_results.get("hemoglobin") is not None else "NOT PROVIDED",
+            "potassium_meq_l": f"{k_val} mEq/L" if k_val is not None else "NOT PROVIDED",
+            "sodium_meq_l": f"{na_val} mEq/L" if na_val is not None else "NOT PROVIDED",
+            "magnesium_mg_dl": f"{mg_val} mg/dL" if mg_val is not None else "NOT PROVIDED",
+            "calcium_mg_dl": f"{ca_val} mg/dL" if ca_val is not None else "NOT PROVIDED",
+            "creatinine_mg_dl": f"{cr_val} mg/dL" if cr_val is not None else "NOT PROVIDED",
+            "egfr_ml_min": f"{egfr_val} mL/min/1.73m²" if egfr_val is not None else "NOT PROVIDED",
+            "troponin_ng_ml": f"{trop_val} ng/mL" if trop_val is not None else "NOT PROVIDED",
+            "bnp_pg_ml": f"{bnp_val} pg/mL" if bnp_val is not None else "NOT PROVIDED",
+            "hemoglobin_g_dl": f"{hgb_val} g/dL" if hgb_val is not None else "NOT PROVIDED",
+            "alt_u_l": f"{alt_val} U/L" if alt_val is not None else "NOT PROVIDED",
+            "ast_u_l": f"{ast_val} U/L" if ast_val is not None else "NOT PROVIDED",
+            "bilirubin_mg_dl": f"{bili_val} mg/dL" if bili_val is not None else "NOT PROVIDED",
             "recorded_at": laboratory_results.get("recorded_at") or timestamp_str,
         }
     else:
@@ -152,6 +196,9 @@ def generate_structured_report(
             "troponin_ng_ml": "NOT PROVIDED",
             "bnp_pg_ml": "NOT PROVIDED",
             "hemoglobin_g_dl": "NOT PROVIDED",
+            "alt_u_l": "NOT PROVIDED",
+            "ast_u_l": "NOT PROVIDED",
+            "bilirubin_mg_dl": "NOT PROVIDED",
             "recorded_at": "NOT PROVIDED",
         }
 
@@ -338,7 +385,11 @@ def generate_structured_report(
             "clinician_role": clinician_review.get("clinician_role", "DOCTOR"),
             "registration_number": clinician_review.get("registration_number", "N/A"),
             "clinician_interpretation": clinician_review.get("clinician_interpretation", "No interpretation recorded"),
+            "clinician_diagnosis": clinician_review.get("clinician_diagnosis"),
             "clinical_notes": clinician_review.get("clinical_notes", ""),
+            "selected_medications": clinician_review.get("selected_medications") or [],
+            "rejected_medications": clinician_review.get("rejected_medications") or [],
+            "prescriptions": clinician_review.get("prescriptions") or [],
             "reviewed_at": clinician_review.get("reviewed_at", timestamp_str),
         }
     else:
@@ -348,7 +399,11 @@ def generate_structured_report(
             "clinician_role": None,
             "registration_number": None,
             "clinician_interpretation": "Awaiting attending physician sign-off.",
+            "clinician_diagnosis": None,
             "clinical_notes": "",
+            "selected_medications": [],
+            "rejected_medications": [],
+            "prescriptions": [],
             "reviewed_at": None,
         }
 

@@ -32,9 +32,20 @@ class PatientContext:
     age: Optional[int] = None
     sex: Optional[str] = None
     blood_group: Optional[str] = None
+    rh_factor: Optional[str] = None
     date_of_birth: Optional[str] = None
     smoking_status: Optional[str] = None
     contact: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    bmi: Optional[float] = None
+    previous_surgeries: List[str] = field(default_factory=list)
+    previous_hospitalizations: List[str] = field(default_factory=list)
+    food_allergies: List[str] = field(default_factory=list)
+    other_allergies: List[str] = field(default_factory=list)
+    past_medications: List[str] = field(default_factory=list)
+    discontinued_medications: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -84,7 +95,12 @@ class ClinicalContextData:
     symptoms: List[str] = field(default_factory=list)
     medical_history: List[str] = field(default_factory=list)
     allergies: List[str] = field(default_factory=list)
+    food_allergies: List[str] = field(default_factory=list)
+    other_allergies: List[str] = field(default_factory=list)
     current_medications: List[str] = field(default_factory=list)
+    past_medications: List[str] = field(default_factory=list)
+    previous_surgeries: List[str] = field(default_factory=list)
+    previous_hospitalizations: List[str] = field(default_factory=list)
     vitals: Dict[str, Any] = field(default_factory=dict)
     laboratory_results: Dict[str, Any] = field(default_factory=dict)
 

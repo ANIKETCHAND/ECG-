@@ -96,6 +96,8 @@ class Allergy:
     allergen: str
     reaction: Optional[str] = None
     severity: str = "MODERATE"  # MILD, MODERATE, SEVERE, ANAPHYLACTIC
+    allergy_type: str = "DRUG"  # DRUG, FOOD, ENVIRONMENTAL, OTHER
+    previous_reactions: Optional[str] = None
     recorded_at: Optional[str] = None
     source: str = InformationSource.RECORDED_HISTORY.value
     entered_by: Optional[str] = None
@@ -108,6 +110,7 @@ class Allergy:
 class Medication:
     drug_name: str
     generic_name: Optional[str] = None
+    brand_name: Optional[str] = None
     dosage: Optional[str] = None
     unit: Optional[str] = None
     frequency: Optional[str] = None  # e.g., "OD", "BD", "PRN"
@@ -115,6 +118,10 @@ class Medication:
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     is_active: bool = True
+    status: str = "CURRENT"  # CURRENT, PREVIOUS, DISCONTINUED
+    discontinued_date: Optional[str] = None
+    discontinue_reason: Optional[str] = None
+    adverse_reactions: Optional[str] = None
     indication: Optional[str] = None
     recorded_at: Optional[str] = None
     source: str = InformationSource.MEDICATION_REGIMEN.value
@@ -167,6 +174,9 @@ class VitalSigns:
     spo2_percent: Optional[float] = None
     respiratory_rate_bpm: Optional[float] = None
     temperature_celsius: Optional[float] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    bmi: Optional[float] = None
     recorded_at: Optional[str] = None
     source: str = InformationSource.VITAL_SIGN.value
     entered_by: Optional[str] = None
@@ -180,6 +190,30 @@ class VitalSigns:
             return f"{int(self.systolic_bp_mmhg)}/{int(self.diastolic_bp_mmhg)} mmHg"
         return "NOT PROVIDED"
 
+    @property
+    def blood_pressure(self) -> str:
+        return self.blood_pressure_str
+
+    @property
+    def temperature_c(self) -> Optional[float]:
+        return self.temperature_celsius
+
+    @property
+    def systolic_bp(self) -> Optional[float]:
+        return self.systolic_bp_mmhg
+
+    @property
+    def diastolic_bp(self) -> Optional[float]:
+        return self.diastolic_bp_mmhg
+
+    @property
+    def heart_rate(self) -> Optional[float]:
+        return self.heart_rate_bpm
+
+    @property
+    def spo2(self) -> Optional[float]:
+        return self.spo2_percent
+
 
 @dataclass
 class LaboratoryResults:
@@ -187,10 +221,16 @@ class LaboratoryResults:
     magnesium_mg_dl: Optional[float] = None        # 1.7 - 2.2
     serum_creatinine_mg_dl: Optional[float] = None # 0.6 - 1.2
     egfr_ml_min: Optional[float] = None            # > 60
+    sodium_mmol_l: Optional[float] = None          # 135 - 145
     troponin_i_ng_ml: Optional[float] = None       # < 0.04
     troponin_t_ng_ml: Optional[float] = None       # < 0.01
     bnp_pg_ml: Optional[float] = None              # < 100
     hemoglobin_g_dl: Optional[float] = None        # 12.0 - 17.0
+    alt_u_l: Optional[float] = None                # 7 - 56 (Liver function)
+    ast_u_l: Optional[float] = None                # 10 - 40 (Liver function)
+    bilirubin_mg_dl: Optional[float] = None        # 0.1 - 1.2 (Liver function)
+    alk_phos_u_l: Optional[float] = None           # 44 - 147 (Alkaline Phosphatase)
+    lft_summary: Optional[str] = None              # "Normal", "Mild transaminitis", etc.
     panel_name: str = "Cardiac & Metabolic Workup"
     recorded_at: Optional[str] = None
     source: str = InformationSource.LABORATORY.value
@@ -217,15 +257,23 @@ class Patient:
     date_of_birth: Optional[str] = None
     sex: Optional[str] = None  # "Male", "Female", "Other"
     blood_group: Optional[str] = None  # "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", None
+    rh_factor: Optional[str] = None    # "Positive", "Negative", "+", "-", None
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
+    contact: Optional[str] = None
+    emergency_contact: Optional[str] = None
     allergies: List[Allergy] = field(default_factory=list)
+    food_allergies: List[Allergy] = field(default_factory=list)
+    other_allergies: List[Allergy] = field(default_factory=list)
     smoking_status: Optional[str] = None  # "Never Smoker", "Former Smoker", "Active Smoker", None
     alcohol_status: Optional[str] = None
     existing_conditions: List[str] = field(default_factory=list)  # e.g., ["Hypertension", "Type 2 Diabetes"]
     cardiac_history: List[str] = field(default_factory=list)      # e.g., ["Prior STEMI (2024)", "CABG"]
     family_history: List[str] = field(default_factory=list)       # e.g., ["Premature CAD in father"]
+    previous_surgeries: List[str] = field(default_factory=list)
+    previous_hospitalizations: List[str] = field(default_factory=list)
     current_medications: List[Medication] = field(default_factory=list)
+    past_medications: List[Medication] = field(default_factory=list)
     symptoms: List[Symptoms] = field(default_factory=list)
     vital_signs: List[VitalSigns] = field(default_factory=list)
     laboratory_results: List[LaboratoryResults] = field(default_factory=list)
@@ -236,7 +284,10 @@ class Patient:
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
         d["allergies"] = [a.to_dict() for a in self.allergies]
+        d["food_allergies"] = [a.to_dict() for a in self.food_allergies]
+        d["other_allergies"] = [a.to_dict() for a in self.other_allergies]
         d["current_medications"] = [m.to_dict() for m in self.current_medications]
+        d["past_medications"] = [m.to_dict() for m in self.past_medications]
         d["symptoms"] = [s.to_dict() for s in self.symptoms]
         d["vital_signs"] = [v.to_dict() for v in self.vital_signs]
         d["laboratory_results"] = [l.to_dict() for l in self.laboratory_results]
@@ -437,6 +488,9 @@ class DoctorReview:
     treatment_plan: Optional[str] = None
     medication_plan: Optional[str] = None
     follow_up_recommendation: Optional[str] = None
+    selected_medications: List[str] = field(default_factory=list)
+    rejected_medications: List[Dict[str, str]] = field(default_factory=list)
+    prescriptions: List[Dict[str, Any]] = field(default_factory=list)
     reviewed_at: Optional[str] = None
     digital_signature_hash: Optional[str] = None
     status: str = "SEALED"
