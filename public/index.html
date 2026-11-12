@@ -18,38 +18,47 @@
 
   <style>
     /* ═════════════════════════════════════════════════════════════════ */
-    /* 1. DESIGN SYSTEM — WHITE + PURPLE THEME FOLLOWED STRICTLY          */
+    /* 1. DESIGN SYSTEM — BLUE & SLATE HEALTHCARE INTELLIGENCE THEME     */
     /* ═════════════════════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
-      /* Colors strictly matching requirements */
+      /* Unified Blue & Slate Theme */
       --bg-primary: #FFFFFF;
-      --bg-secondary: #F8F6FF;
-      --bg-tertiary: #F3EEFF;
+      --bg-secondary: #F8FAFC;
+      --bg-tertiary: #EFF6FF;
+      --bg-ambient-blue: #EFF6FF;
+      --bg-glow: #DBEAFE;
       
-      --purple-primary: #6D28D9;
-      --purple-secondary: #7C3AED;
-      --purple-deep: #4C1D95;
+      --blue-primary: #2563EB;
+      --blue-secondary: #3B82F6;
+      --blue-deep: #1D4ED8;
       
-      --sidebar-bg: #24113F;
-      --sidebar-hover: #321956;
-      --sidebar-active: #3C1F69;
-      --sidebar-active-border: #7C3AED;
-      --sidebar-text: #E9E3F5;
-      --sidebar-muted: #9F97B6;
+      /* Backwards-compatible aliases for purple tokens mapped to royal blue */
+      --purple-primary: #2563EB;
+      --purple-secondary: #3B82F6;
+      --purple-deep: #1D4ED8;
       
-      --text-main: #17152B;
-      --text-secondary: #77738B;
-      --text-muted: #9F9CB2;
-      --border-color: #E9E3F5;
-      --border-light: #F2EEFA;
+      /* Sidebar: Deep navy aesthetic matching reference (#0F172A) */
+      --sidebar-bg: #0F172A;
+      --sidebar-hover: #1E293B;
+      --sidebar-active: #1E293B;
+      --sidebar-active-border: #2563EB;
+      --sidebar-text: #E2E8F0;
+      --sidebar-muted: #94A3B8;
+      
+      /* Deep navy headings, slate body, clean light borders */
+      --text-main: #0F172A;
+      --text-secondary: #334155;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      --border-light: #F1F5F9;
       
       --success: #16A34A;
       --success-bg: #F0FDF4;
       --success-border: #BBF7D0;
       
-      --warning: #F59E0B;
+      --warning: #D97706;
       --warning-bg: #FFFBEB;
       --warning-border: #FDE68A;
       
@@ -69,15 +78,17 @@
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
-      --radius-xl: 22px;
+      --radius-xl: 24px;
       --radius-full: 9999px;
       
       /* Shadows */
-      --shadow-sm: 0 1px 3px rgba(36, 17, 63, 0.05);
-      --shadow-md: 0 4px 14px rgba(36, 17, 63, 0.06);
-      --shadow-lg: 0 10px 25px rgba(36, 17, 63, 0.08);
-      --shadow-xl: 0 18px 36px rgba(36, 17, 63, 0.12);
-      --shadow-purple: 0 8px 20px rgba(109, 40, 217, 0.25);
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+      --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.02);
+      --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      --shadow-xl: 0 20px 35px -8px rgba(15, 23, 42, 0.12);
+      --shadow-pill: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
+      --shadow-purple: 0 8px 20px rgba(37, 99, 235, 0.28);
+      --shadow-blue: 0 8px 20px rgba(37, 99, 235, 0.28);
     }
 
     body {
@@ -91,13 +102,35 @@
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Architectural Vertical Grid + Atmospheric Blue Radial Ambient Background */
+    .canvas-grid-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      background-color: #F8FAFC;
+      background-image:
+        linear-gradient(to right, rgba(226, 232, 240, 0.55) 1px, transparent 1px),
+        radial-gradient(ellipse 70% 45% at 50% -5%, #DBEAFE 0%, rgba(239, 246, 255, 0.55) 50%, rgba(248, 250, 252, 0) 80%),
+        radial-gradient(circle at 86% 26%, rgba(224, 242, 254, 0.55) 0%, rgba(239, 246, 255, 0.2) 45%, transparent 70%),
+        radial-gradient(circle at 12% 38%, rgba(219, 234, 254, 0.35) 0%, transparent 45%);
+      background-size: min(100px, 9vw) 100%, 100% 100%, 100% 100%, 100% 100%;
+      background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0.15) 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0.15) 100%);
     }
 
     /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg-secondary); }
-    ::-webkit-scrollbar-thumb { background: #D5CEE8; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #B3A8D2; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
     /* ═════════════════════════════════════════════════════════════════ */
     /* SHARED UI ATOMS & BUTTONS                                         */
@@ -125,12 +158,12 @@
       background: var(--purple-primary);
       color: #FFFFFF;
       border-color: var(--purple-primary);
-      box-shadow: 0 4px 12px rgba(109, 40, 217, 0.22);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
     }
     .btn-primary:hover {
-      background: var(--purple-secondary);
-      border-color: var(--purple-secondary);
-      box-shadow: 0 6px 16px rgba(109, 40, 217, 0.32);
+      background: var(--purple-deep);
+      border-color: var(--purple-deep);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
     }
 
     .btn-outline {
@@ -151,8 +184,45 @@
       border-color: transparent;
     }
     .btn-soft:hover {
-      background: #E8DDFF;
+      background: #DBEAFE;
       color: var(--purple-deep);
+    }
+
+    .btn-ghost-pill {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 0.86rem;
+      padding: 7px 18px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-ghost-pill:hover {
+      color: var(--text-main);
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+    }
+
+    .btn-dark-pill {
+      background: #0F172A;
+      color: #FFFFFF;
+      border: 1px solid #0F172A;
+      font-weight: 600;
+      font-size: 0.86rem;
+      padding: 7px 20px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-dark-pill:hover {
+      background: #1E293B;
+      border-color: #1E293B;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.22);
     }
 
     .btn-danger {
@@ -179,7 +249,7 @@
       letter-spacing: 0.02em;
       white-space: nowrap;
     }
-    .badge-purple { background: var(--bg-tertiary); color: var(--purple-primary); border: 1px solid #E0D3FA; }
+    .badge-purple { background: var(--bg-tertiary); color: var(--purple-primary); border: 1px solid #BFDBFE; }
     .badge-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
     .badge-amber { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
     .badge-red { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
@@ -225,7 +295,7 @@
     }
     .card:hover {
       box-shadow: var(--shadow-md);
-      border-color: #DDD4ED;
+      border-color: #CBD5E1;
     }
 
     .form-group {
@@ -257,52 +327,62 @@
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       border-color: var(--purple-secondary);
-      box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
     .form-input::placeholder { color: var(--text-muted); }
 
     .hidden { display: none !important; }
 
     /* ═════════════════════════════════════════════════════════════════ */
-    /* LAYOUT 1: PUBLIC LAYOUT (LANDING & AUTH)                          */
+    /* LAYOUT 1: PUBLIC LAYOUT (FLOATING PILL NAVIGATION)                */
     /* ═════════════════════════════════════════════════════════════════ */
     #publicNavbar {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-color);
-      height: 70px;
       position: sticky;
-      top: 0;
-      z-index: 90;
+      top: 18px;
+      z-index: 100;
+      max-width: 1120px;
+      width: calc(100% - 48px);
+      margin: 18px auto 26px auto;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      border-radius: var(--radius-full);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 40px;
+      padding: 0 14px 0 20px;
+      transition: all 0.3s ease;
     }
     .brand-logo-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       cursor: pointer;
       text-decoration: none;
+      white-space: nowrap;
     }
     .brand-icon-box {
       width: 38px;
       height: 38px;
-      background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-      border-radius: 10px;
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #FFFFFF;
-      font-size: 1.15rem;
-      box-shadow: var(--shadow-purple);
+      color: #2563EB;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+      flex-shrink: 0;
     }
     .brand-text {
-      font-size: 1.22rem;
+      font-size: 1.18rem;
       font-weight: 800;
       color: var(--text-main);
-      letter-spacing: -0.02em;
+      letter-spacing: -0.025em;
+      white-space: nowrap;
     }
     .brand-text span {
       color: var(--purple-primary);
@@ -310,13 +390,13 @@
     .public-nav-links {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 24px;
       list-style: none;
     }
     .public-nav-link {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #475569;
       text-decoration: none;
       transition: color 0.15s ease;
       cursor: pointer;
@@ -333,7 +413,7 @@
       position: relative;
     }
 
-    /* Left Dark Purple Sidebar (#24113F) */
+    /* Left Dark Navy Sidebar (#0F172A) */
     #appSidebar {
       width: 250px;
       background-color: var(--sidebar-bg);
@@ -399,7 +479,7 @@
       font-size: 1.05rem;
       width: 20px;
       text-align: center;
-      color: #D2C7EA;
+      color: #94A3B8;
       transition: color 0.15s ease;
     }
     .sidebar-item:hover {
@@ -572,25 +652,131 @@
     
 
     /* ═════════════════════════════════════════════════════════════════ */
-    /* VIEW 1: LANDING PAGE                                              */
+    /* VIEW 1: LANDING PAGE (HERO & CAPABILITIES)                        */
     /* ═════════════════════════════════════════════════════════════════ */
-    .landing-hero-card {
-      background: #FFFFFF;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      padding: 50px 48px;
-      margin-bottom: 40px;
-      box-shadow: var(--shadow-md);
+    .landing-hero-centered {
+      text-align: center;
+      padding: 36px 20px 44px 20px;
+      max-width: 960px;
+      margin: 0 auto;
       position: relative;
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 40px;
+      z-index: 2;
+    }
+    .hero-avatar-stack-container {
+      display: flex;
+      justify-content: center;
       align-items: center;
+      margin-bottom: 24px;
+    }
+    .avatar-stack {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .avatar-stack-pill {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2.5px solid #FFFFFF;
+      margin-left: -10px;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+      background-color: #E2E8F0;
+    }
+    .avatar-stack-pill:first-child {
+      margin-left: 0;
+    }
+    .avatar-stack-pill:hover {
+      transform: translateY(-3px) scale(1.15);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+      z-index: 10;
+    }
+    .hero-main-heading {
+      font-size: clamp(2.4rem, 5.2vw, 3.8rem);
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.12;
+      letter-spacing: -0.038em;
+      margin: 0 auto 18px auto;
+      max-width: 860px;
+    }
+    .hero-main-heading .highlight-purple, .hero-main-heading .highlight-blue {
+      background: linear-gradient(135deg, var(--blue-primary), var(--blue-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub-description {
+      font-size: clamp(1rem, 1.8vw, 1.14rem);
+      color: #475569;
+      line-height: 1.62;
+      margin: 0 auto 32px auto;
+      max-width: 660px;
+    }
+    .hero-action-buttons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 38px;
+    }
+    .btn-hero-primary {
+      background: #2563EB;
+      color: #FFFFFF;
+      border: 1px solid #2563EB;
+      border-radius: var(--radius-full);
+      padding: 13px 32px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      box-shadow: 0 8px 22px rgba(37, 99, 235, 0.35);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-hero-primary:hover {
+      background: #1D4ED8;
+      border-color: #1D4ED8;
+      box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-hero-secondary {
+      background: #FFFFFF;
+      color: #0F172A;
+      border: 1px solid #E2E8F0;
+      border-radius: var(--radius-full);
+      padding: 13px 32px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      transition: all 0.2s ease;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-hero-secondary:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+      color: #0F172A;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+    .landing-showcase-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(226, 232, 240, 0.4);
+      margin-bottom: 48px;
+      position: relative;
     }
     .hero-badge-pill {
       background: var(--bg-tertiary);
-      border: 1px solid #E4D8FD;
+      border: 1px solid #DBEAFE;
       color: var(--purple-primary);
       padding: 6px 14px;
       border-radius: var(--radius-full);
@@ -601,62 +787,41 @@
       gap: 6px;
       margin-bottom: 20px;
     }
-    .hero-main-heading {
-      font-size: 2.85rem;
-      font-weight: 800;
-      color: var(--text-main);
-      line-height: 1.16;
-      letter-spacing: -0.025em;
-      margin-bottom: 18px;
-    }
-    .hero-main-heading .highlight-purple {
-      background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero-sub-description {
-      font-size: 1.05rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      margin-bottom: 30px;
-      max-width: 580px;
-    }
-    .hero-action-buttons {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 36px;
-    }
     .hero-feature-pills {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
-      border-top: 1px solid var(--border-color);
-      padding-top: 24px;
+      margin-top: 12px;
     }
     .hero-mini-pill {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
+      gap: 12px;
+      padding: 12px 16px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       font-size: 0.82rem;
+      transition: all 0.15s ease;
+    }
+    .hero-mini-pill:hover {
+      background: #FFFFFF;
+      border-color: #BFDBFE;
+      box-shadow: var(--shadow-sm);
     }
     .hero-mini-pill i {
       color: var(--purple-primary);
-      font-size: 1rem;
+      font-size: 1.1rem;
     }
     .hero-mini-pill strong {
       display: block;
       color: var(--text-main);
-      font-size: 0.84rem;
+      font-size: 0.86rem;
     }
     .hero-mini-pill span {
       display: block;
       color: var(--text-secondary);
-      font-size: 0.72rem;
+      font-size: 0.74rem;
     }
 
     /* ═════════════════════════════════════════════════════════════════ */
@@ -697,7 +862,7 @@
       height: 100px;
       border-radius: 50%;
       background: var(--bg-tertiary);
-      border: 3px solid #E6D8FF;
+      border: 3px solid #DBEAFE;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -732,7 +897,7 @@
       transition: all 0.2s ease;
     }
     .role-select-card:hover .role-arrow-btn {
-      background: var(--purple-secondary);
+      background: var(--purple-deep);
       transform: scale(1.1);
     }
 
@@ -864,7 +1029,7 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #E8E4F3;
+      background: #E2E8F0;
       color: var(--text-secondary);
       display: flex;
       align-items: center;
@@ -925,7 +1090,7 @@
       height: 68px;
       border-radius: 50%;
       background: var(--bg-tertiary);
-      border: 3px solid #E4D8FD;
+      border: 3px solid #DBEAFE;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1068,7 +1233,7 @@
     }
     .report-header-divider {
       height: 2px;
-      background: linear-gradient(90deg, var(--purple-primary), #E8DDFF);
+      background: linear-gradient(90deg, var(--purple-primary), #DBEAFE);
       margin: 18px 0;
     }
 
@@ -1111,7 +1276,7 @@
       font-size: 0.86rem;
     }
     .reports-history-table tr:last-child td { border-bottom: none; }
-    .reports-history-table tr:hover td { background: #FAF8FF; }
+    .reports-history-table tr:hover td { background: #F8FAFC; }
 
     .pagination-bar {
       display: flex;
@@ -1144,7 +1309,7 @@
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(23, 21, 43, 0.6);
+      background: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(4px);
       z-index: 200;
       display: flex;
@@ -1222,7 +1387,7 @@
     .notification-drawer-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(23, 21, 43, 0.4);
+      background: rgba(15, 23, 42, 0.4);
       backdrop-filter: blur(4px);
       z-index: 150;
       display: none;
@@ -1236,7 +1401,7 @@
       max-width: 92vw;
       height: 100vh;
       background: #FFFFFF;
-      box-shadow: -6px 0 26px rgba(36, 17, 63, 0.16);
+      box-shadow: -6px 0 26px rgba(15, 23, 42, 0.12);
       z-index: 160;
       display: flex;
       flex-direction: column;
@@ -1279,7 +1444,7 @@
     }
     .notif-item:hover {
       background: var(--bg-tertiary);
-      border-color: #D8C7F8;
+      border-color: #BFDBFE;
       transform: translateY(-1px);
     }
     .notif-icon-box {
@@ -1293,7 +1458,7 @@
       flex-shrink: 0;
     }
     .notif-amber { background: #FEF3C7; color: #D97706; }
-    .notif-purple { background: #F3EEFF; color: #6D28D9; }
+    .notif-purple { background: #EFF6FF; color: #2563EB; }
     .notif-green { background: #DCFCE7; color: #16A34A; }
     .notif-title { font-weight: 700; font-size: 0.84rem; color: var(--text-main); }
     .notif-desc { font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
@@ -1380,15 +1545,21 @@
 </head>
 <body>
 
-  
+  <!-- Atmospheric Architectural Canvas Overlay -->
+  <div class="canvas-grid-bg" aria-hidden="true"></div>
 
   <!-- ═════════════════════════════════════════════════════════════════ -->
-  <!-- PUBLIC NAVBAR (USED ON LANDING & AUTH)                             -->
+  <!-- PUBLIC NAVBAR (FLOATING PILL NAVIGATION)                          -->
   <!-- ═════════════════════════════════════════════════════════════════ -->
   <header id="publicNavbar">
     <div class="brand-logo-wrap" onclick="navigateTo('landing')">
       <div class="brand-icon-box">
-        <i class="fa-solid fa-heart-pulse"></i>
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14.5 2.5 A 13.5 13.5 0 0 0 2.5 14.5 C 5 13 13 5 14.5 2.5 Z" fill="#3B82F6"/>
+          <path d="M17.5 2.5 A 13.5 13.5 0 0 1 29.5 14.5 C 27 13 19 5 17.5 2.5 Z" fill="#2563EB"/>
+          <path d="M2.5 17.5 A 13.5 13.5 0 0 0 14.5 29.5 C 13 27 5 19 2.5 17.5 Z" fill="#1D4ED8"/>
+          <path d="M29.5 17.5 A 13.5 13.5 0 0 1 17.5 29.5 C 19 27 27 19 29.5 17.5 Z" fill="#60A5FA"/>
+        </svg>
       </div>
       <div class="brand-text">ECG <span>Guardian</span></div>
     </div>
@@ -1396,14 +1567,17 @@
     <ul class="public-nav-links">
       <li><a class="public-nav-link" onclick="navigateTo('landing')">Home</a></li>
       <li><a class="public-nav-link" href="#featuresSection">Features</a></li>
-      <li><a class="public-nav-link" href="#howItWorksSection">How It Works</a></li>
-      <li><a class="public-nav-link" href="#benefitsSection">About</a></li>
-      <li><a class="public-nav-link" href="#securitySection">Contact</a></li>
+      <li><a class="public-nav-link" href="#howItWorksSection">Workflow</a></li>
+      <li><a class="public-nav-link" href="#telemetrySection">Telemetry</a></li>
+      <li><a class="public-nav-link" href="#securitySection">Clinical Evidence</a></li>
     </ul>
 
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <button class="btn btn-primary" onclick="navigateTo('auth')">
-        <i class="fa-solid fa-right-to-bracket"></i> Login
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button class="btn btn-ghost-pill" onclick="navigateTo('auth')">
+        Login
+      </button>
+      <button class="btn btn-dark-pill" onclick="openRegisterView('PATIENT')">
+        Register
       </button>
     </div>
   </header>
@@ -1416,12 +1590,17 @@
     <!-- Mobile Backdrop -->
     <div id="mobileDrawerBackdrop" onclick="toggleMobileSidebar()"></div>
 
-    <!-- LEFT SIDEBAR (DARK PURPLE #24113F) -->
+    <!-- LEFT SIDEBAR (DARK NAVY #0F172A) -->
     <aside id="appSidebar">
       <div class="sidebar-header">
         <div class="brand-logo-wrap" onclick="navigateTo('doctorDashboard')">
-          <div class="brand-icon-box" style="width:34px; height:34px; font-size:1rem;">
-            <i class="fa-solid fa-heart-pulse"></i>
+          <div class="brand-icon-box" style="width:34px; height:34px; background:rgba(37,99,235,0.15); border:1px solid rgba(59,130,246,0.3);">
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14.5 2.5 A 13.5 13.5 0 0 0 2.5 14.5 C 5 13 13 5 14.5 2.5 Z" fill="#3B82F6"/>
+              <path d="M17.5 2.5 A 13.5 13.5 0 0 1 29.5 14.5 C 27 13 19 5 17.5 2.5 Z" fill="#2563EB"/>
+              <path d="M2.5 17.5 A 13.5 13.5 0 0 0 14.5 29.5 C 13 27 5 19 2.5 17.5 Z" fill="#1D4ED8"/>
+              <path d="M29.5 17.5 A 13.5 13.5 0 0 1 17.5 29.5 C 19 27 27 19 29.5 17.5 Z" fill="#60A5FA"/>
+            </svg>
           </div>
           <div class="sidebar-brand-title">ECG Guardian</div>
         </div>
@@ -1485,94 +1664,121 @@
         <!-- SCREEN 1: LANDING PAGE                                        -->
         <!-- ───────────────────────────────────────────────────────────── -->
         <section id="viewLanding" class="view-page">
-          <!-- Hero Section -->
-          <div class="landing-hero-card">
-            <div>
-              <div class="hero-badge-pill">
-                <i class="fa-solid fa-sparkles"></i> AI-Powered Cardiac Care
-              </div>
-              <h1 class="hero-main-heading">
-                AI-Powered ECG Analysis for <span class="highlight-purple">Smarter Heart Care</span>
-              </h1>
-              <p class="hero-sub-description">
-                A hospital-grade platform to analyze ECG, detect abnormalities, and generate doctor-approved reports with personalized medication guidance.
-              </p>
-              <div class="hero-action-buttons">
-                <button class="btn btn-primary btn-lg" onclick="navigateTo('auth')">
-                  Get Started <i class="fa-solid fa-arrow-right"></i>
-                </button>
-                <a href="#featuresSection" class="btn btn-outline btn-lg">
-                  Learn More
-                </a>
-              </div>
-
-              <!-- 4 Feature Pills in Hero -->
-              <div class="hero-feature-pills">
-                <div class="hero-mini-pill">
-                  <i class="fa-solid fa-wave-square"></i>
-                  <div>
-                    <strong>AI ECG Analysis</strong>
-                    <span>AI-based detection</span>
-                  </div>
-                </div>
-                <div class="hero-mini-pill">
-                  <i class="fa-solid fa-user-doctor"></i>
-                  <div>
-                    <strong>Patient Management</strong>
-                    <span>Digital health records</span>
-                  </div>
-                </div>
-                <div class="hero-mini-pill">
-                  <i class="fa-solid fa-file-medical"></i>
-                  <div>
-                    <strong>Clinical Reports</strong>
-                    <span>Doctor & patient reports</span>
-                  </div>
-                </div>
-                <div class="hero-mini-pill">
-                  <i class="fa-solid fa-pills"></i>
-                  <div>
-                    <strong>Medication Guidance</strong>
-                    <span>Safe & personalized</span>
-                  </div>
-                </div>
+          <!-- Hero Section: Centered Modern Intelligence Platform -->
+          <div class="landing-hero-centered">
+            <!-- Centered Specialists Avatar Stack -->
+            <div class="hero-avatar-stack-container">
+              <div class="avatar-stack">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. Priya Nair, MD Cardiology" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%233B82F6\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FED7AA\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%231D4ED8\'/></svg>'">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. Aniket Chandra, Lead Cardiologist" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%2310B981\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FDE68A\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%23047857\'/></svg>'">
+                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. Sarah Jenkins, Electrophysiologist" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%236366F1\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FED7AA\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%234338CA\'/></svg>'">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. Marcus Vance, Chief Medical Officer" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%230EA5E9\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FCD34D\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%230369A1\'/></svg>'">
+                <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. Elena Rostova, Emergency Cardiology" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%23F59E0B\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FDE68A\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%23B45309\'/></svg>'">
+                <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=120&h=120&q=80" alt="Specialist" class="avatar-stack-pill" title="Dr. David Chen, Cardiovascular Specialist" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%232563EB\'/><circle cx=\'20\' cy=\'16\' r=\'8\' fill=\'%23FED7AA\'/><path d=\'M8 36c0-6 5-11 12-11s12 5 12 11\' fill=\'%231D4ED8\'/></svg>'">
               </div>
             </div>
 
-            <!-- Right: Clinical ECG Live Rhythm & Telemetry Visual -->
-            <div style="background:#0F172A; border-radius:var(--radius-xl); padding:24px; box-shadow:0 20px 40px rgba(15,23,42,0.18); border:1px solid #1E293B;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:10px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10B981; box-shadow:0 0 10px #10B981;"></span>
-                  <strong style="color:#F8FAFC; font-size:0.85rem; letter-spacing:0.5px;">CARDIAC TELEMETRY MONITOR</strong>
+            <!-- Centered Bold High-Impact Headline -->
+            <h1 class="hero-main-heading">
+              The AI-Powered ECG Intelligence Platform You've Been Looking For
+            </h1>
+
+            <!-- Concise Sub-headline -->
+            <p class="hero-sub-description">
+              Clinical-grade 12-lead analysis, real-time arrhythmia detection, and patient-specific medication safety intelligence—engineered for modern cardiology and primary care.
+            </p>
+
+            <!-- Centered Action Pill Buttons -->
+            <div class="hero-action-buttons">
+              <button class="btn btn-primary btn-hero-primary" onclick="navigateTo('auth')">
+                Get Started <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <a href="#featuresSection" class="btn btn-outline btn-hero-secondary">
+                Learn More
+              </a>
+            </div>
+          </div>
+
+          <!-- Live Showcase Card: Cardiac Telemetry & Feature Pills -->
+          <div class="landing-showcase-card" id="telemetrySection">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;">
+              <!-- Left: Feature Pills -->
+              <div>
+                <div style="margin-bottom: 20px;">
+                  <span class="badge badge-purple" style="margin-bottom: 8px;">INTELLIGENT CARDIAC ENGINE</span>
+                  <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">Precision 12-Lead Diagnostic Intelligence</h3>
+                  <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                    Combining MIT-BIH benchmark-validated ML algorithms with clinical rule gates, verified medication safety checks, and instant patient reporting.
+                  </p>
                 </div>
-                <span style="color:#94A3B8; font-size:0.75rem; font-family:monospace;">LEAD II &bull; 25mm/s</span>
+                <!-- 4 Feature Pills in Hero -->
+                <div class="hero-feature-pills" style="border-top: none; padding-top: 0;">
+                  <div class="hero-mini-pill">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <div>
+                      <strong>AI ECG Analysis</strong>
+                      <span>AI-based detection</span>
+                    </div>
+                  </div>
+                  <div class="hero-mini-pill">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <div>
+                      <strong>Patient Management</strong>
+                      <span>Digital health records</span>
+                    </div>
+                  </div>
+                  <div class="hero-mini-pill">
+                    <i class="fa-solid fa-file-medical"></i>
+                    <div>
+                      <strong>Clinical Reports</strong>
+                      <span>Doctor & patient reports</span>
+                    </div>
+                  </div>
+                  <div class="hero-mini-pill">
+                    <i class="fa-solid fa-pills"></i>
+                    <div>
+                      <strong>Medication Guidance</strong>
+                      <span>Safe & personalized</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style="background:rgba(2,6,23,0.8); border:1px solid #334155; border-radius:var(--radius-md); padding:16px; position:relative; overflow:hidden;">
-                <!-- ECG Grid Background -->
-                <svg viewBox="0 0 500 120" style="width:100%; height:120px; display:block;">
-                  <defs>
-                    <pattern id="ecgGridLive" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1E293B" stroke-width="0.8"/>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#ecgGridLive)" />
-                  <!-- Rhythm Line -->
-                  <path d="M0,60 L40,60 L50,60 L60,40 L70,80 L80,15 L90,105 L100,60 L120,60 L140,45 L155,60 L200,60 L210,60 L220,40 L230,80 L240,15 L250,105 L260,60 L280,60 L300,45 L315,60 L360,60 L370,60 L380,40 L390,80 L400,15 L410,105 L420,60 L440,60 L460,45 L475,60 L500,60" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-top:16px;">
-                <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                  <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">HEART RATE</div>
-                  <div style="font-size:1.25rem; font-weight:800; color:#38BDF8; font-family:monospace;">72 <span style="font-size:0.75rem; color:#94A3B8;">BPM</span></div>
+
+              <!-- Right: Clinical ECG Live Rhythm & Telemetry Visual -->
+              <div style="background:#0F172A; border-radius:var(--radius-xl); padding:24px; box-shadow:0 20px 40px rgba(15,23,42,0.18); border:1px solid #1E293B;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:10px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10B981; box-shadow:0 0 10px #10B981;"></span>
+                    <strong style="color:#F8FAFC; font-size:0.85rem; letter-spacing:0.5px;">CARDIAC TELEMETRY MONITOR</strong>
+                  </div>
+                  <span style="color:#94A3B8; font-size:0.75rem; font-family:monospace;">LEAD II &bull; 25mm/s</span>
                 </div>
-                <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                  <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">PR INTERVAL</div>
-                  <div style="font-size:1.25rem; font-weight:800; color:#A78BFA; font-family:monospace;">160 <span style="font-size:0.75rem; color:#94A3B8;">MS</span></div>
+                <div style="background:rgba(2,6,23,0.8); border:1px solid #334155; border-radius:var(--radius-md); padding:16px; position:relative; overflow:hidden;">
+                  <!-- ECG Grid Background -->
+                  <svg viewBox="0 0 500 120" style="width:100%; height:120px; display:block;">
+                    <defs>
+                      <pattern id="ecgGridLive" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1E293B" stroke-width="0.8"/>
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#ecgGridLive)" />
+                    <!-- Rhythm Line -->
+                    <path d="M0,60 L40,60 L50,60 L60,40 L70,80 L80,15 L90,105 L100,60 L120,60 L140,45 L155,60 L200,60 L210,60 L220,40 L230,80 L240,15 L250,105 L260,60 L280,60 L300,45 L315,60 L360,60 L370,60 L380,40 L390,80 L400,15 L410,105 L420,60 L440,60 L460,45 L475,60 L500,60" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </div>
-                <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
-                  <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">AI CONFIDENCE</div>
-                  <div style="font-size:1.25rem; font-weight:800; color:#34D399; font-family:monospace;">98.4%</div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-top:16px;">
+                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
+                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">HEART RATE</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:#38BDF8; font-family:monospace;">72 <span style="font-size:0.75rem; color:#94A3B8;">BPM</span></div>
+                  </div>
+                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
+                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">PR INTERVAL</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:#93C5FD; font-family:monospace;">160 <span style="font-size:0.75rem; color:#94A3B8;">MS</span></div>
+                  </div>
+                  <div style="background:#1E293B; border-radius:var(--radius-sm); padding:10px 12px; text-align:center;">
+                    <div style="font-size:0.7rem; color:#94A3B8; font-weight:700;">AI CONFIDENCE</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:#34D399; font-family:monospace;">98.4%</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1631,7 +1837,7 @@
           </div>
 
           <!-- How It Works Section -->
-          <div id="howItWorksSection" class="card" style="margin-bottom: 50px; background:var(--bg-tertiary); border:1px solid #E4D8FD; padding:36px;">
+          <div id="howItWorksSection" class="card" style="margin-bottom: 50px; background:var(--bg-tertiary); border:1px solid #DBEAFE; padding:36px;">
             <div style="text-align:center; margin-bottom:30px;">
               <span class="badge badge-purple">4-STEP WORKFLOW</span>
               <h2 style="font-size:1.8rem; font-weight:800; color:var(--text-main); margin-top:6px;">How ECG Guardian Operates</h2>
@@ -1716,21 +1922,21 @@
                   <svg viewBox="0 0 100 100" style="width:100%; height:100%; border-radius:50%;">
                     <defs>
                       <linearGradient id="patGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#F3E8FF"/>
-                        <stop offset="100%" stop-color="#E9D5FF"/>
+                        <stop offset="0%" stop-color="#EFF6FF"/>
+                        <stop offset="100%" stop-color="#DBEAFE"/>
                       </linearGradient>
                     </defs>
                     <circle cx="50" cy="50" r="48" fill="url(#patGrad)"/>
                     <!-- Hair Back -->
-                    <path d="M28,42 C26,20 74,20 72,42 C76,64 68,78 68,78 C68,78 32,78 32,78 C32,78 24,64 28,42 Z" fill="#312E81"/>
+                    <path d="M28,42 C26,20 74,20 72,42 C76,64 68,78 68,78 C68,78 32,78 32,78 C32,78 24,64 28,42 Z" fill="#0F172A"/>
                     <!-- Face -->
                     <circle cx="50" cy="40" r="18" fill="#FDE68A"/>
                     <!-- Hair Front -->
-                    <path d="M33,38 C35,26 48,25 50,28 C52,25 65,26 67,38 C62,28 38,28 33,38 Z" fill="#1E1B4B"/>
+                    <path d="M33,38 C35,26 48,25 50,28 C52,25 65,26 67,38 C62,28 38,28 33,38 Z" fill="#1E293B"/>
                     <!-- Smile -->
                     <path d="M44,45 Q50,51 56,45" stroke="#B45309" stroke-width="2.2" fill="none" stroke-linecap="round"/>
                     <!-- Shirt -->
-                    <path d="M20,92 C23,64 36,60 50,60 C64,60 77,64 80,92 Z" fill="#7C3AED"/>
+                    <path d="M20,92 C23,64 36,60 50,60 C64,60 77,64 80,92 Z" fill="#0284C7"/>
                   </svg>
                 </div>
                 <h3>Patient Login</h3>
@@ -1860,7 +2066,7 @@
           <!-- 4 Stat Cards in Row -->
           <div class="dashboard-stats-grid">
             <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#F3EEFF; color:#6D28D9;">
+              <div class="stat-icon-wrapper" style="background:#EFF6FF; color:#2563EB;">
                 <i class="fa-solid fa-users"></i>
               </div>
               <div>
@@ -1890,7 +2096,7 @@
             </div>
 
             <div class="stat-metric-card">
-              <div class="stat-icon-wrapper" style="background:#FFFBEB; color:#F59E0B;">
+              <div class="stat-icon-wrapper" style="background:#FFFBEB; color:#D97706;">
                 <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
               <div>
@@ -3466,7 +3672,7 @@
           <!-- Top Stat / Summary Cards -->
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px; margin-bottom:24px;">
             <div class="card" style="display:flex; align-items:center; gap:16px;">
-              <div style="width:48px; height:48px; border-radius:var(--radius-lg); background:#F3EEFF; color:var(--purple-primary); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+              <div style="width:48px; height:48px; border-radius:var(--radius-lg); background:#EFF6FF; color:var(--purple-primary); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
                 <i class="fa-solid fa-calendar-check"></i>
               </div>
               <div>
@@ -4218,6 +4424,14 @@
       document.getElementById('authEmail').value = isDoc ? 'dr.aniket@hospital.org' : 'rajverma@gmail.com';
     }
 
+    function openRegisterView(role = 'PATIENT') {
+      navigateTo('auth');
+      openLoginFormForRole(role);
+      if (!authFormIsRegister) {
+        toggleAuthMode();
+      }
+    }
+
     function backToRoleSelect() {
       document.getElementById('authFormContainer').classList.add('hidden');
       document.getElementById('authRoleSelectionScreen').classList.remove('hidden');
@@ -4310,9 +4524,8 @@
         hospital_id: p.hospital_id
       };
       localStorage.setItem('ecg_guardian_user', JSON.stringify(currentUser));
-      showToast(`Signed in as ${currentUser.name}`, 'fa-user-check');
-
       if (shouldNavigate) {
+        showToast(`Signed in as ${currentUser.name}`, 'fa-user-check');
         navigateTo(currentUser.role === 'DOCTOR' ? 'doctorDashboard' : 'patientDashboard');
       }
     }
@@ -4364,9 +4577,9 @@
         y: y,
         type: 'scatter',
         mode: 'lines',
-        line: { color: '#6D28D9', width: 3.5, shape: 'spline' },
+        line: { color: '#2563EB', width: 3.5, shape: 'spline' },
         fill: 'tozeroy',
-        fillcolor: 'rgba(109, 40, 217, 0.08)'
+        fillcolor: 'rgba(37, 99, 235, 0.08)'
       };
 
       const layout = {
@@ -4375,8 +4588,8 @@
         autosize: true,
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        xaxis: { showgrid: false, zeroline: false, tickfont: { size: 10, color: '#9F9CB2' } },
-        yaxis: { showgrid: true, gridcolor: '#F0EBFA', zeroline: false, tickfont: { size: 10, color: '#9F9CB2' } },
+        xaxis: { showgrid: false, zeroline: false, tickfont: { size: 10, color: '#64748B' } },
+        yaxis: { showgrid: true, gridcolor: '#E2E8F0', zeroline: false, tickfont: { size: 10, color: '#64748B' } },
         hovermode: 'x unified'
       };
 
@@ -4780,7 +4993,7 @@
       showToast('Uploaded file removed', 'fa-trash-can');
     }
 
-    async function loadBenchmarkSample(sampleType) {
+    async function loadBenchmarkSample(sampleType, showNotification = true) {
       try {
         const res = await fetch(`${API_BASE}/api/sample?sample_type=${sampleType}`);
         if (res.ok) {
@@ -4793,7 +5006,9 @@
             const statusEl = document.getElementById('scanPreviewStatusText');
             if (statusEl) statusEl.textContent = `Loaded ${sampleType.toUpperCase()} Record · 25 mm/s`;
             renderScanPreviewWaveformChart();
-            showToast(`Loaded ${sampleType.toUpperCase()} ECG trace`, 'fa-wave-square');
+            if (showNotification) {
+              showToast(`Loaded ${sampleType.toUpperCase()} ECG trace`, 'fa-wave-square');
+            }
             return;
           }
         }
@@ -4808,7 +5023,9 @@
       const statusEl = document.getElementById('scanPreviewStatusText');
       if (statusEl) statusEl.textContent = `Loaded ${sampleType.toUpperCase()} Synthetic · 25 mm/s`;
       renderScanPreviewWaveformChart();
-      showToast(`Loaded ${sampleType.toUpperCase()} reference trace`, 'fa-wave-square');
+      if (showNotification) {
+        showToast(`Loaded ${sampleType.toUpperCase()} reference trace`, 'fa-wave-square');
+      }
     }
 
     function triggerAnalysisAndOpenBench() {
@@ -6457,7 +6674,7 @@
           container.innerHTML = activeAppointments.map(a => `
             <div style="border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:18px 20px; background:#FFFFFF; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:var(--shadow-sm);">
               <div style="display:flex; align-items:center; gap:16px;">
-                <div style="background:#F3EEFF; border:1px solid #E9E3F5; border-radius:var(--radius-md); padding:12px 14px; text-align:center; min-width:80px;">
+                <div style="background:#EFF6FF; border:1px solid #DBEAFE; border-radius:var(--radius-md); padding:12px 14px; text-align:center; min-width:80px;">
                   <span style="display:block; font-size:0.7rem; font-weight:800; color:var(--purple-primary); text-transform:uppercase;">DATE</span>
                   <span style="font-size:1.15rem; font-weight:800; color:var(--purple-deep);">${a.appointment_date}</span>
                   <span style="display:block; font-size:0.74rem; font-weight:700; color:var(--text-secondary); margin-top:2px;">${a.appointment_time}</span>
@@ -6661,7 +6878,7 @@
     // ── Application Initialization ──
     window.addEventListener('DOMContentLoaded', () => {
       initUserSession();
-      loadBenchmarkSample('normal');
+      loadBenchmarkSample('normal', false);
       setupDragAndDrop();
       navigateTo('landing');
     });
