@@ -2430,19 +2430,162 @@
       color: var(--text-cream) !important;
       padding: 12px 24px !important;
     }
+    /* ═══════════════════════════════════════════════════════════════════
+       RETRO VINTAGE SIDEBAR CHASSIS & NAVIGATION (EXACT REFERENCE DESIGN)
+       ═══════════════════════════════════════════════════════════════════ */
     #appSidebar {
-      background-color: var(--sidebar-bg) !important;
-      border-right: 2px solid #1E504E !important;
+      width: 232px !important;
+      background: linear-gradient(180deg, #D6C3A6 0%, #C8B394 40%, #B8A07D 100%) !important;
+      border-right: 3px solid #756146 !important;
+      box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.35), 4px 0 16px rgba(0, 0, 0, 0.25) !important;
+      padding: 14px 10px 16px 10px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      color: #382D1D !important;
+      border-bottom-left-radius: 28px !important;
+      z-index: 100;
     }
-    .sidebar-item.active {
-      background: var(--retro-red) !important;
-      color: #FFFFFF !important;
-      border-radius: var(--radius-md) !important;
-      box-shadow: 0 2px 8px rgba(182, 74, 58, 0.4) !important;
+
+    /* Cohesive Cream Navigation Card inside Sidebar Chassis */
+    .retro-sidebar-nav-card {
+      background: #EADCC1;
+      border: 2px solid #C4B08F;
+      border-radius: 18px;
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.75),
+        0 4px 10px rgba(0, 0, 0, 0.22);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
     }
-    .sidebar-item:hover:not(.active) {
-      background: var(--sidebar-hover) !important;
+
+    .retro-sidebar-nav-card .sidebar-nav {
+      padding: 0;
+      gap: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: visible;
+    }
+
+    /* Navigation Item Rows */
+    .retro-sidebar-nav-card .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 10px 12px;
+      color: #0E3029 !important;
+      font-size: 0.92rem;
+      font-weight: 700;
+      font-family: var(--font-heading);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      border-bottom: 1px solid #D5C29F;
+      border-left: none !important;
+      border-radius: 0;
+    }
+
+    .retro-sidebar-nav-card .sidebar-item:last-child {
+      border-bottom: none;
+    }
+
+    .retro-sidebar-nav-card .sidebar-item i {
+      font-size: 1.05rem;
+      width: 22px;
+      text-align: center;
+      color: #0E3029;
+      transition: color 0.15s ease;
+    }
+
+    .retro-sidebar-nav-card .sidebar-item:hover:not(.active) {
+      background: rgba(182, 74, 58, 0.12) !important;
+      color: #8A2D1F !important;
+      border-radius: 8px;
+    }
+    .retro-sidebar-nav-card .sidebar-item:hover:not(.active) i {
+      color: #8A2D1F !important;
+    }
+
+    /* Active Item: Rich Terracotta Red Pill Button */
+    .retro-sidebar-nav-card .sidebar-item.active {
+      background: linear-gradient(180deg, #C2503F 0%, #A83B2B 100%) !important;
       color: #FFFFFF !important;
+      border-radius: 10px !important;
+      border-bottom: none !important;
+      box-shadow: 
+        0 3px 6px rgba(168, 59, 43, 0.45),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+      margin: 2px 0;
+    }
+    .retro-sidebar-nav-card .sidebar-item.active i {
+      color: #FFFFFF !important;
+    }
+
+    /* Bottom Control & CRT Heart Telemetry Module */
+    .retro-sidebar-bottom-panel {
+      margin-top: auto;
+      padding: 14px 4px 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    /* Mini CRT Heart Telemetry Bezel */
+    .retro-sidebar-mini-crt-bezel {
+      width: 96px;
+      height: 84px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #F0E2CD 0%, #CBB696 50%, #8C7554 100%);
+      border: 2.5px solid #5A472E;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 2px #FFF;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .retro-sidebar-mini-crt-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      background: radial-gradient(ellipse at center, #052A1E 0%, #031812 70%, #010B07 100%);
+      border: 2px solid #0D3224;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .retro-sidebar-mini-crt-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(16, 185, 129, 0.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.22) 1px, transparent 1px);
+      background-size: 8px 8px;
+      pointer-events: none;
+    }
+
+    .retro-sidebar-mini-crt-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 3px;
+      pointer-events: none;
+      z-index: 4;
+      opacity: 0.65;
+    }
+
+    .retro-sidebar-heart-svg {
+      position: relative;
+      z-index: 5;
+      filter: drop-shadow(0 0 6px #10B981) drop-shadow(0 0 12px rgba(16, 185, 129, 0.7));
+      animation: heartBeatPulse 1.4s infinite ease-in-out;
     }
     
 </style>
@@ -2494,41 +2637,59 @@
     <!-- Mobile Backdrop -->
     <div id="mobileDrawerBackdrop" onclick="toggleMobileSidebar()"></div>
 
-    <!-- LEFT SIDEBAR -->
+    <!-- LEFT SIDEBAR (VINTAGE RETRO CHASSIS MATCHING EXACT REFERENCE DESIGN) -->
     <aside id="appSidebar">
-      <!-- Streamlined: Hidden logo header to match user reference image -->
+      <!-- Hidden logo header kept for DOM safety -->
       <div class="sidebar-header" style="display:none;">
         <div class="brand-logo-wrap" onclick="navigateTo('doctorDashboard')">
           <div class="sidebar-brand-title">ECG Guardian</div>
         </div>
       </div>
 
-      <!-- Navigation links dynamically adapted to Doctor vs Patient -->
-      <nav class="sidebar-nav" id="sidebarNavContent" style="padding-top:14px;">
-        <!-- Injected via JS based on user role -->
-      </nav>
+      <!-- Cohesive Cream Navigation Card -->
+      <div class="retro-sidebar-nav-card">
+        <nav class="sidebar-nav" id="sidebarNavContent">
+          <!-- Injected via JS based on user role -->
+        </nav>
+      </div>
 
-      <!-- Retro Chassis Mini Telemetry Widget (matches reference sidebar bottom) -->
-      <div style="padding:14px; margin:auto 12px 14px 12px; background:var(--bg-surface); border:1.5px solid #2C6B68; border-radius:var(--radius-md);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <!-- 4 Speaker Vent Slits -->
-          <div class="retro-vent-grille">
-            <div class="retro-vent-slit"></div>
-            <div class="retro-vent-slit"></div>
-            <div class="retro-vent-slit"></div>
-            <div class="retro-vent-slit"></div>
+      <!-- Retro Chassis Mini Telemetry Console (matches reference sidebar bottom) -->
+      <div class="retro-sidebar-bottom-panel">
+        <!-- Left: 5 Speaker Vent Slits + 2 LED Indicator Lamps (Red, Yellow) -->
+        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
+          <!-- 5 Speaker Vent Slits -->
+          <div class="retro-vent-grille" style="gap:4px;">
+            <div class="retro-vent-slit" style="height:32px; width:4.5px;"></div>
+            <div class="retro-vent-slit" style="height:32px; width:4.5px;"></div>
+            <div class="retro-vent-slit" style="height:32px; width:4.5px;"></div>
+            <div class="retro-vent-slit" style="height:32px; width:4.5px;"></div>
+            <div class="retro-vent-slit" style="height:32px; width:4.5px;"></div>
           </div>
-          <!-- 3 LED Strip (Amber, Green, Red) -->
-          <div class="retro-led-strip">
-            <span class="retro-led amber" title="Standby"></span>
-            <span class="retro-led green" title="Normal Operation"></span>
-            <span class="retro-led red" title="Alert"></span>
+          <!-- 2 Indicator Lamps: Red & Amber/Yellow -->
+          <div style="display:flex; gap:9px; align-items:center; padding-left:2px;">
+            <span class="retro-led red" title="System Alert Indicator" style="width:11px; height:11px;"></span>
+            <span class="retro-led amber" title="Telemetry Active Indicator" style="width:11px; height:11px;"></span>
           </div>
         </div>
-        <!-- Mini Heart Radar Display -->
-        <div style="background:#031410; border:2px solid #2B2216; border-radius:8px; height:60px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; box-shadow:inset 0 0 10px rgba(0,0,0,0.9);">
-          <div style="position:absolute; inset:0; background-image:radial-gradient(circle, rgba(16,185,129,0.2) 1px, transparent 1px); background-size:8px 8px;"></div>
-          <i class="fa-solid fa-heart-pulse" style="font-size:1.8rem; color:var(--crt-green); filter:drop-shadow(0 0 8px #10B981); animation: heartBeatPulse 1.2s infinite ease-in-out;"></i>
+
+        <!-- Right: Mini CRT Heart Telemetry Monitor in Brass Bezel -->
+        <div class="retro-sidebar-mini-crt-bezel">
+          <div class="retro-sidebar-mini-crt-screen">
+            <div class="retro-sidebar-mini-crt-grid"></div>
+            <!-- Luminous Coordinate Grid Heart SVG -->
+            <svg width="44" height="40" viewBox="0 0 44 40" fill="none" class="retro-sidebar-heart-svg">
+              <defs>
+                <pattern id="sidebarHeartGrid" width="6" height="6" patternUnits="userSpaceOnUse">
+                  <path d="M 6 0 L 0 0 0 6" fill="none" stroke="#34D399" stroke-width="0.8" opacity="0.85"/>
+                </pattern>
+                <mask id="sidebarHeartMask">
+                  <path d="M22 36 C22 36 4 25 4 13 C4 6 9.5 2 15 2 C18.5 2 21 3.8 22 5.5 C23 3.8 25.5 2 29 2 C34.5 2 40 6 40 13 C40 25 22 36 22 36 Z" fill="#FFFFFF"/>
+                </mask>
+              </defs>
+              <rect x="0" y="0" width="44" height="40" fill="url(#sidebarHeartGrid)" mask="url(#sidebarHeartMask)"/>
+              <path d="M22 36 C22 36 4 25 4 13 C4 6 9.5 2 15 2 C18.5 2 21 3.8 22 5.5 C23 3.8 25.5 2 29 2 C34.5 2 40 6 40 13 C40 25 22 36 22 36 Z" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -5464,10 +5625,10 @@
             <i class="fa-solid fa-house"></i> <span>Dashboard</span>
           </a>
           <a class="sidebar-item ${['patientsManagement', 'patientProfile'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('patientProfile')">
-            <i class="fa-solid fa-users"></i> <span>Patients</span>
+            <i class="fa-solid fa-user"></i> <span>Patients</span>
           </a>
           <a class="sidebar-item ${['analysis', 'ecgScan', 'cds'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('analysis')">
-            <i class="fa-solid fa-wave-square"></i> <span>ECG Analysis</span>
+            <i class="fa-solid fa-heart-pulse"></i> <span>ECG Analysis</span>
           </a>
           <a class="sidebar-item ${['reportHistory', 'doctorReport'].includes(currentView) ? 'active' : ''}" onclick="navigateTo('reportHistory')">
             <i class="fa-solid fa-file-lines"></i> <span>Reports</span>
@@ -5476,7 +5637,7 @@
             <i class="fa-solid fa-calendar-days"></i> <span>Appointments</span>
           </a>
           <a class="sidebar-item ${currentView === 'patientRegistration' ? 'active' : ''}" onclick="navigateTo('patientRegistration')">
-            <i class="fa-solid fa-hospital"></i> <span>Hospital Admin</span>
+            <i class="fa-solid fa-user"></i> <span>Hospital Admin</span>
           </a>
           <a class="sidebar-item ${currentView === 'settings' ? 'active' : ''}" onclick="navigateTo('settings')">
             <i class="fa-solid fa-gear"></i> <span>Settings</span>
