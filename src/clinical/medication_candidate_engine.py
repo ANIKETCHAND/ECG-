@@ -481,14 +481,15 @@ class MultimodalMedicationCandidateEngine:
                 c_contraindications.append(msg)
 
             # D. Laboratory Safety Gates
-            # Hyperkalemia Gate
-            if drug_key in ["ace_inhibitor_arb", "electrolyte_replacement"]:
-                if not has_k:
+            # Electrolyte (Potassium) Gate
+            if not has_k:
+                if drug_key in ["ace_inhibitor_arb", "electrolyte_replacement", "antiarrhythmic_class_3"]:
                     if c_status != "BLOCKED":
                         c_status = "REVIEW_REQUIRED"
                     c_contraindications.append("MANDATORY LAB WITHHOLDING: Serum potassium (K+) unrecorded. Obtain STAT electrolyte panel before initiating potassium-altering therapy.")
                     c_lab_checks.append("Serum K+: NOT RECORDED (Required)")
-                else:
+            else:
+                if drug_key in ["ace_inhibitor_arb", "electrolyte_replacement"]:
                     if k_val >= 5.2:
                         c_status = "BLOCKED"
                         msg = f"Hyperkalemia (Serum Potassium {k_val:.1f} mEq/L >= 5.2 mEq/L). Contraindicated to prevent life-threatening conduction arrest."
@@ -498,7 +499,16 @@ class MultimodalMedicationCandidateEngine:
                         if c_status != "BLOCKED":
                             c_status = "REVIEW_REQUIRED"
                         c_contraindications.append(f"High-normal Potassium ({k_val:.1f} mEq/L). Frequent electrolyte checks mandated.")
-                    c_lab_checks.append(f"Serum K+: {k_val:.1f} mEq/L")
+                
+                # Hypokalemia gate for proarrhythmic/QT-prolonging agents
+                if k_val < 3.5:
+                    if drug_key in ["antiarrhythmic_class_3", "antiarrhythmic_class_1c"] or info.get("qt_risk", False):
+                        if c_status != "BLOCKED":
+                            c_status = "BLOCKED"
+                        msg = f"Hypokalemia (Serum Potassium {k_val:.1f} mEq/L < 3.5 mEq/L). Contraindicated for QT-prolonging / antiarrhythmic agents due to severe torsadogenic risk."
+                        c_contraindications.append(msg)
+                        contraindications_found.append(f"{display_name}: {msg}")
+                c_lab_checks.append(f"Serum K+: {k_val:.1f} mEq/L")
 
             # Renal Function Gate
             if not has_cr and not l_dict.get("egfr_ml_min") and not l_dict.get("egfr"):
@@ -508,34 +518,42 @@ class MultimodalMedicationCandidateEngine:
                     c_contraindications.append("MANDATORY LAB WITHHOLDING: Renal function (eGFR / Serum Creatinine) unrecorded. Verify renal clearance before administering renally eliminated agents.")
                     c_lab_checks.append("Renal Panel: NOT RECORDED (Required)")
             else:
-                effective_cr = cr_val if has_cr else 0.95
-                egfr_val = float(l_dict.get("egfr_ml_min") or l_dict.get("egfr") or max(15.0, 110.0 - (float(p_dict.get("age") or 55.0) * 0.6) - (effective_cr * 22.0)))
-                c_lab_checks.append(f"Serum Cr: {effective_cr:.2f} mg/dL, eGFR: {egfr_val:.0f} mL/min")
+                egfr_raw = l_dict.get("egfr_ml_min") or l_dict.get("egfr")
+                if egfr_raw is not None:
+                    egfr_val = float(egfr_raw)
+                elif has_cr:
+                    egfr_val = float(max(15.0, 110.0 - (float(p_dict.get("age") or 55.0) * 0.6) - (cr_val * 22.0)))
+                else:
+                    egfr_val = None
+
+                cr_disp = f"{cr_val:.2f} mg/dL" if has_cr else "UNRECORDED"
+                egfr_disp = f"{egfr_val:.0f} mL/min" if egfr_val is not None else "UNRECORDED"
+                c_lab_checks.append(f"Serum Cr: {cr_disp}, eGFR: {egfr_disp}")
 
                 if drug_key == "biguanide":
-                    if egfr_val < 30.0 or effective_cr > 2.5:
+                    if (egfr_val is not None and egfr_val < 30.0) or (cr_val is not None and cr_val > 2.5):
                         c_status = "BLOCKED"
-                        msg = f"Severe Renal Impairment (eGFR {egfr_val:.0f} mL/min < 30 mL/min). Metformin contraindicated due to risk of fatal lactic acidosis (FDA Black Box / ADA 2024 / KDIGO)."
+                        msg = f"Severe Renal Impairment (eGFR {egfr_disp} < 30 mL/min). Metformin contraindicated due to risk of fatal lactic acidosis (FDA Black Box / ADA 2024 / KDIGO)."
                         c_contraindications.append(msg)
                         contraindications_found.append(f"{display_name}: {msg}")
-                    elif egfr_val < 45.0:
+                    elif egfr_val is not None and egfr_val < 45.0:
                         if c_status != "BLOCKED":
                             c_status = "REVIEW_REQUIRED"
-                        c_contraindications.append(f"Moderate CKD (eGFR {egfr_val:.0f} mL/min). Dose cap of 1000 mg/day indicated (KDIGO/ADA).")
+                        c_contraindications.append(f"Moderate CKD (eGFR {egfr_disp}). Dose cap of 1000 mg/day indicated (KDIGO/ADA).")
 
                 if drug_key == "antiarrhythmic_class_3":
-                    if egfr_val < 40.0:
+                    if egfr_val is not None and egfr_val < 40.0:
                         if c_status != "BLOCKED":
                             c_status = "REVIEW_REQUIRED"
-                        msg = f"Renal Impairment (eGFR {egfr_val:.0f} mL/min < 40 mL/min). Sotalol accumulation risk; contraindicated or requires strict dose reduction (FDA Label)."
+                        msg = f"Renal Impairment (eGFR {egfr_disp} < 40 mL/min). Sotalol accumulation risk; contraindicated or requires strict dose reduction (FDA Label)."
                         c_contraindications.append(msg)
                         contraindications_found.append(f"{display_name}: {msg}")
 
                 if drug_key in ["anticoagulant_doac", "ace_inhibitor_arb"]:
-                    if effective_cr > 2.5 or egfr_val < 30.0:
+                    if (cr_val is not None and cr_val > 2.5) or (egfr_val is not None and egfr_val < 30.0):
                         if c_status != "BLOCKED":
                             c_status = "REVIEW_REQUIRED"
-                        msg = f"Severe Renal Impairment (Serum Creatinine {effective_cr:.2f} mg/dL, eGFR {egfr_val:.0f} mL/min). Renal dosage titration or alternative required (KDIGO)."
+                        msg = f"Severe Renal Impairment (Serum Creatinine {cr_disp}, eGFR {egfr_disp}). Renal dosage titration or alternative required (KDIGO)."
                         c_contraindications.append(msg)
                         contraindications_found.append(f"{display_name}: {msg}")
 
@@ -688,7 +706,7 @@ class MultimodalMedicationCandidateEngine:
                 {"check": "Allergy Screening", "status": "FLAGGED" if allergy_alerts else "PASSED"},
                 {"check": "QTc Prolongation Gate", "status": "CONTRAINDICATED" if qtc_val >= 500 else ("CAUTION" if qtc_val >= 470 else "PASSED")},
                 {"check": "Bradycardia / AV Conduction Gate", "status": "CONTRAINDICATED" if hr_val < 50 else ("CAUTION" if hr_val < 60 else "PASSED")},
-                {"check": "Electrolyte (Potassium) Gate", "status": "CONTRAINDICATED" if (k_val is not None and k_val >= 5.2) else ("UNRECORDED" if k_val is None else "PASSED")},
+                {"check": "Electrolyte (Potassium) Gate", "status": "CONTRAINDICATED" if (k_val is not None and (k_val >= 5.2 or k_val < 3.5)) else ("UNRECORDED" if k_val is None else "PASSED")},
                 {"check": "Drug-Drug Interaction Screen", "status": "WARNING" if interactions_found else "PASSED"},
             ],
             contraindications=contraindications_found,

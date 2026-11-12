@@ -234,7 +234,7 @@ def test_phase2_doctor_profiles_and_hospitals(client):
     assert up_res.json()["status"] == "SUCCESS"
 
 
-def test_phase2_patient_profile_graceful_missing_values(client):
+def test_phase2_patient_profile_graceful_missing_values(client, auth_headers):
     mrn = f"MRN-MISSING-{uuid.uuid4().hex[:4].upper()}"
     create_res = client.post("/api/patients", json={
         "name": "Patient Missing Values",
@@ -246,14 +246,14 @@ def test_phase2_patient_profile_graceful_missing_values(client):
         "current_medications": "None",
         "systolic_bp": None,
         "heart_rate": None,
-    })
+    }, headers=auth_headers)
     assert create_res.status_code == 201
     p = create_res.json()["patient"]
     assert p["hospital_mrn"] == mrn
     assert p["blood_group"] == "Unknown"
 
     # Retrieve patient dossier
-    get_res = client.get(f"/api/patients/{p['patient_id']}")
+    get_res = client.get(f"/api/patients/{p['patient_id']}", headers=auth_headers)
     assert get_res.status_code == 200
     dossier = get_res.json()
     assert dossier["status"] == "SUCCESS"
@@ -262,9 +262,9 @@ def test_phase2_patient_profile_graceful_missing_values(client):
 
 # ── Phase 3: Doctor-Patient Interaction (Database Backed) ────────────────────
 
-def test_phase3_database_backed_appointments_crud(client):
+def test_phase3_database_backed_appointments_crud(client, auth_headers):
     # 1. List pre-seeded default appointment
-    res = client.get("/api/appointments")
+    res = client.get("/api/appointments", headers=auth_headers)
     assert res.status_code == 200
     apts = res.json()
     assert len(apts) >= 1
@@ -279,25 +279,25 @@ def test_phase3_database_backed_appointments_crud(client):
         "appointment_time": "11:00 AM",
         "consultation_type": "Telemetry Review",
         "reason": "Holter telemetry follow-up",
-    })
+    }, headers=auth_headers)
     assert book_res.status_code == 200
     new_apt = book_res.json()["appointment"]
     new_apt_id = new_apt["appointment_id"]
     assert new_apt["status"] == "CONFIRMED"
 
     # 3. Fetch single appointment by ID
-    single_res = client.get(f"/api/appointments/{new_apt_id}")
+    single_res = client.get(f"/api/appointments/{new_apt_id}", headers=auth_headers)
     assert single_res.status_code == 200
     assert single_res.json()["appointment"]["reason"] == "Holter telemetry follow-up"
 
     # 4. Cancel appointment
-    del_res = client.delete(f"/api/appointments/{new_apt_id}")
+    del_res = client.delete(f"/api/appointments/{new_apt_id}", headers=auth_headers)
     assert del_res.status_code == 200
     cancelled_apt = DB_MANAGER.get_appointment(new_apt_id)
     assert cancelled_apt["status"] == "CANCELLED"
 
 
-def test_phase3_doctor_patient_messaging_workflow(client):
+def test_phase3_doctor_patient_messaging_workflow(client, auth_headers):
     conv_res = client.post("/api/conversations", json={
         "patient_id": "USR-RAJ_VERMA",
         "doctor_id": "DOC-003",
@@ -305,7 +305,7 @@ def test_phase3_doctor_patient_messaging_workflow(client):
         "doctor_name": "Dr. Aniket Chandra, MD",
         "subject": "Arrhythmia Question Regarding Metoprolol",
         "initial_message": "Hello doctor, should I take my dose before the telemetry scan?",
-    })
+    }, headers=auth_headers)
     assert conv_res.status_code == 200
     conv_id = conv_res.json()["conversation"]["conversation_id"]
 
@@ -316,11 +316,11 @@ def test_phase3_doctor_patient_messaging_workflow(client):
         "sender_role": "DOCTOR",
         "recipient_id": "USR-RAJ_VERMA",
         "content": "Please take your medications as normally scheduled unless instructed otherwise.",
-    })
+    }, headers=auth_headers)
     assert msg_res.status_code == 200
 
     # Retrieve transcripts
-    transcript_res = client.get(f"/api/conversations/{conv_id}/messages")
+    transcript_res = client.get(f"/api/conversations/{conv_id}/messages", headers=auth_headers)
     assert transcript_res.status_code == 200
     msgs = transcript_res.json()["messages"]
     assert len(msgs) >= 2
@@ -344,18 +344,18 @@ def test_phase3_notification_pipeline_and_read_status(client):
     assert read_res.status_code == 200
 
 
-def test_phase3_patient_assignment_workflow(client):
+def test_phase3_patient_assignment_workflow(client, auth_headers):
     res = client.post("/api/patients/MRN-5F2298/assign", json={
         "doctor_id": "DOC-003",
         "doctor_name": "Dr. Aniket Chandra, MD",
         "assigned_by": "Head of Triage",
         "assignment_notes": "Assigned for continuous outpatient arrhythmia surveillance.",
-    })
+    }, headers=auth_headers)
     assert res.status_code == 200
     assert res.json()["status"] == "SUCCESS"
 
     # Verify doctor roster
-    doc_roster = client.get("/api/doctors/DOC-003/patients")
+    doc_roster = client.get("/api/doctors/DOC-003/patients", headers=auth_headers)
     assert doc_roster.status_code == 200
     assert doc_roster.json()["count"] >= 1
 
@@ -524,7 +524,7 @@ def test_phase8_dual_reporting_pdf_generation():
     assert pat_pdf.startswith(b"%PDF")
 
 
-def test_phase8_clinician_review_sign_off_sealing(client):
+def test_phase8_clinician_review_sign_off_sealing(client, auth_headers):
     res = client.post("/api/review", json={
         "analysis_id": f"ANALYSIS-{uuid.uuid4().hex[:6].upper()}",
         "clinician_name": "Dr. Verified Cardiologist",
@@ -533,7 +533,7 @@ def test_phase8_clinician_review_sign_off_sealing(client):
         "agreement_status": "CONFIRMED",
         "clinician_interpretation": "Confirmed normal sinus rhythm with intact conduction.",
         "clinical_notes": "Patient cleared for outpatient follow-up.",
-    })
+    }, headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert data["agreement_status"] == "CONFIRMED"
@@ -576,7 +576,7 @@ def test_phase9_clinical_safety_gate_qtc_480ms_and_bradycardia():
 
 # ── Phase 10: Longitudinal ECG Monitoring & Serial Deltas ───────────────────
 
-def test_phase10_longitudinal_serial_deltas_and_comparison(client):
+def test_phase10_longitudinal_serial_deltas_and_comparison(client, auth_headers):
     cur_ecg = {
         "analysis_id": "ANALYSIS-CUR-01",
         "lead_analyzed": "II",
@@ -613,7 +613,7 @@ def test_phase10_longitudinal_serial_deltas_and_comparison(client):
     assert comp_dict["delta_qtc_ms"] == 35.0
 
     # 3. Patient longitudinal timeline endpoint
-    long_res = client.get("/api/patients/MRN-5F2298/longitudinal")
+    long_res = client.get("/api/patients/MRN-5F2298/longitudinal", headers=auth_headers)
     assert long_res.status_code == 200
     assert long_res.json()["status"] == "SUCCESS"
     assert "trends" in long_res.json()
@@ -621,13 +621,13 @@ def test_phase10_longitudinal_serial_deltas_and_comparison(client):
 
 # ── Phase 11: Compliance & DPDP Act 2025 ─────────────────────────────────────
 
-def test_phase11_dpdp_consent_logging(client):
+def test_phase11_dpdp_consent_logging(client, auth_headers):
     res = client.post("/api/patients/MRN-5F2298/consent", json={
         "consent_type": "ECG_DATA_PROCESSING",
         "status": "GRANTED",
         "purposes": ["AI_DIAGNOSTIC_ASSISTANCE", "TELEMETRY_MONITORING"],
         "notes": "Patient provided biometric electronic signature for clinical data telemetry.",
-    })
+    }, headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "SUCCESS"

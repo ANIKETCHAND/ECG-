@@ -85,9 +85,10 @@ Legacy prototypes silently defaulted missing potassium to `4.2 mEq/L` and missin
          )
          c_lab_checks.append("Renal Panel: NOT RECORDED (Required)")
      ```
-3. **Emergency Escalation Alerts**:
+3. **Emergency Escalation Alerts & Hypokalemia Gating**:
    - `k_val >= 5.5`: Severe hyperkalemia alert generated; recommends calcium gluconate and insulin-dextrose escalation.
-   - `k_val < 3.0`: Severe hypokalemia alert generated; warns of ventricular fibrillation risk.
+   - `k_val < 3.5`: Hypokalemia contraindication gate triggered; blocks torsadogenic, QT-prolonging, and antiarrhythmic agents with critical alert to correct potassium prior to therapy.
+   - `k_val < 3.0`: Severe hypokalemia emergency alert generated; warns of immediate ventricular fibrillation and Torsades de Pointes risk.
 
 ---
 

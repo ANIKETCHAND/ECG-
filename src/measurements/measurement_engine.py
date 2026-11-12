@@ -256,8 +256,8 @@ def compute_ecg_measurements(
     # Requires high-contrast T-wave offset detection
     if m.heart_rate_bpm is not None and m.mean_rr_ms is not None and len(peaks) >= 3:
         try:
-            # Segment window [-50ms, +500ms]
-            t_pre = int(0.05 * fs)
+            # Segment window [-80ms, +600ms]
+            t_pre = int(0.08 * fs)
             t_post = min(int(0.60 * fs), int((m.mean_rr_ms / 1000.0) * 0.75 * fs))
 
             t_snippets = []
@@ -267,11 +267,30 @@ def compute_ecg_measurements(
 
             if len(t_snippets) >= 3:
                 avg_beat = np.mean(t_snippets, axis=0)
-                q_point = t_pre
+                r_idx = t_pre
+
+                # Dynamic Q-onset detection before R peak:
+                # Search for Q-wave deflection in window [R - 70ms, R]
+                q_search_start = max(0, r_idx - int(0.07 * fs))
+                q_window = avg_beat[q_search_start:r_idx]
+                if len(q_window) >= 2:
+                    q_min_local = int(np.argmin(q_window))
+                    q_trough = q_search_start + q_min_local
+                    # Trace backwards from Q-trough to find baseline departure / inflection
+                    diff_pre = np.abs(np.diff(avg_beat[q_search_start : q_trough + 1]))
+                    q_point = q_trough
+                    if len(diff_pre) > 0:
+                        thr = 0.10 * np.max(np.abs(np.diff(avg_beat)))
+                        for k in range(len(diff_pre) - 1, -1, -1):
+                            if diff_pre[k] < thr:
+                                q_point = q_search_start + k
+                                break
+                else:
+                    q_point = max(0, r_idx - int(0.04 * fs))
 
                 # Find T peak in window [+150ms, +450ms] after R
-                t_search_start = t_pre + int(0.15 * fs)
-                t_search_end = min(len(avg_beat), t_pre + int(0.48 * fs))
+                t_search_start = r_idx + int(0.15 * fs)
+                t_search_end = min(len(avg_beat), r_idx + int(0.48 * fs))
 
                 if t_search_end > t_search_start:
                     t_window = avg_beat[t_search_start:t_search_end]
@@ -297,7 +316,7 @@ def compute_ecg_measurements(
                         m.qtc_bazett_ms = round(qt_ms / np.sqrt(rr_sec), 1)
                         # Fridericia: QTc = QT / (RR^(1/3))
                         m.qtc_fridericia_ms = round(qt_ms / (rr_sec ** (1.0 / 3.0)), 1)
-                        m.qt_status = "Estimated from Lead II average beat"
+                        m.qt_status = "Measured from Lead II average beat (dynamic Q-onset to T-offset)"
                     else:
                         m.qt_status = "Not reliably measurable (T-wave offset out of bounds)"
                 else:

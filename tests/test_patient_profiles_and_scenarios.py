@@ -398,6 +398,14 @@ def test_phase_7_patient_to_report_integration_pipeline(patient_profiles, archet
     target_patient = patient_profiles[archetype_key]
 
     # SCENARIO 1: Register new synthetic patient & verify DB persistence
+    init_login = client.post("/api/auth/login", json={
+        "email": "dr.aniket@hospital.org",
+        "password": "Doctor@Hospital2026",
+        "role": "DOCTOR",
+    })
+    assert init_login.status_code == 200
+    doc_token = init_login.json()["token"]
+
     pat_payload = {
         "name": target_patient.name,
         "hospital_mrn": f"MRN-INT-{uuid.uuid4().hex[:6].upper()}",
@@ -409,20 +417,13 @@ def test_phase_7_patient_to_report_integration_pipeline(patient_profiles, archet
         "existing_conditions": [c.strip() for c in (target_patient.existing_conditions or "").split(",") if c.strip()],
         "current_medications": [m.strip() for m in (target_patient.current_medications or "").split(",") if m.strip()],
     }
-    create_res = client.post("/api/patients", json=pat_payload)
+    create_res = client.post("/api/patients", json=pat_payload, headers={"Authorization": f"Bearer {doc_token}"})
     assert create_res.status_code == 201
     created_pat = create_res.json()["patient"]
     pat_id = created_pat["patient_id"]
     pat_mrn = created_pat["hospital_mrn"]
 
     # SCENARIO 2: Log out and log in again, verify patient is available
-    login_res = client.post("/api/auth/login", json={
-        "email": "dr.aniket@hospital.org",
-        "password": "Doctor@Hospital2026",
-        "role": "DOCTOR",
-    })
-    assert login_res.status_code == 200
-    doc_token = login_res.json()["token"]
     # Logout
     client.post("/api/auth/logout", headers={"Authorization": f"Bearer {doc_token}"})
     # Login again

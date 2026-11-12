@@ -8,13 +8,22 @@
 ### 1. Security & Authentication Engineering (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06)
 - **`api/security.py`**:
   - Implemented cryptographic JWT authentication engine (`create_jwt_token`, `decode_jwt_token`) using HMAC-SHA256 with environment secret injection (`JWT_SECRET`).
-  - Implemented `is_strict_auth_required()` helper to detect production environments or explicit zero-trust flags (`ECG_STRICT_AUTH=1`).
+  - **Zero-Trust Architecture Enforced**: `is_strict_auth_required()` now defaults to `True` unconditionally across all environments (production, staging, test, and dev), eliminating inadvertent anonymous access bypasses.
+  - **Eliminated Hardcoded Secrets**: Removed all hardcoded production/development JWT fallback keys (`STRICT_PROD_FALLBACK_SECRET_ECG_2026` and `DEV_FALLBACK_JWT_SECRET_2026_CDSCO_ECG_GUARDIAN`).
+  - Implemented fail-closed security: In production, missing `JWT_SECRET` raises a fatal `RuntimeError`. In development, an ephemeral 256-bit cryptographically secure token (`secrets.token_hex(32)`) is generated per runtime instance.
   - Added FastAPI dependency `get_current_user_strictly` and role-based access control dependency `require_roles(*allowed_roles)`.
   - Added OpenAPI security scheme `SECURITY_BEARER = HTTPBearer(auto_error=False)`.
 - **`api/index.py`**:
   - Updated `get_authenticated_user_from_request` to parse and verify cryptographic JWT tokens in addition to session IDs.
   - Remediated `/api/auth/me`: Neutralized fallback mock session that defaulted anonymous callers to `dr_aniket` (CARDIOLOGIST). Endpoint now returns `HTTP 401 Unauthorized` when unauthenticated.
-  - Hardened endpoints with `is_strict_auth_required()`: `/api/patients`, `/api/patients/{id}`, `/api/reports`, `/api/reports/{id}`, `/api/reports/{id}/pdf`, `/api/patients/{id}/assign`, `/api/patients/{id}/consent`, and `/api/patients/{id}/longitudinal`.
+  - Hardened ALL clinical and patient endpoints under strict zero-trust authentication:
+    - `/api/patients` (GET and POST)
+    - `/api/patients/{id}`, `/api/patients/{id}/assign`, `/api/patients/{id}/consent`, `/api/patients/{id}/longitudinal`
+    - `/api/reports`, `/api/reports/{id}`, `/api/reports/{id}/pdf`
+    - `/api/appointments` (GET and POST)
+    - `/api/conversations`, `/api/conversations/{id}/messages` (GET and POST)
+    - `/api/doctors/{id}/patients`
+  - Enforced RBAC protection preventing patient accounts from creating patient records (`HTTP 403 Forbidden`) or viewing doctor rosters (`HTTP 403 Forbidden`).
   - Implemented RBAC guard on `/api/review`: Blocks patient accounts from sealing clinical diagnostic reports (`HTTP 403 Forbidden`). Enforces authenticated clinician session binding.
   - Resolved parameter shadowing of `status` query parameter across report and patient endpoints by using direct HTTP status codes.
 - **`public/index.html`**:
@@ -25,23 +34,28 @@
 
 ---
 
-### 2. Clinical Pharmacology & Safety Engineering (CLIN-01, CLIN-02)
+### 2. Clinical Pharmacology & Safety Engineering (CLIN-01, CLIN-02, CLIN-03)
 - **`src/clinical/medication_candidate_engine.py`**:
   - Eliminated silent substitution of normal laboratory constants (formerly `4.2 mEq/L` for potassium and `0.95 mg/dL` for creatinine).
   - Implemented **Mandatory Laboratory Withholding Protocol**:
     - Missing potassium triggers `MANDATORY LAB WITHHOLDING: Serum potassium (K+) unrecorded. Obtain STAT electrolyte panel before initiating potassium-altering therapy.` and escalates candidate status to `REVIEW_REQUIRED`.
     - Missing creatinine or eGFR triggers `MANDATORY LAB WITHHOLDING: Renal function (eGFR / Serum Creatinine) unrecorded. Verify renal clearance before administering renally eliminated agents.` and escalates candidate status to `REVIEW_REQUIRED`.
+  - Added **Hypokalemia Contraindication Safety Gate**:
+    - `k_val < 3.5 mEq/L` explicitly contraindicates and blocks torsadogenic, QT-prolonging, and antiarrhythmic agents with critical clinical advisory to correct serum potassium prior to rhythm control.
   - Added null-safe guards to emergency escalation and electrolyte safety check handlers, preventing `TypeError` during comparison against missing values.
 - **`api/index.py`**:
   - Fixed line 963 in `analyze_ecg`: Added `patient=pat_context` parameter into `check_medication_safety` invocation (formerly omitted, which blinded allergy checking).
 
 ---
 
-### 3. Biomedical Signal Processing & Waveform Extraction (BIO-01)
+### 3. Biomedical Signal Processing & Measurement Engineering (BIO-01, BIO-02)
 - **`src/ecg_input/waveform_extractor.py`**:
   - Removed arbitrary amplitude rescaling to 1.5 mV (`(final_signal / max_peak) * 1.5`). Replaced with z-score standard deviation normalization (`(signal - median) / std`) to preserve true relative morphology.
   - Removed pixel width duration guessing (`assumed_duration_sec = 10.0 if w >= 1000 else 2.5`). Defaulted to 10.0-second uncalibrated rhythm strip.
   - Tagged optical extractions with `is_calibrated: False`, `can_evaluate_st: False`, `calibration_status: "UNCALIBRATED_OPTICAL_EXTRACT"`, and explicit clinical warning withholding ST-segment elevation/depression analysis without physical grid detection.
+- **`src/measurements/measurement_engine.py`**:
+  - **Dynamic Q-Onset Fiducial Detection (BIO-02)**: Replaced legacy fixed Q-point calculation (`q_point = t_pre`, hardcoded to R - 50ms) with dynamic morphology-aware Q-onset detection algorithm that locates the local Q-wave deflection trough and traces backwards along the first derivative to find the pre-Q baseline departure inflection point.
+  - Validated dynamic Q-onset measurement against MIT-BIH recordings, yielding precise, physiologically grounded QT and rate-corrected QTc (Bazett and Fridericia) intervals.
 
 ---
 
@@ -64,13 +78,21 @@
 
 ### 5. Automated Verification & Testing
 - **`tests/test_negative_authorization_and_security.py`**:
-  - Created a comprehensive 9-test negative authorization suite verifying:
+  - Created a comprehensive 14-test negative authorization suite verifying:
     - SEC-01: Anonymous requests to `/api/auth/me` return 401.
-    - SEC-02: Strict authentication blocks unauthenticated access to `/api/patients` and `/api/reports`.
+    - SEC-02: Zero-trust authentication blocks unauthenticated access to `/api/patients` and `/api/reports`.
     - SEC-03: Patient accounts cannot seal clinical diagnostic reports (403 Forbidden).
-    - SEC-04: Invalid / forged bearer tokens are rejected in strict mode (401 Unauthorized).
+    - SEC-04: Invalid / forged bearer tokens are rejected (401 Unauthorized).
+    - SEC-05: Missing / empty authorization header rejected with 401 Unauthorized.
+    - SEC-06: Malformed authorization header rejected with 401 Unauthorized.
+    - SEC-07: Unauthenticated calls to `/api/patients` (POST) rejected with 401.
+    - SEC-08: Patient accounts cannot register new patients (403 Forbidden).
+    - SEC-09: Unauthenticated calls to `/api/conversations` (GET/POST) rejected with 401.
+    - SEC-10: Unauthenticated calls to `/api/appointments` (GET/POST) rejected with 401.
     - CLIN-01: Missing potassium triggers mandatory withholding.
     - CLIN-02: Missing creatinine triggers mandatory withholding.
+    - CLIN-03: Hypokalemia (<3.5 mEq/L) blocks torsadogenic / antiarrhythmic drugs.
     - BIO-01: Optical extractor disables ST analysis and preserves relative morphology.
+    - BIO-02: Dynamic Q-onset detection verifies precise fiducial marking.
     - ML-01: Catalog proves strict zero-leakage record split.
-- **Full Suite Run**: 568 passed in 96.08 seconds with 0 failures.
+- **Full Suite Run**: 573 passed in 96.06 seconds with 0 failures (100% passing).

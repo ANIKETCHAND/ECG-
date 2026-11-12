@@ -52,7 +52,7 @@ def generate_synthetic_ecg(duration_sec=3.0, fs=360.0, hr=75.0, pvc=False):
     return sig.tolist()
 
 
-def test_e2e_data_consistency_and_patient_isolation(client):
+def test_e2e_data_consistency_and_patient_isolation(client, auth_headers):
     # 1. Analyze Patient A (Alice - Normal Rhythm, 72 BPM)
     sig_a = generate_synthetic_ecg(duration_sec=3.0, fs=360.0, hr=72.0, pvc=False)
     payload_a = {
@@ -130,7 +130,7 @@ def test_e2e_data_consistency_and_patient_isolation(client):
     assert abs(hr_a - hr_b) > 5.0  # Bob's heart rate differs significantly from Alice's
 
     # 3. Retrieve Historical Report for Patient A from Persistence Service
-    hist_a_res = client.get(f"/api/reports/{rep_id_a}")
+    hist_a_res = client.get(f"/api/reports/{rep_id_a}", headers=auth_headers)
     assert hist_a_res.status_code == 200, hist_a_res.text
     hist_a = hist_a_res.json()["report"]
 
@@ -145,7 +145,7 @@ def test_e2e_data_consistency_and_patient_isolation(client):
     assert cardiac_a_saved["qrs_duration_ms"] == qrs_a
 
     # 4. Retrieve Historical Report for Patient B from Persistence Service
-    hist_b_res = client.get(f"/api/reports/{rep_id_b}")
+    hist_b_res = client.get(f"/api/reports/{rep_id_b}", headers=auth_headers)
     assert hist_b_res.status_code == 200, hist_b_res.text
     hist_b = hist_b_res.json()["report"]
 
@@ -157,7 +157,7 @@ def test_e2e_data_consistency_and_patient_isolation(client):
     assert cardiac_b_saved["heart_rate_bpm"] == hr_b
 
     # 5. Verify History Archive Endpoint
-    list_res = client.get("/api/reports")
+    list_res = client.get("/api/reports", headers=auth_headers)
     assert list_res.status_code == 200
     reports_list = list_res.json()["reports"]
     rep_nums = [r.get("report_number") for r in reports_list]

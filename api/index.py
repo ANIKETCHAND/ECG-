@@ -1345,8 +1345,20 @@ def generate_pdf_endpoint(req: AnalyzeRequest, type: str = "doctor"):
 
 
 @router.post("/patients", status_code=201, dependencies=[_protected])
-def create_patient_endpoint(req: PatientCreateRequest):
+def create_patient_endpoint(req: PatientCreateRequest, request: Request = None, token: Optional[str] = None):
     """Register a new patient into hospital clinical registry and Supabase."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Patient accounts cannot register new patient dossiers. Only clinical staff may perform intake.",
+        )
     name_clean = req.name.strip()
     if not name_clean:
         raise HTTPException(status_code=400, detail="Patient full name is required.")
@@ -2730,6 +2742,12 @@ def list_appointments(
 ):
     """Retrieve scheduled patient appointments from database with tenant and role scoping."""
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else None)
 
     # Scoping for patients: view only their appointments
@@ -2741,8 +2759,15 @@ def list_appointments(
     return apts
 
 @router.post("/appointments", dependencies=[_protected])
-def create_appointment(req: CreateAppointmentRequest):
+def create_appointment(req: CreateAppointmentRequest, request: Request = None, token: Optional[str] = None):
     """Book a new clinical consultation backed by persistent database."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     new_id = f"APT-{datetime.now().year}-{uuid.uuid4().hex[:4].upper()}"
     apt = DB_MANAGER.create_appointment(
         appointment_id=new_id,
@@ -2833,14 +2858,27 @@ def list_conversations_endpoint(
 ):
     """List clinical messaging conversations for authenticated doctor or patient."""
     user = get_authenticated_user_from_request(request, token)
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     effective_uid = user_id or (user.user_id if user else None)
     effective_hosp = hospital_id or (user.hospital_id if user and user.hospital_id else None)
     convs = DB_MANAGER.list_conversations(user_id=effective_uid, hospital_id=effective_hosp, limit=limit)
     return {"status": "SUCCESS", "conversations": convs}
 
 @router.post("/conversations", dependencies=[_protected])
-def create_conversation_endpoint(req: CreateConversationRequest):
+def create_conversation_endpoint(req: CreateConversationRequest, request: Request = None, token: Optional[str] = None):
     """Create a new clinical doctor-patient conversation thread."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     conv_id = f"CONV-{uuid.uuid4().hex[:6].upper()}"
     conv = DB_MANAGER.create_conversation(
         conversation_id=conv_id,
@@ -2865,8 +2903,15 @@ def create_conversation_endpoint(req: CreateConversationRequest):
     return {"status": "SUCCESS", "conversation": conv}
 
 @router.get("/conversations/{conversation_id}/messages", dependencies=[_protected])
-def list_messages_endpoint(conversation_id: str, limit: int = 100):
+def list_messages_endpoint(conversation_id: str, limit: int = 100, request: Request = None, token: Optional[str] = None):
     """Retrieve message transcript for a clinical conversation."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     conv = DB_MANAGER.get_conversation(conversation_id)
     if not conv:
         raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
@@ -2874,8 +2919,15 @@ def list_messages_endpoint(conversation_id: str, limit: int = 100):
     return {"status": "SUCCESS", "conversation": conv, "messages": messages}
 
 @router.post("/conversations/{conversation_id}/messages", dependencies=[_protected])
-def send_message_endpoint(conversation_id: str, req: SendMessageRequest):
+def send_message_endpoint(conversation_id: str, req: SendMessageRequest, request: Request = None, token: Optional[str] = None):
     """Send a message within an existing clinical conversation."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     conv = DB_MANAGER.get_conversation(conversation_id)
     if not conv:
         raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
@@ -2989,8 +3041,22 @@ def assign_patient_endpoint(patient_identifier: str, req: AssignPatientRequest, 
     return {"status": "SUCCESS", "assignment": res}
 
 @router.get("/doctors/{doctor_identifier}/patients", dependencies=[_protected])
-def get_doctor_patients_endpoint(doctor_identifier: str, hospital_id: Optional[str] = None):
+def get_doctor_patients_endpoint(
+    doctor_identifier: str,
+    hospital_id: Optional[str] = None,
+    request: Request = None,
+    token: Optional[str] = None,
+):
     """Retrieve clinical roster of patients assigned to a doctor."""
+    user = get_authenticated_user_from_request(request, token) if request else None
+    if is_strict_auth_required() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide valid Authorization Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user and user.role == UserRole.PATIENT:
+        raise HTTPException(status_code=403, detail="Access denied: Patients cannot inspect doctor caseloads.")
     patients = DB_MANAGER.get_doctor_assigned_patients(doctor_identifier, hospital_id=hospital_id)
     return {"status": "SUCCESS", "doctor_id": doctor_identifier, "count": len(patients), "patients": patients}
 

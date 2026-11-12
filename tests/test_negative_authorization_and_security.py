@@ -39,17 +39,54 @@ class TestNegativeAuthorization:
         data = response.json()
         assert "authentication" in data["detail"].lower()
 
-    def test_strict_auth_blocks_unauthenticated_patients_endpoint(self, client, monkeypatch):
-        """SEC-02: In strict mode (production / env flag), unauthenticated /api/patients is blocked."""
-        monkeypatch.setenv("ECG_STRICT_AUTH", "1")
+    def test_default_auth_blocks_unauthenticated_patients_endpoint(self, client):
+        """SEC-02: Zero trust by default - unauthenticated GET /api/patients is strictly blocked."""
         response = client.get("/api/patients")
         assert response.status_code == 401
         assert "authentication required" in response.json()["detail"].lower()
 
-    def test_strict_auth_blocks_unauthenticated_reports_endpoint(self, client, monkeypatch):
-        """SEC-02: In strict mode, unauthenticated /api/reports is blocked."""
-        monkeypatch.setenv("ECG_STRICT_AUTH", "1")
+    def test_default_auth_blocks_unauthenticated_patient_creation(self, client):
+        """SEC-02: Unauthenticated POST /api/patients is strictly rejected with 401."""
+        response = client.post("/api/patients", json={"name": "Anonymous Intruder"})
+        assert response.status_code == 401
+
+    def test_patient_role_cannot_create_patient_dossier(self, client):
+        """SEC-02: Patient accounts are forbidden from registering patient dossiers (403)."""
+        from api.security import create_jwt_token
+        from src.auth.auth_manager import User, UserRole
+
+        patient_user = User(
+            user_id="pat_99881",
+            username="eve_patient",
+            password_hash="",
+            salt="",
+            role=UserRole.PATIENT,
+            full_name="Eve Patient",
+            email="eve@example.com",
+            hospital_id="HOSP-APEX",
+        )
+        token = create_jwt_token(patient_user)
+        response = client.post(
+            "/api/patients",
+            json={"name": "Injected Patient Record"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+        assert "patient accounts cannot register" in response.json()["detail"].lower()
+
+    def test_default_auth_blocks_unauthenticated_reports_endpoint(self, client):
+        """SEC-02: Zero trust by default - unauthenticated GET /api/reports is blocked."""
         response = client.get("/api/reports")
+        assert response.status_code == 401
+
+    def test_default_auth_blocks_unauthenticated_conversations_endpoint(self, client):
+        """SEC-02: Unauthenticated clinical messaging GET /api/conversations is blocked."""
+        response = client.get("/api/conversations")
+        assert response.status_code == 401
+
+    def test_default_auth_blocks_unauthenticated_appointments_endpoint(self, client):
+        """SEC-02: Unauthenticated clinical appointments GET /api/appointments is blocked."""
+        response = client.get("/api/appointments")
         assert response.status_code == 401
 
     def test_patient_role_cannot_seal_clinical_review(self, client):
@@ -85,9 +122,16 @@ class TestNegativeAuthorization:
         assert response.status_code == 403
         assert "only licensed clinicians" in response.json()["detail"].lower()
 
-    def test_invalid_bearer_token_rejected_in_strict_auth(self, client, monkeypatch):
-        """SEC-04: Tampered or invalid JWT/bearer token must be rejected."""
-        monkeypatch.setenv("ECG_STRICT_AUTH", "1")
+    def test_unauthenticated_review_rejected_with_401(self, client):
+        """SEC-03: Anonymous POST /api/review is rejected with 401."""
+        response = client.post(
+            "/api/review",
+            json={"analysis_id": "ANL-999", "clinician_name": "Anonymous Attacker"}
+        )
+        assert response.status_code == 401
+
+    def test_invalid_bearer_token_rejected(self, client):
+        """SEC-04: Tampered or invalid JWT/bearer token must be rejected with 401."""
         response = client.get(
             "/api/patients",
             headers={"Authorization": "Bearer totally_forged_invalid_token_12345"}

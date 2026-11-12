@@ -57,6 +57,20 @@ def test_api_analyze_unusable_signal_safety_gate():
 
 
 def test_api_clinician_review():
+    from api.security import create_jwt_token
+    from src.auth.auth_manager import User, UserRole
+    doctor = User(
+        user_id="doc_sarah",
+        username="sarah_rao",
+        password_hash="",
+        salt="",
+        role=UserRole.CARDIOLOGIST,
+        full_name="Dr. Sarah Rao",
+        email="srao@hospital.org",
+        hospital_id="HOSP-APEX",
+        registration_number="MCI-48291",
+    )
+    headers = {"Authorization": f"Bearer {create_jwt_token(doctor)}"}
     payload = {
         "analysis_id": "ANALYSIS-TEST-001",
         "clinician_name": "Dr. Sarah Rao",
@@ -66,7 +80,7 @@ def test_api_clinician_review():
         "clinician_interpretation": "Sinus rhythm confirmed on bedside telemetry.",
         "clinical_notes": "Patient stable.",
     }
-    response = client.post("/api/review", json=payload)
+    response = client.post("/api/review", json=payload, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "SEALED"

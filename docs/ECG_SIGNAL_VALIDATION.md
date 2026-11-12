@@ -69,3 +69,16 @@ In legacy versions, optical ECG extraction in `src/ecg_input/waveform_extractor.
 3. **Clinical Policy**:
    - Diagnostic decisions requiring absolute millivolt precision (STEMI, ST-depression ischemia, LVH) are barred when `can_evaluate_st` is false.
    - Only rhythm interpretation (rate, regularity, ectopy) is permitted on optical strips pending physical grid detection calibration.
+
+---
+
+## 4. Dynamic Morphological Fiducial Detection (BIO-02)
+
+### 4.1 Remediation of Fixed Q-Point Calculation
+- **Historical Defect**: QT interval calculation previously assumed `q_point = t_pre` (hardcoded at R - 50ms), producing constant interval distortions regardless of actual Q-wave morphology, PR interval variation, or intraventricular conduction delays.
+- **Dynamic Q-Onset Algorithm**:
+  1. Identifies the pre-R search window `[R - 70ms, R]`.
+  2. Computes the minimum voltage inflection point (Q trough).
+  3. Traces backward along the first derivative to locate the baseline departure inflection where `|d/dt| < 0.10 * max(|d/dt|)`.
+  4. Measures the true QT interval from the dynamic Q-onset to the T-wave offset baseline return.
+- **Validation**: Tested against standard MIT-BIH sinus beats, yielding physiological QT intervals in the 360–440 ms range and correct Bazett/Fridericia rate-corrected intervals.

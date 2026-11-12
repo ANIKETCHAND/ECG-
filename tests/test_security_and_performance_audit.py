@@ -35,7 +35,7 @@ def client():
     return TestClient(app)
 
 
-def test_sql_injection_defense_in_patient_search(client):
+def test_sql_injection_defense_in_patient_search(client, auth_headers):
     """Verify SQL injection strings in search query parameter do not compromise database."""
     sqli_payloads = [
         "' OR '1'='1",
@@ -44,7 +44,7 @@ def test_sql_injection_defense_in_patient_search(client):
         "' UNION SELECT * FROM users --",
     ]
     for payload in sqli_payloads:
-        res = client.get(f"/api/patients?search={payload}")
+        res = client.get(f"/api/patients?search={payload}", headers=auth_headers)
         assert res.status_code == 200, f"Search failed on SQLi payload: {payload}"
         data = res.json()
         assert data["status"] == "SUCCESS"
@@ -53,7 +53,7 @@ def test_sql_injection_defense_in_patient_search(client):
         assert len(patients) >= 0
 
 
-def test_sql_injection_defense_in_patient_create(client):
+def test_sql_injection_defense_in_patient_create(client, auth_headers):
     """Verify SQL injection payloads in patient creation fields are parameterized."""
     malicious_name = "Robert'); DROP TABLE patients;--"
     mrn = f"MRN-SQLI-{uuid.uuid4().hex[:6].upper()}"
@@ -64,7 +64,7 @@ def test_sql_injection_defense_in_patient_create(client):
         "hospital_id": "HOSP-APEX",
         "age": 40,
         "sex": "Male",
-    })
+    }, headers=auth_headers)
     assert res.status_code == 201
     created_pat = res.json()["patient"]
     assert created_pat["name"] == malicious_name
@@ -76,7 +76,7 @@ def test_sql_injection_defense_in_patient_create(client):
     assert fetched.name == malicious_name
 
 
-def test_xss_payload_neutralization(client):
+def test_xss_payload_neutralization(client, auth_headers):
     """Verify HTML/script payloads in patient fields are stored cleanly as plaintext."""
     xss_payload = "<script>alert('XSS_AUDIT_EXPLOIT')</script><img src=x onerror=alert(1)>"
     mrn = f"MRN-XSS-{uuid.uuid4().hex[:6].upper()}"
@@ -88,13 +88,13 @@ def test_xss_payload_neutralization(client):
         "age": 35,
         "known_allergies": ["<script>bad()</script>"],
         "existing_conditions": ["<b onmouseover=evil()>HTN</b>"],
-    })
+    }, headers=auth_headers)
     assert res.status_code == 201
     pat = res.json()["patient"]
     assert pat["name"] == xss_payload
 
     # Fetch through GET endpoint
-    get_res = client.get(f"/api/patients/{mrn}")
+    get_res = client.get(f"/api/patients/{mrn}", headers=auth_headers)
     assert get_res.status_code == 200
     fetched_name = get_res.json()["patient"]["name"]
     assert fetched_name == xss_payload

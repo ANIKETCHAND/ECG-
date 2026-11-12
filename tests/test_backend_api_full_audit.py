@@ -148,7 +148,7 @@ def test_auth_role_portal_isolation(client):
 # 3. PATIENT MANAGEMENT ENDPOINTS
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_patient_crud_and_validation(client):
+def test_patient_crud_and_validation(client, auth_headers):
     unique_mrn = f"MRN-TEST-{uuid.uuid4().hex[:6].upper()}"
 
     # 1. Create Patient
@@ -166,7 +166,7 @@ def test_patient_crud_and_validation(client):
         "diastolic_bp": 88.0,
         "heart_rate": 76.0,
     }
-    res = client.post("/api/patients", json=create_payload)
+    res = client.post("/api/patients", json=create_payload, headers=auth_headers)
     assert res.status_code == 201
     pat_data = res.json()["patient"]
     pat_id = pat_data["patient_id"]
@@ -174,16 +174,16 @@ def test_patient_crud_and_validation(client):
     assert pat_data["age"] >= 44
 
     # 2. Duplicate MRN Rejection
-    dup_res = client.post("/api/patients", json=create_payload)
+    dup_res = client.post("/api/patients", json=create_payload, headers=auth_headers)
     assert dup_res.status_code == 409
     assert "already exists" in dup_res.json()["detail"]
 
     # 3. Get Patient by ID and by MRN
-    get_by_id = client.get(f"/api/patients/{pat_id}")
+    get_by_id = client.get(f"/api/patients/{pat_id}", headers=auth_headers)
     assert get_by_id.status_code == 200
     assert get_by_id.json()["patient"]["name"] == "Jane Test Patient"
 
-    get_by_mrn = client.get(f"/api/patients/{unique_mrn}")
+    get_by_mrn = client.get(f"/api/patients/{unique_mrn}", headers=auth_headers)
     assert get_by_mrn.status_code == 200
     assert get_by_mrn.json()["patient"]["patient_id"] == pat_id
 
@@ -192,17 +192,17 @@ def test_patient_crud_and_validation(client):
         "name": "Jane Updated Patient",
         "current_medications": ["Amlodipine 10mg", "Atorvastatin 20mg"],
         "systolic_bp": 125.0,
-    })
+    }, headers=auth_headers)
     assert update_res.status_code == 200
     assert update_res.json()["patient"]["name"] == "Jane Updated Patient"
 
     # 5. List Patients
-    list_res = client.get("/api/patients?limit=50")
+    list_res = client.get("/api/patients?limit=50", headers=auth_headers)
     assert list_res.status_code == 200
     assert len(list_res.json()["patients"]) > 0
 
     # 6. Search Patients
-    search_res = client.get(f"/api/patients?q={unique_mrn}")
+    search_res = client.get(f"/api/patients?q={unique_mrn}", headers=auth_headers)
     assert search_res.status_code == 200
     assert len(search_res.json()["patients"]) == 1
 
@@ -210,7 +210,7 @@ def test_patient_crud_and_validation(client):
     future_dob_res = client.post("/api/patients", json={
         "name": "Future Baby",
         "date_of_birth": "2099-01-01",
-    })
+    }, headers=auth_headers)
     assert future_dob_res.status_code == 400
 
 
@@ -307,7 +307,7 @@ def test_upload_unsupported_format(client):
 # 7. CLINICIAN REVIEW SIGN-OFF & CRYPTOGRAPHIC SEALING
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_clinician_review_and_report_sealing(client, clean_lead2_signal):
+def test_clinician_review_and_report_sealing(client, clean_lead2_signal, auth_headers):
     # 1. Run analysis to create report
     anl_res = client.post("/api/analyze", json={
         "signal": clean_lead2_signal,
@@ -327,7 +327,7 @@ def test_clinician_review_and_report_sealing(client, clean_lead2_signal):
         "clinician_interpretation": "Normal sinus rhythm confirmed. Patient cleared for activity.",
         "clinical_notes": "Follow-up in 12 months.",
         "selected_medication": "None",
-    })
+    }, headers=auth_headers)
     assert rev_res.status_code == 200
     rev_data = rev_res.json()
     assert rev_data["status"] in ["SEALED", "SEALED_AND_CONFIRMED"]
@@ -338,7 +338,7 @@ def test_clinician_review_and_report_sealing(client, clean_lead2_signal):
 # 8. REPORT RETRIEVAL & IMMUTABILITY
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_report_retrieval_and_dual_pdf_download(client, clean_lead2_signal):
+def test_report_retrieval_and_dual_pdf_download(client, clean_lead2_signal, auth_headers):
     # 1. Run analysis
     anl_res = client.post("/api/analyze", json={
         "signal": clean_lead2_signal,
@@ -348,26 +348,26 @@ def test_report_retrieval_and_dual_pdf_download(client, clean_lead2_signal):
     rep_id = anl_res.json()["report_id"]
 
     # 2. Get Report JSON
-    get_rep = client.get(f"/api/reports/{rep_id}")
+    get_rep = client.get(f"/api/reports/{rep_id}", headers=auth_headers)
     assert get_rep.status_code == 200
     assert get_rep.json()["status"] == "SUCCESS"
 
     # 3. Download Doctor PDF
-    doc_pdf = client.get(f"/api/reports/{rep_id}/pdf?type=doctor")
+    doc_pdf = client.get(f"/api/reports/{rep_id}/pdf?type=doctor", headers=auth_headers)
     assert doc_pdf.status_code == 200
     assert doc_pdf.headers["content-type"] == "application/pdf"
     assert doc_pdf.content.startswith(b"%PDF")
 
     # 4. Download Patient PDF
-    pat_pdf = client.get(f"/api/reports/{rep_id}/pdf?type=patient")
+    pat_pdf = client.get(f"/api/reports/{rep_id}/pdf?type=patient", headers=auth_headers)
     assert pat_pdf.status_code == 200
     assert pat_pdf.headers["content-type"] == "application/pdf"
     assert pat_pdf.content.startswith(b"%PDF")
 
 
-def test_reports_listing_endpoint(client):
+def test_reports_listing_endpoint(client, auth_headers):
     """Verify GET /api/reports returns immutable report snapshot listing with pagination."""
-    res = client.get("/api/reports?limit=10")
+    res = client.get("/api/reports?limit=10", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "SUCCESS"

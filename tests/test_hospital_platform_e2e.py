@@ -164,7 +164,7 @@ def test_auth_invalid_credentials(client):
 # 3. Patient Clinical Intake & Management (CRUD) Tests
 # ==============================================================================
 
-def test_patient_crud_lifecycle(client):
+def test_patient_crud_lifecycle(client, auth_headers):
     timestamp = int(datetime.now().timestamp())
     patient_name = f"Rajesh Sharma {timestamp}"
 
@@ -189,7 +189,7 @@ def test_patient_crud_lifecycle(client):
         "heart_rate": 74.0,
         "spo2": 98.0,
     }
-    create_resp = client.post("/api/patients", json=create_payload)
+    create_resp = client.post("/api/patients", json=create_payload, headers=auth_headers)
     assert create_resp.status_code == 201
     create_data = create_resp.json()
     assert create_data["status"] in ["SUCCESS", "CREATED"]
@@ -201,7 +201,7 @@ def test_patient_crud_lifecycle(client):
     assert pat["age"] is not None and pat["age"] >= 40
 
     # 2. Retrieve Patient by MRN
-    get_resp = client.get(f"/api/patients/{mrn}")
+    get_resp = client.get(f"/api/patients/{mrn}", headers=auth_headers)
     assert get_resp.status_code == 200
     retrieved = get_resp.json()["patient"]
     assert retrieved["patient_id"] == patient_id
@@ -216,14 +216,14 @@ def test_patient_crud_lifecycle(client):
         "systolic_bp": 122.0,
         "diastolic_bp": 78.0,
     }
-    put_resp = client.put(f"/api/patients/{patient_id}", json=update_payload)
+    put_resp = client.put(f"/api/patients/{patient_id}", json=update_payload, headers=auth_headers)
     assert put_resp.status_code == 200
     updated_pat = put_resp.json()["patient"]
     assert updated_pat["blood_group"] == "O+"
     assert "Sulfa" in str(updated_pat["known_allergies"])
 
     # 4. List Patients with search query
-    list_resp = client.get(f"/api/patients?search={patient_name}")
+    list_resp = client.get(f"/api/patients?search={patient_name}", headers=auth_headers)
     assert list_resp.status_code == 200
     patients_list = list_resp.json()["patients"]
     assert any(p["patient_id"] == patient_id for p in patients_list)
@@ -253,7 +253,7 @@ def test_dashboard_stats_endpoint(client):
 # 5. Full ECG Analysis Linked to Patient Context Tests
 # ==============================================================================
 
-def test_analyze_ecg_with_patient_linkage(client, test_signal):
+def test_analyze_ecg_with_patient_linkage(client, test_signal, auth_headers):
     # First create a patient
     p_resp = client.post("/api/patients", json={
         "name": "Ananya Sen",
@@ -264,7 +264,7 @@ def test_analyze_ecg_with_patient_linkage(client, test_signal):
         "existing_conditions": "Palpitations",
         "current_medications": "Propranolol 10mg",
         "previous_cardiac_history": "None",
-    })
+    }, headers=auth_headers)
     assert p_resp.status_code == 201
     pat_id = p_resp.json()["patient"]["patient_id"]
     pat_mrn = p_resp.json()["patient"]["hospital_mrn"]
@@ -346,6 +346,21 @@ def test_clinician_review_and_historical_immutable_retrieval(client, test_signal
     report_id = analysis["report_id"]
 
     # 2. Clinician reviews and cryptographically seals report
+    from api.security import create_jwt_token
+    from src.auth.auth_manager import User, UserRole
+    doc_ananya = User(
+        user_id="doc_ananya",
+        username="ananya_roy",
+        password_hash="",
+        salt="",
+        role=UserRole.CARDIOLOGIST,
+        full_name="Dr. Ananya Roy, MD DM",
+        email="ananya.roy@hospital.org",
+        hospital_id="HOSP-APEX",
+        registration_number="MCI-778899",
+    )
+    doc_headers = {"Authorization": f"Bearer {create_jwt_token(doc_ananya)}"}
+
     review_resp = client.post("/api/review", json={
         "analysis_id": report_id,
         "clinician_name": "Dr. Ananya Roy, MD DM",
@@ -354,14 +369,14 @@ def test_clinician_review_and_historical_immutable_retrieval(client, test_signal
         "agreement_status": "CONFIRMED",
         "clinician_interpretation": "Normal Sinus Rhythm. Physiological repolarization.",
         "clinical_notes": "Patient advised routine follow-up in 12 months.",
-    })
+    }, headers=doc_headers)
     assert review_resp.status_code == 200
     review_data = review_resp.json()
     assert review_data["status"] == "SEALED"
     assert "review_id" in review_data
 
     # 3. Retrieve immutable report snapshot without re-running ML
-    snap_resp = client.get(f"/api/reports/{report_id}")
+    snap_resp = client.get(f"/api/reports/{report_id}", headers=doc_headers)
     assert snap_resp.status_code == 200
     snap = snap_resp.json()["report"]
     assert snap["report_id"] == report_id
@@ -369,12 +384,12 @@ def test_clinician_review_and_historical_immutable_retrieval(client, test_signal
     assert snap["reviewer_name"] == "Dr. Ananya Roy, MD DM"
 
     # 4. Download historical doctor PDF
-    doc_pdf = client.get(f"/api/reports/{report_id}/pdf?type=doctor")
+    doc_pdf = client.get(f"/api/reports/{report_id}/pdf?type=doctor", headers=doc_headers)
     assert doc_pdf.status_code == 200
     assert doc_pdf.content.startswith(b"%PDF")
 
     # 5. Download historical patient PDF
-    pat_pdf = client.get(f"/api/reports/{report_id}/pdf?type=patient")
+    pat_pdf = client.get(f"/api/reports/{report_id}/pdf?type=patient", headers=doc_headers)
     assert pat_pdf.status_code == 200
     assert pat_pdf.content.startswith(b"%PDF")
 
@@ -411,31 +426,31 @@ def test_frontend_spa_serving_and_view_structure(client):
         assert f'id="{view_id}"' in html, f"Missing view element '{view_id}' in public/index.html"
 
 
-def test_edge_case_duplicate_mrn_conflict(client):
+def test_edge_case_duplicate_mrn_conflict(client, auth_headers):
     """Attempting to register another patient with the same MRN returns 409 conflict."""
     unique_mrn = f"MRN-TEST-{datetime.now().timestamp():.0f}"
     p1 = client.post("/api/patients", json={
         "name": "Original Patient",
         "hospital_mrn": unique_mrn,
-    })
+    }, headers=auth_headers)
     assert p1.status_code == 201
 
     # Attempt duplicate registration with same MRN
     p2 = client.post("/api/patients", json={
         "name": "Impostor Patient",
         "hospital_mrn": unique_mrn,
-    })
+    }, headers=auth_headers)
     assert p2.status_code == 409
     assert "already exists" in p2.json()["detail"]
 
 
-def test_edge_case_future_dob_rejected(client):
+def test_edge_case_future_dob_rejected(client, auth_headers):
     """Registering patient with a future birth date is rejected."""
     future_date = (date.today() + timedelta(days=400)).strftime("%Y-%m-%d")
     resp = client.post("/api/patients", json={
         "name": "Time Traveler",
         "date_of_birth": future_date,
-    })
+    }, headers=auth_headers)
     assert resp.status_code == 400
     assert "future" in resp.json()["detail"].lower()
 
@@ -444,7 +459,7 @@ def test_edge_case_future_dob_rejected(client):
 # 9. RBAC & Multi-Tenant Cross-Hospital Boundary Enforcement Tests
 # ==============================================================================
 
-def test_rbac_patient_cannot_access_other_patient_data(client):
+def test_rbac_patient_cannot_access_other_patient_data(client, auth_headers):
     """Verify patient session token is strictly prohibited from accessing another patient's records."""
     ts = int(datetime.now().timestamp())
     p1_email = f"patient1_{ts}@hospital.org"
@@ -469,7 +484,7 @@ def test_rbac_patient_cannot_access_other_patient_data(client):
         "hospital_mrn": f"MRN-BETA-{ts}",
         "hospital_id": "HOSP-APEX",
         "blood_group": "A+",
-    })
+    }, headers=auth_headers)
     assert r2.status_code == 201
     p2_id = r2.json()["patient"]["patient_id"]
     p2_mrn = r2.json()["patient"]["hospital_mrn"]
@@ -528,7 +543,7 @@ def test_multitenancy_cross_hospital_isolation(client):
         "name": "Metro Citizen",
         "hospital_id": "HOSP-METRO",
         "blood_group": "B+",
-    }).json()["patient"]
+    }, headers={"Authorization": f"Bearer {metro_token}"}).json()["patient"]
     metro_pat_id = p_metro["patient_id"]
 
     # 4. Doctor 2 (HOSP-CITY) attempts to retrieve HOSP-METRO patient -> 403 Forbidden
@@ -547,7 +562,7 @@ def test_multitenancy_cross_hospital_isolation(client):
     assert authorized_get.json()["patient"]["patient_id"] == metro_pat_id
 
 
-def test_clinician_approved_treatment_plan_in_snapshot(client, test_signal):
+def test_clinician_approved_treatment_plan_in_snapshot(client, test_signal, auth_headers):
     """Verify that clinician treatment directives and approved medication are frozen into the immutable report snapshot."""
     # 1. Run analysis to produce report
     analysis_resp = client.post("/api/analyze", json={
@@ -574,7 +589,7 @@ def test_clinician_approved_treatment_plan_in_snapshot(client, test_signal):
         "medication_dosage": "25 mg orally once daily",
         "treatment_instructions": "Take with breakfast. Monitor resting heart rate.",
         "follow_up_instructions": "Schedule cardiology review in 4 weeks.",
-    })
+    }, headers=auth_headers)
     assert review_resp.status_code == 200
     rev_data = review_resp.json()
     assert rev_data["status"] == "SEALED"
@@ -582,7 +597,7 @@ def test_clinician_approved_treatment_plan_in_snapshot(client, test_signal):
     assert rev_data["treatment_plan"]["medication_dosage"] == "25 mg orally once daily"
 
     # 3. Retrieve immutable snapshot and verify approved treatment plan is present
-    snap_resp = client.get(f"/api/reports/{report_id}")
+    snap_resp = client.get(f"/api/reports/{report_id}", headers=auth_headers)
     assert snap_resp.status_code == 200
     snap = snap_resp.json()["report"]
     rd = snap.get("report_data", {})
@@ -592,7 +607,7 @@ def test_clinician_approved_treatment_plan_in_snapshot(client, test_signal):
     assert "4 weeks" in tp.get("follow_up_instructions", "")
 
     # 4. Generate Patient PDF and verify it includes treatment directives
-    pat_pdf_resp = client.get(f"/api/reports/{report_id}/pdf?type=patient")
+    pat_pdf_resp = client.get(f"/api/reports/{report_id}/pdf?type=patient", headers=auth_headers)
     assert pat_pdf_resp.status_code == 200
     assert pat_pdf_resp.content.startswith(b"%PDF")
     assert len(pat_pdf_resp.content) > 1000

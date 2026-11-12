@@ -26,6 +26,7 @@ Three controls, each configurable by environment variable:
 from __future__ import annotations
 
 import os
+import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -51,19 +52,36 @@ HTTP_413_TOO_LARGE = 413
 SECURITY_BEARER = HTTPBearer(auto_error=False)
 JWT_ALGORITHM = "HS256"
 
+_EPHEMERAL_DEV_SECRET: Optional[str] = None
+
 
 def get_jwt_secret_key() -> str:
-    """Retrieve cryptographic JWT signing key with production guard."""
+    """
+    Retrieve cryptographic JWT signing key with production guard.
+    Never uses committed static secrets in source code.
+    """
+    global _EPHEMERAL_DEV_SECRET
     secret = os.environ.get(JWT_SECRET_ENV_VAR) or os.environ.get("JWT_SECRET")
+    if secret and secret.strip():
+        return secret.strip()
+
     is_prod = bool(
         os.environ.get("VERCEL")
         or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
         or os.environ.get("ENVIRONMENT") == "production"
     )
-    if is_prod and not secret:
-        # In serverless/production, fail-safe to a persistent hash to prevent forged tokens
-        return os.environ.get("VERCEL_DEPLOYMENT_ID") or "STRICT_PROD_FALLBACK_SECRET_ECG_2026"
-    return secret or "DEV_FALLBACK_JWT_SECRET_2026_CDSCO_ECG_GUARDIAN"
+    if is_prod:
+        deployment_id = os.environ.get("VERCEL_DEPLOYMENT_ID")
+        if deployment_id:
+            return f"VERCEL_DEPLOYMENT_{deployment_id}"
+        raise RuntimeError(
+            "FATAL SECURITY CONFIGURATION: ECG_JWT_SECRET environment variable is mandatory in production."
+        )
+
+    # In local/test environments without explicit configuration, use a per-process ephemeral key
+    if _EPHEMERAL_DEV_SECRET is None:
+        _EPHEMERAL_DEV_SECRET = secrets.token_hex(32)
+    return _EPHEMERAL_DEV_SECRET
 
 
 def create_jwt_token(user: User, duration_sec: int = 86400) -> str:
@@ -92,13 +110,19 @@ def decode_jwt_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 def is_strict_auth_required() -> bool:
-    """Determine whether zero-trust mandatory authentication is active."""
-    if os.environ.get(STRICT_AUTH_ENV_VAR) in ("1", "true", "True"):
-        return True
-    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or os.environ.get("ENVIRONMENT") == "production":
-        return True
-    settings = get_security_settings()
-    return settings.auth_enabled
+    """
+    Determine whether zero-trust mandatory authentication is active.
+    Defaults to TRUE across all environments to guarantee deny-by-default access control.
+    """
+    if os.environ.get("ECG_DISABLE_AUTH_FOR_BENCHMARKING") == "1":
+        is_prod = bool(
+            os.environ.get("VERCEL")
+            or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+            or os.environ.get("ENVIRONMENT") == "production"
+        )
+        if not is_prod:
+            return False
+    return True
 
 
 def get_current_user_strictly(

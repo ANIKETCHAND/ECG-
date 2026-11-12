@@ -765,7 +765,7 @@ def test_standard_keys_potassium_and_vital_alerts():
     assert "hypokalemia" in all_issues.lower() or "potassium" in all_issues.lower() or "digoxin" in all_issues.lower()
 
 
-def test_clinician_review_endpoint_seals_report_with_distinct_analysis_id():
+def test_clinician_review_endpoint_seals_report_with_distinct_analysis_id(auth_headers):
     """Verify that POST /api/review correctly seals the report in DB when report_id != analysis_id."""
     import uuid
     from fastapi.testclient import TestClient
@@ -839,7 +839,7 @@ def test_clinician_review_endpoint_seals_report_with_distinct_analysis_id():
         "prescribed_medication": "None",
         "signature": "Dr. Aniket Chandra, MD (Attested)"
     }
-    response = client.post("/api/review", json=review_payload)
+    response = client.post("/api/review", json=review_payload, headers=auth_headers)
     assert response.status_code == 200, f"Expected 200, got: {response.text}"
     res_data = response.json()
     assert res_data["status"] in ["SEALED", "success"]
@@ -853,7 +853,7 @@ def test_clinician_review_endpoint_seals_report_with_distinct_analysis_id():
     assert clin_rev.get("status") == "SIGNED"
 
 
-def test_patient_registration_endpoint_with_section1_fields(db):
+def test_patient_registration_endpoint_with_section1_fields(db, auth_headers):
     """Verify that POST /api/patients accepts and persists all Section 1 multimodal clinical fields."""
     import uuid
     from fastapi.testclient import TestClient
@@ -911,13 +911,13 @@ def test_patient_registration_endpoint_with_section1_fields(db):
         "alt_u_l": 22.0
     }
 
-    res = client.post("/api/patients", json=reg_payload)
+    res = client.post("/api/patients", json=reg_payload, headers=auth_headers)
     assert res.status_code in [200, 201], f"Expected 200/201, got: {res.text}"
     p_data = res.json()["patient"]
     p_id = p_data["patient_id"]
 
     # Verify through GET /api/patients/{id}
-    get_res = client.get(f"/api/patients/{p_id}")
+    get_res = client.get(f"/api/patients/{p_id}", headers=auth_headers)
     assert get_res.status_code == 200
     retrieved = get_res.json()["patient"]
     assert retrieved["name"] == "Devika Raman"
